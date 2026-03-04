@@ -548,7 +548,7 @@ function ExamsPage() {
   const statCounts = Object.fromEntries(Object.keys(STATUS_META).map(s=>[s,exams.filter(e=>e.status===s).length]));
 
   return (
-    <div style={{ flex:1, padding:"32px 40px", overflowY:"auto", minWidth:0, width:"100%" }}>
+    <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box" }}>
       {/* Header */}
       <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:24 }}>
         <div>

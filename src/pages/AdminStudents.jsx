@@ -590,7 +590,7 @@ export default function AdminStudents() {
         button:active{transform:scale(.97)}
         select option{background:#080f1a}
       `}</style>
-      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0 }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box" }}>
         <div style={{ marginBottom:24 }}>
           <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:"#e2e8f0", margin:"0 0 4px", fontWeight:600 }}>Students</h1>
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#475569", margin:0 }}>Student Management</p>

@@ -616,7 +616,7 @@ function QuestionsPage() {
   const handleToggleStatus = (id) => setQuestions(qs=>qs.map(q=>q.id===id?{...q,status:q.status==="published"?"draft":"published"}:q));
 
   return (
-    <div style={{ flex:1, padding:"32px 40px", overflowY:"auto", minWidth:0 }}>
+    <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box" }}>
       {/* Header */}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
         <div>

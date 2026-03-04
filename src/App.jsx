@@ -18,7 +18,6 @@ const NAV = [
   { id:"students",  icon:"👤", label:"Students",  component:AdminStudents },
   { id:"analytics", icon:"📊", label:"Analytics", component:AdminAnalytics },
   { id:"media",     icon:"📁", label:"Media",     component:AdminMedia },
-  { id:"analytics", icon:"📊", label:"Analytics", component:AdminAnalytics },
   { id:"settings",  icon:"⚙️",  label:"Settings",  component:AdminSettings },
 ];
 
@@ -71,7 +70,7 @@ export default function App() {
           </div>
 
           {/* Content */}
-          <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
+          <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minHeight:0 }}>
             {current?.component && <current.component />}
           </div>
         </div>

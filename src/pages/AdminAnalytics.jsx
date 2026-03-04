@@ -25,15 +25,15 @@ const STUDENTS = [
   { id:10, name:"Տիգրան Ղ.",      group:"Խ-101", level:"B2", status:"active" },
 ];
 const EXAMS_LIST = [
-  { id:1, title:"Ամ. B1 Ք.",   level:"B1", maxScore:20, passingScore:70, date:"2024-10-15" },
-  { id:2, title:"A2 Ախ. Փ.",   level:"A2", maxScore:10, passingScore:60, date:"2024-11-01" },
-  { id:3, title:"C1–C2 Բ. Մ.", level:"C1", maxScore:30, passingScore:80, date:"2024-11-20" },
-  { id:4, title:"B2 Պ. Ք.",    level:"B2", maxScore:22, passingScore:75, date:"2024-12-05" },
+  { id:1, title:"Summer B1 Exam",   level:"B1", maxScore:20, passingScore:70, date:"2024-10-15" },
+  { id:2, title:"A2 Entrance Test",   level:"A2", maxScore:10, passingScore:60, date:"2024-11-01" },
+  { id:3, title:"C1–C2 Final Exam", level:"C1", maxScore:30, passingScore:80, date:"2024-11-20" },
+  { id:4, title:"B2 Vocabulary Test",    level:"B2", maxScore:22, passingScore:75, date:"2024-12-05" },
 ];
 function fakeResult(sId, eId) {
-  const seed = (sId * 31 + eId * 17) % 100;
-  const score = Math.round(5 + seed * 0.9);
+  const seed  = (sId * 31 + eId * 17) % 100;
   const exam  = EXAMS_LIST.find(e=>e.id===eId);
+  const score = Math.min(Math.round((seed / 100) * exam.maxScore), exam.maxScore);
   const p     = Math.round((score / exam.maxScore) * 100);
   return { studentId:sId, examId:eId, score, maxScore:exam.maxScore, pct:p, passed:p>=exam.passingScore, date:exam.date };
 }
@@ -232,7 +232,7 @@ function TopStudentsTable({ students, results }) {
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <div style={{ flex:1, height:6, background:C.dim, borderRadius:3 }}>
-                <div style={{ width:`${s.avgPct}%`, height:"100%", background:`linear-gradient(90deg,${C.gold},${C.goldDim})`, borderRadius:3 }}/>
+                <div style={{ width:`${Math.min(s.avgPct,100)}%`, height:"100%", background:`linear-gradient(90deg,${C.gold},${C.goldDim})`, borderRadius:3 }}/>
               </div>
               <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:C.gold, fontWeight:700, width:38, textAlign:"right" }}>{s.avgPct}%</span>
             </div>
@@ -249,7 +249,7 @@ function ExamPerfTable({ exams, results }) {
       <div style={{ padding:"18px 22px", borderBottom:`1px solid ${C.border}` }}>
         <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600 }}>Exam Performance</span>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 70px 70px 1fr 70px", gap:12, padding:"10px 22px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px 1fr 80px", gap:12, padding:"10px 22px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
         {["Exam","Level","Taken","Passed","Pass Rate","Avg"].map(h=>(
           <span key={h} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:700, letterSpacing:.6, textTransform:"uppercase" }}>{h}</span>
         ))}
@@ -260,7 +260,7 @@ function ExamPerfTable({ exams, results }) {
         const passR=pct2(passed,taken), avgSc=avg(rs.map(r=>r.pct));
         const lc=LC[exam.level]||"#94a3b8";
         return (
-          <div key={exam.id} style={{ display:"grid", gridTemplateColumns:"1fr 60px 70px 70px 1fr 70px", gap:12, padding:"14px 22px", borderBottom:`1px solid ${C.border}`, alignItems:"center", transition:"background .15s" }}
+          <div key={exam.id} style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px 1fr 80px", gap:12, padding:"14px 22px", borderBottom:`1px solid ${C.border}`, alignItems:"center", transition:"background .15s" }}
             onMouseEnter={e=>e.currentTarget.style.background=C.panel}
             onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
             <div>
@@ -270,13 +270,13 @@ function ExamPerfTable({ exams, results }) {
             <span style={{ background:`${lc}18`, color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 8px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{exam.level}</span>
             <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.text, textAlign:"center" }}>{taken}</span>
             <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.success, textAlign:"center" }}>{passed}</span>
-            <div>
-              <div style={{ height:6, background:C.dim, borderRadius:3, marginBottom:4 }}>
-                <div style={{ width:`${passR}%`, height:"100%", background:passR>=75?C.success:passR>=50?C.warning:C.danger, borderRadius:3 }}/>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ flex:1, height:6, background:C.dim, borderRadius:3, overflow:"hidden" }}>
+                <div style={{ width:`${Math.min(passR,100)}%`, height:"100%", background:passR>=75?C.success:passR>=50?C.warning:C.danger, borderRadius:3 }}/>
               </div>
-              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:passR>=75?C.success:passR>=50?C.warning:C.danger }}>{passR}%</span>
+              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:passR>=75?C.success:passR>=50?C.warning:C.danger, minWidth:36, textAlign:"right", flexShrink:0 }}>{passR}%</span>
             </div>
-            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:700, textAlign:"center" }}>{avgSc}%</span>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:700, textAlign:"center" }}>{Math.min(avgSc,100)}%</span>
           </div>
         );
       })}
