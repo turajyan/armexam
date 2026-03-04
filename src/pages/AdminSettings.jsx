@@ -1,17 +1,28 @@
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
-const C = {
+const DARK_C = {
   bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
   border2:"#243050", gold:"#c8a96e", goldDim:"#7c5830",
   text:"#e2e8f0", muted:"#475569", dim:"#1e293b",
   success:"#22c55e", danger:"#f87171", warning:"#f59e0b",
   info:"#60a5fa", purple:"#a78bfa",
 };
+const LIGHT_C = {
+  bg:"#f0f4f8", panel:"#ffffff", card:"#f8fafc", border:"#e2e8f0",
+  border2:"#cbd5e1", gold:"#c8a96e", goldDim:"#7c5830",
+  text:"#0f172a", muted:"#64748b", dim:"#e2e8f0",
+  success:"#16a34a", danger:"#dc2626", warning:"#d97706",
+  info:"#2563eb", purple:"#7c3aed",
+};
+
+const ThemeCtx = createContext(DARK_C);
+const useC = () => useContext(ThemeCtx);
 
 // ── UI Atoms ──────────────────────────────────────────────────────────────────
 function Btn({ children, onClick, variant="ghost", small, disabled, style={} }) {
+  const C = useC();
   const base = { fontFamily:"'DM Sans',sans-serif", fontSize:small?12:13, fontWeight:600, borderRadius:9, padding:small?"6px 14px":"10px 20px", cursor:disabled?"not-allowed":"pointer", border:"none", transition:"all .15s", opacity:disabled?.5:1, ...style };
   const v = {
     primary: { background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, color:"white", boxShadow:`0 3px 12px ${C.gold}44` },
@@ -24,6 +35,7 @@ function Btn({ children, onClick, variant="ghost", small, disabled, style={} }) 
 }
 
 function Input({ label, value, onChange, placeholder, type="text", hint, style={} }) {
+  const C = useC();
   const [focus, setFocus] = useState(false);
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
@@ -38,6 +50,7 @@ function Input({ label, value, onChange, placeholder, type="text", hint, style={
 }
 
 function Select({ label, value, onChange, options, hint }) {
+  const C = useC();
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
       {label && <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, fontWeight:500 }}>{label}</label>}
@@ -51,6 +64,7 @@ function Select({ label, value, onChange, options, hint }) {
 }
 
 function Textarea({ label, value, onChange, placeholder, rows=3, hint }) {
+  const C = useC();
   const [focus, setFocus] = useState(false);
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
@@ -65,6 +79,7 @@ function Textarea({ label, value, onChange, placeholder, rows=3, hint }) {
 }
 
 function Toggle({ label, value, onChange, hint, danger }) {
+  const C = useC();
   const onColor = danger ? C.danger : C.gold;
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 16px", background:C.panel, border:`1px solid ${value&&danger?C.danger+"55":C.border2}`, borderRadius:11, transition:"border .2s", gap:16 }}>
@@ -80,6 +95,7 @@ function Toggle({ label, value, onChange, hint, danger }) {
 }
 
 function ColorPicker({ label, value, onChange }) {
+  const C = useC();
   const PRESETS = ["#c8a96e","#60a5fa","#a78bfa","#34d399","#f87171","#f59e0b","#e879f9","#94a3b8"];
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -97,6 +113,7 @@ function ColorPicker({ label, value, onChange }) {
 }
 
 function SettingSection({ title, icon, description, children }) {
+  const C = useC();
   return (
     <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden", marginBottom:16 }}>
       <div style={{ padding:"16px 22px", borderBottom:`1px solid ${C.border}` }}>
@@ -114,6 +131,7 @@ function SettingSection({ title, icon, description, children }) {
 }
 
 function SaveBar({ onSave, onReset, saved }) {
+  const C = useC();
   return (
     <div style={{ position:"sticky", bottom:0, background:C.panel+"ee", backdropFilter:"blur(12px)", borderTop:`1px solid ${C.border}`, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
       <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:saved?C.success:C.warning, transition:"color .3s" }}>
@@ -128,6 +146,7 @@ function SaveBar({ onSave, onReset, saved }) {
 }
 
 function AdminRow({ admin, onEdit, onDelete, isSelf }) {
+  const C = useC();
   const roleColor = { superadmin:C.gold, admin:C.info, examiner:C.purple, viewer:C.muted };
   return (
     <div style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", background:C.panel, border:`1px solid ${C.border}`, borderRadius:11, marginBottom:8 }}>
@@ -154,6 +173,7 @@ function AdminRow({ admin, onEdit, onDelete, isSelf }) {
 }
 
 function BackupRow({ backup }) {
+  const C = useC();
   const statusColor = { success:C.success, running:C.warning, failed:C.danger };
   const statusLabel = { success:"✓ Success", running:"↻ Running", failed:"✕ Failed" };
   return (
@@ -196,7 +216,8 @@ const SEED_BACKUPS = [
 ];
 
 // ── Main Settings Page ────────────────────────────────────────────────────────
-export default function SettingsPage() {
+export default function SettingsPage({ theme = "dark", onThemeChange }) {
+  const C = theme === "light" ? LIGHT_C : DARK_C;
   const [tab, setTab] = useState("general");
   const [saved, setSaved] = useState(true);
   const [admins, setAdmins] = useState(SEED_ADMINS);
@@ -235,7 +256,7 @@ export default function SettingsPage() {
     primaryColor:"#c8a96e",
     accentColor:"#60a5fa",
     dangerColor:"#f87171",
-    theme:"dark",
+    theme,
     fontHeading:"Cormorant Garamond",
     fontBody:"DM Sans",
     borderRadius:"14",
@@ -285,7 +306,7 @@ export default function SettingsPage() {
 
   const setG   = (k,v) => { setGeneral(p=>({...p,[k]:v})); setSaved(false); };
   const setE   = (k,v) => { setExam(p=>({...p,[k]:v})); setSaved(false); };
-  const setA   = (k,v) => { setAppearance(p=>({...p,[k]:v})); setSaved(false); };
+  const setA   = (k,v) => { setAppearance(p=>({...p,[k]:v})); setSaved(false); if (k === "theme" && onThemeChange) onThemeChange(v); };
   const setEM  = (k,v) => { setEmailCfg(p=>({...p,[k]:v})); setSaved(false); };
   const setSec = (k,v) => { setSecurity(p=>({...p,[k]:v})); setSaved(false); };
   const setBk  = (k,v) => { setBackup(p=>({...p,[k]:v})); setSaved(false); };
@@ -611,6 +632,7 @@ export default function SettingsPage() {
   };
 
   return (
+    <ThemeCtx.Provider value={C}>
     <div style={{ display:"flex", flex:1, height:"100%", overflow:"hidden" }}>
       {/* Tabs sidebar */}
       <div style={{ width:180, background:C.panel, borderRight:`1px solid ${C.border}`, padding:"20px 12px", flexShrink:0, overflowY:"auto" }}>
@@ -635,5 +657,6 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+    </ThemeCtx.Provider>
   );
 }

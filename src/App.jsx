@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ExamPage       from "./pages/ExamPage";
 import AdminQuestions from "./pages/AdminQuestions";
 import AdminExams     from "./pages/AdminExams";
@@ -8,7 +8,8 @@ import AdminSettings  from "./pages/AdminSettings";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
 
-const C = { bg:"#04080f", panel:"#080f1a", border:"#1a2540", gold:"#c8a96e", muted:"#475569" };
+const DARK_C  = { bg:"#04080f", panel:"#080f1a", border:"#1a2540", gold:"#c8a96e", muted:"#475569" };
+const LIGHT_C = { bg:"#f0f4f8", panel:"#ffffff",  border:"#e2e8f0", gold:"#c8a96e", muted:"#64748b" };
 
 const NAV = [
   { id:"exam",      icon:"🎓", label:"Exam",      component:ExamPage },
@@ -21,13 +22,17 @@ const NAV = [
 
 export default function App() {
   const [page, setPage] = useState("exam");
+  const [theme, setTheme] = useState(() => localStorage.getItem("armexam_theme") || "dark");
   const current = NAV.find(p=>p.id===page);
+  const C = theme === "light" ? LIGHT_C : DARK_C;
+
+  useEffect(() => { localStorage.setItem("armexam_theme", theme); }, [theme]);
 
   return (
     <>
       <style>{FONTS}{`
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:${C.bg};color:#e2e8f0}
+        body{background:${C.bg};color:${theme==="light"?"#0f172a":"#e2e8f0"}}
         ::-webkit-scrollbar{width:5px;height:5px}
         ::-webkit-scrollbar-thumb{background:#243050;border-radius:3px}
         ::-webkit-scrollbar-track{background:transparent}
@@ -69,7 +74,7 @@ export default function App() {
 
           {/* Content */}
           <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
-            {current?.component && <current.component />}
+            {current?.component && <current.component theme={theme} onThemeChange={setTheme} />}
           </div>
         </div>
       </div>
