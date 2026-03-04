@@ -290,7 +290,7 @@ function StudentForm({ initial, onSave, onCancel }) {
   const [f,setF] = useState(initial||blank);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   return (
-    <Modal title={initial?"Խ. ուս. · Edit Student":"Ն. ուս. · New Student"} onClose={onCancel}>
+    <Modal title={initial?"Խ. students · Edit Student":"Ն. students · New Student"} onClose={onCancel}>
       <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
         <Input label="Full Name" value={f.name} onChange={v=>set("name",v)} placeholder="e.g. Անի Հակոբյան" />
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
@@ -303,7 +303,7 @@ function StudentForm({ initial, onSave, onCancel }) {
           <Select label="Settings" value={f.status} onChange={v=>set("status",v)} options={[{value:"active",label:"Active"},{value:"inactive",label:"Inactive"}]} />
         </div>
         <div style={{ display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8,borderTop:`1px solid ${C.border}` }}>
-          <Btn onClick={onCancel}>Չ.</Btn>
+          <Btn onClick={onCancel}>Cancel</Btn>
           <Btn variant="primary" onClick={()=>onSave(f)} disabled={!f.name||!f.email}>{initial?"✓ Save":"✓ Create"}</Btn>
         </div>
       </div>
@@ -560,7 +560,7 @@ function StudentsTable() {
           </div>
         ))}
       </div>
-      <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,textAlign:"right" }}>{filtered.length} / {students.length} ուս.</div>
+      <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,textAlign:"right" }}>{filtered.length} / {students.length} students</div>
 
       {viewing && <StudentProfile student={viewing} onClose={()=>setViewing(null)} onEdit={s=>{setEditing(s);setViewing(null)}} />}
       {(editing||creating) && <StudentForm initial={editing} onSave={handleSave} onCancel={()=>{setEditing(null);setCreating(false)}} />}
@@ -568,7 +568,7 @@ function StudentsTable() {
         <Modal title="Delete?" onClose={()=>setDeleteId(null)}>
           <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted,marginBottom:20 }}>Delete student #{deleteId}?</p>
           <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
-            <Btn onClick={()=>setDeleteId(null)}>Չ.</Btn>
+            <Btn onClick={()=>setDeleteId(null)}>Cancel</Btn>
             <Btn variant="danger" onClick={()=>{setStudents(ss=>ss.filter(s=>s.id!==deleteId));setDeleteId(null)}}>✕ Ջ.</Btn>
           </div>
         </Modal>

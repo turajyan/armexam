@@ -6,7 +6,7 @@ const C = {
   bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
   border2:"#243050", gold:"#c8a96e", goldDim:"#7c5830",
   text:"#e2e8f0", muted:"#475569", dim:"#1e293b",
-  success:"#22c55e", danger:"#f87171", warning:"#f59e0b", info:"#60a5fa",
+  success:"#22c55e", danger:"#f87171", warning:"#f59e0b", info:"#60a5fa", purple:"#a78bfa",
 };
 
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
@@ -39,10 +39,10 @@ const SEED_STUDENTS = [
 ];
 
 const SEED_EXAMS = [
-  { id:1, title:"Ամառային B1 Քննություն", level:"B1", duration:60, sections:["Կարդալ","Լսել","Քերականություն"], questionIds:[1,2,3,5,8], assignedTo:[1,2,7], status:"active",   startDate:"2025-06-01", endDate:"2025-06-30", passingScore:70, shuffle:true,  showResults:true,  createdAt:"2025-05-15" },
-  { id:2, title:"A2 Ախ. Փ. Քննություն",  level:"A2", duration:45, sections:["Կարդալ","Գրել"],                  questionIds:[1,6,8],    assignedTo:[2,7],   status:"draft",    startDate:"2025-07-01", endDate:"2025-07-15", passingScore:60, shuffle:false, showResults:false, createdAt:"2025-05-20" },
-  { id:3, title:"C1–C2 Բ. Մ. Քննություն",level:"C1", duration:90, sections:["Բոլոր"],                          questionIds:[3,4,7,9],  assignedTo:[3,4,8], status:"completed",startDate:"2025-04-10", endDate:"2025-04-10", passingScore:80, shuffle:true,  showResults:true,  createdAt:"2025-04-01" },
-  { id:4, title:"B2 Պ. Ք.",              level:"B2", duration:75, sections:["Լսել","Լ./Տ.","Բ."],              questionIds:[3,4,5,10], assignedTo:[3,8],   status:"scheduled",startDate:"2025-08-01", endDate:"2025-08-05", passingScore:75, shuffle:true,  showResults:true,  createdAt:"2025-06-01" },
+  { id:1, title:"Summer B1 Examination", level:"B1", duration:60, sections:["Կարդալ","Լսել","Քերականություն"], questionIds:[1,2,3,5,8], assignedTo:[1,2,7], status:"active",   startDate:"2025-06-01", endDate:"2025-06-30", passingScore:70, shuffle:true,  showResults:true,  createdAt:"2025-05-15" },
+  { id:2, title:"A2 Entrance Test",  level:"A2", duration:45, sections:["Կարդալ","Գրել"],                  questionIds:[1,6,8],    assignedTo:[2,7],   status:"draft",    startDate:"2025-07-01", endDate:"2025-07-15", passingScore:60, shuffle:false, showResults:false, createdAt:"2025-05-20" },
+  { id:3, title:"C1–C2 Final Examination",level:"C1", duration:90, sections:["All"],                          questionIds:[3,4,7,9],  assignedTo:[3,4,8], status:"completed",startDate:"2025-04-10", endDate:"2025-04-10", passingScore:80, shuffle:true,  showResults:true,  createdAt:"2025-04-01" },
+  { id:4, title:"B2 Vocabulary Exam",    level:"B2", duration:75, sections:["Listening","Video","Vocabulary"],              questionIds:[3,4,5,10], assignedTo:[3,8],   status:"scheduled",startDate:"2025-08-01", endDate:"2025-08-05", passingScore:75, shuffle:true,  showResults:true,  createdAt:"2025-06-01" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -173,7 +173,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
     <div style={{ display:"flex",flexDirection:"column",gap:18 }}>
       <Input label="Exam Title" value={form.title} onChange={v=>set("title",v)} placeholder="օր. «Ամառային B1 Քննություն»" />
       <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14 }}>
-        <Select label="Level" value={form.level} onChange={v=>set("level",v)} options={[{value:"all",label:"Բոլոր"},...LEVELS.map(l=>({value:l,label:l}))]} />
+        <Select label="Level" value={form.level} onChange={v=>set("level",v)} options={[{value:"all",label:"All"},...LEVELS.map(l=>({value:l,label:l}))]} />
         <Input label="Duration (min)" value={form.duration} onChange={v=>set("duration",+v)} type="number" />
         <Input label="Passing Score (%)" value={form.passingScore} onChange={v=>set("passingScore",+v)} type="number" />
       </div>
@@ -199,7 +199,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
         </div>
         <div style={{ display:"flex",gap:8 }}>
           <Btn small onClick={()=>set("questionIds",availableQs.map(q=>q.id))}>Select All</Btn>
-          <Btn small onClick={()=>set("questionIds",[])}>Մ.</Btn>
+          <Btn small onClick={()=>set("questionIds",[])}>Clear</Btn>
         </div>
       </div>
       <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:380,overflowY:"auto" }}>
@@ -238,7 +238,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.assignedTo.length}</span> ուս.</span>
           <div style={{ display:"flex",gap:8 }}>
             <Btn small onClick={()=>set("assignedTo",SEED_STUDENTS.map(s=>s.id))}>Select All</Btn>
-            <Btn small onClick={()=>set("assignedTo",[])}>Մ.</Btn>
+            <Btn small onClick={()=>set("assignedTo",[])}>Clear</Btn>
           </div>
         </div>
         {/* Groups */}
@@ -287,7 +287,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
       </div>
       <Select label="Settings" value={form.status} onChange={v=>set("status",v)} options={Object.entries(STATUS_META).map(([v,m])=>({value:v,label:m.label}))} />
       <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-        <Toggle label="Ց. ա. ք." hint="Show results to student after exam" value={form.showResults} onChange={v=>set("showResults",v)} />
+        <Toggle label="Show results to student" hint="Show results to student after exam" value={form.showResults} onChange={v=>set("showResults",v)} />
         <Toggle label="Վ. ու. թ." hint="Allow answer review after submission" value={form.allowReview} onChange={v=>set("allowReview",v)} />
       </div>
       {/* Summary card */}

@@ -1212,78 +1212,170 @@ function QuestionNav({ questions, current, answers, onJump }) {
 }
 
 // ── Results Screen ────────────────────────────────────────────────────────────
+function scoreQuestion(q, a) {
+  if (q.type === "single_choice" || q.type === "audio" || q.type === "video") {
+    return a === q.correct ? q.points : 0;
+  } else if (q.type === "multi_choice" || q.type === "multi_select") {
+    const sorted = [...(a || [])].sort().join(",");
+    const correctSorted = [...q.correct].sort().join(",");
+    return sorted === correctSorted ? q.points : 0;
+  } else if (q.type === "fill_blank") {
+    return (a || "").toLowerCase().trim() === q.answer.toLowerCase() ? q.points : 0;
+  } else if (q.type === "fill_wordbank") {
+    if (!a || !q.correct) return 0;
+    let pts = 0;
+    q.segments.filter(s=>s.type==="blank").forEach((s,i) => {
+      if (a[s.id] === q.correct[i]) pts += Math.round(q.points / q.segments.filter(s=>s.type==="blank").length);
+    });
+    return pts;
+  } else if (q.type === "writing") {
+    const wc = (a || "").trim().split(/\s+/).filter(Boolean).length;
+    return (wc >= q.minWords && wc <= q.maxWords) ? q.points : 0;
+  } else if (q.type === "voice") {
+    return a?.url ? q.points : 0; // manual grading placeholder
+  }
+  return 0;
+}
+
 function ResultsScreen({ answers, questions, onRestart }) {
+  const [showDetails, setShowDetails] = useState(false);
+
   let score = 0, maxScore = 0;
-  questions.forEach(q => {
-    maxScore += q.points;
+  const qResults = questions.map(q => {
     const a = answers[q.id];
-    if (q.type === "single_choice" || q.type === "audio" || q.type === "video") {
-      if (a === q.correct) score += q.points;
-    } else if (q.type === "multi_choice" || q.type === "multi_select") {
-      const sorted = [...(a || [])].sort().join(",");
-      const correctSorted = [...q.correct].sort().join(",");
-      if (sorted === correctSorted) score += q.points;
-    } else if (q.type === "fill_blank") {
-      if ((a || "").toLowerCase().trim() === q.answer.toLowerCase()) score += q.points;
-    } else if (q.type === "writing") {
-      const wc = (a || "").trim().split(/\s+/).filter(Boolean).length;
-      if (wc >= q.minWords && wc <= q.maxWords) score += q.points;
-    }
+    const earned = scoreQuestion(q, a);
+    score += earned;
+    maxScore += q.points;
+    const answered = a !== undefined && a !== null && a !== "" && !(Array.isArray(a) && !a.length);
+    const isAuto = !["writing","voice"].includes(q.type);
+    return { q, a, earned, isCorrect: isAuto && earned === q.points, isPartial: isAuto && earned > 0 && earned < q.points, answered, isAuto };
   });
+
   const pct = Math.round((score / maxScore) * 100);
   const grade = pct >= 90 ? "C2" : pct >= 75 ? "C1" : pct >= 60 ? "B2" : pct >= 45 ? "B1" : pct >= 30 ? "A2" : "A1";
+  const passed = pct >= 60;
+  const GLD = "#c8a96e";
+  const typeLabels = { single_choice:"Choice", multi_choice:"Multi", multi_select:"Select", audio:"Audio", video:"Video", fill_blank:"Fill", fill_wordbank:"Word Bank", writing:"Writing", voice:"Voice" };
 
   return (
-    <div style={{
-      maxWidth: 560, width: "100%",
-      background: "linear-gradient(160deg, #0d1829 0%, #0a1120 100%)",
-      border: "1px solid #1e293b",
-      borderRadius: 24, padding: "48px 40px",
-      textAlign: "center",
-      boxShadow: "0 24px 64px #00000080",
-      animation: "fadeSlideIn 0.4s ease",
-    }}>
-      <div style={{
-        width: 120, height: 120, borderRadius: "50%", margin: "0 auto 28px",
-        background: `conic-gradient(#c8a96e ${pct * 3.6}deg, #1e293b 0deg)`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        position: "relative",
-      }}>
-        <div style={{
-          width: 96, height: 96, borderRadius: "50%",
-          background: "#080f1a",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexDirection: "column",
-        }}>
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: "#c8a96e" }}>{pct}%</span>
+    <div style={{ maxWidth:760, width:"100%", display:"flex", flexDirection:"column", gap:20, animation:"fadeSlideIn .4s ease" }}>
+
+      {/* ── Score card ── */}
+      <div style={{ background:"linear-gradient(160deg,#0d1829 0%,#0a1120 100%)", border:`1px solid ${passed?"#22c55e33":"#f8717133"}`, borderRadius:24, padding:"40px", textAlign:"center", boxShadow:"0 24px 64px #00000080", position:"relative", overflow:"hidden" }}>
+        {/* BG glow */}
+        <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at 50% 0%, ${passed?"#22c55e":"#f87171"}0a 0%, transparent 70%)`, pointerEvents:"none" }} />
+
+        {/* Donut */}
+        <div style={{ width:140, height:140, borderRadius:"50%", margin:"0 auto 24px", background:`conic-gradient(${passed?GLD:"#f87171"} ${pct*3.6}deg, #1e293b 0deg)`, display:"flex", alignItems:"center", justifyContent:"center", position:"relative" }}>
+          <div style={{ width:112, height:112, borderRadius:"50%", background:"#080f1a", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:2 }}>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color:passed?GLD:"#f87171", lineHeight:1 }}>{pct}%</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#475569", letterSpacing:1 }}>SCORE</span>
+          </div>
+        </div>
+
+        <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:"#e2e8f0", margin:"0 0 6px", fontWeight:600 }}>
+          {passed ? "Քննությունն անցված է ✓" : "Քննությունն ավարտված է"}
+        </h2>
+        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#64748b", marginBottom:28 }}>
+          {passed ? "Congratulations — exam passed!" : "Exam completed — review your answers below"}
+        </p>
+
+        {/* Stats row */}
+        <div style={{ display:"flex", gap:12, justifyContent:"center", marginBottom:28, flexWrap:"wrap" }}>
+          {[
+            { label:"Score", value:`${score}/${maxScore}`, color:GLD },
+            { label:"Level", value:grade, color:LEVEL_COLORS[grade] },
+            { label:"Correct", value:qResults.filter(r=>r.isCorrect).length+"/"+qResults.filter(r=>r.isAuto).length, color:"#22c55e" },
+            { label:"Unanswered", value:qResults.filter(r=>!r.answered).length, color:"#f59e0b" },
+          ].map(s=>(
+            <div key={s.label} style={{ background:"#0f172a", borderRadius:14, padding:"16px 22px", border:"1px solid #1e293b", minWidth:90, textAlign:"center" }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#475569", marginBottom:5, letterSpacing:.8, textTransform:"uppercase" }}>{s.label}</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, color:s.color, fontWeight:700, lineHeight:1 }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
+          <button onClick={()=>setShowDetails(d=>!d)} style={{ background:"#1e293b", border:"1px solid #334155", borderRadius:12, padding:"12px 28px", color:"#94a3b8", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:500, cursor:"pointer" }}>
+            {showDetails ? "▲ Hide Details" : "▼ Review Answers"}
+          </button>
+          <button onClick={onRestart} style={{ background:`linear-gradient(135deg,${GLD},#a07840)`, border:"none", borderRadius:12, padding:"12px 28px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 20px ${GLD}44` }}>
+            ↺ Նորից սկսել
+          </button>
         </div>
       </div>
-      <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#e2e8f0", margin: "0 0 8px" }}>
-        Քննությունն ավարտված է
-      </h2>
-      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#64748b", marginBottom: 28 }}>
-        Exam completed
-      </p>
-      <div style={{ display: "flex", gap: 16, justifyContent: "center", marginBottom: 32 }}>
-        <div style={{ background: "#0f172a", borderRadius: 12, padding: "16px 24px", border: "1px solid #1e293b" }}>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#475569", marginBottom: 4 }}>SCORE</div>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: "#c8a96e", fontWeight: 700 }}>{score}/{maxScore}</div>
+
+      {/* ── Question breakdown ── */}
+      {showDetails && (
+        <div style={{ display:"flex", flexDirection:"column", gap:10, animation:"fadeSlideIn .3s ease" }}>
+          <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:"#e2e8f0", fontWeight:600, margin:0 }}>Answer Review</h3>
+          {qResults.map(({ q, a, earned, isCorrect, isPartial, answered, isAuto }, i) => {
+            const lc = LEVEL_COLORS[q.level] || "#94a3b8";
+            const statusColor = !answered ? "#475569" : !isAuto ? "#f59e0b" : isCorrect ? "#22c55e" : isPartial ? "#f59e0b" : "#f87171";
+            const statusIcon  = !answered ? "—" : !isAuto ? "✦" : isCorrect ? "✓" : isPartial ? "½" : "✗";
+            return (
+              <div key={q.id} style={{ background:"linear-gradient(135deg,#0d1829,#0a1120)", border:`1.5px solid ${statusColor}33`, borderRadius:16, padding:"18px 22px", display:"flex", gap:16, alignItems:"flex-start" }}>
+                {/* Status badge */}
+                <div style={{ width:36, height:36, borderRadius:"50%", background:statusColor+"18", border:`2px solid ${statusColor}55`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:700, color:statusColor }}>
+                  {statusIcon}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6, flexWrap:"wrap" }}>
+                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>#{i+1}</span>
+                    <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`, borderRadius:5, padding:"1px 7px", fontSize:10, fontWeight:700 }}>{q.level}</span>
+                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#475569" }}>{q.section}</span>
+                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#334155" }}>{typeLabels[q.type]}</span>
+                    <span style={{ marginLeft:"auto", fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, color:statusColor }}>{earned}/{q.points}pt</span>
+                  </div>
+                  <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:"#cbd5e1", lineHeight:1.5, margin:"0 0 8px" }}>{q.text}</p>
+
+                  {/* Show answer details for auto-graded */}
+                  {isAuto && answered && (
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                      {/* User answer */}
+                      <div style={{ background:"#0f172a", border:`1px solid ${isCorrect?"#22c55e33":"#f8717133"}`, borderRadius:8, padding:"6px 12px", flex:1, minWidth:120 }}>
+                        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#475569", letterSpacing:.8, marginBottom:3 }}>YOUR ANSWER</div>
+                        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:isCorrect?"#22c55e":"#f87171" }}>
+                          {q.type==="fill_blank" || q.type==="fill_wordbank"
+                            ? (q.type==="fill_blank" ? (a||"—") : Object.values(a||{}).join(", ")||"—")
+                            : Array.isArray(a)
+                              ? (a.length ? a.map(i=>q.options[i]).join(", ") : "—")
+                              : (q.options?.[a] ?? "—")
+                          }
+                        </div>
+                      </div>
+                      {/* Correct answer (only if wrong) */}
+                      {!isCorrect && (
+                        <div style={{ background:"#0f172a", border:"1px solid #22c55e33", borderRadius:8, padding:"6px 12px", flex:1, minWidth:120 }}>
+                          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#475569", letterSpacing:.8, marginBottom:3 }}>CORRECT ANSWER</div>
+                          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#22c55e" }}>
+                            {q.type==="fill_blank" ? q.answer
+                              : q.type==="fill_wordbank" ? (q.correct||[]).join(", ")
+                              : Array.isArray(q.correct)
+                                ? q.correct.map(i=>q.options[i]).join(", ")
+                                : (q.options?.[q.correct] ?? "—")
+                            }
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!isAuto && answered && (
+                    <div style={{ background:"#f59e0b0d", border:"1px solid #f59e0b33", borderRadius:8, padding:"6px 12px" }}>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#f59e0b" }}>✦ Requires manual grading by examiner</span>
+                    </div>
+                  )}
+                  {!answered && (
+                    <div style={{ background:"#1e293b", border:"1px solid #334155", borderRadius:8, padding:"6px 12px" }}>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#475569" }}>Not answered</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <div style={{ background: "#0f172a", borderRadius: 12, padding: "16px 24px", border: "1px solid #1e293b" }}>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#475569", marginBottom: 4 }}>LEVEL</div>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: LEVEL_COLORS[grade] }}>{grade}</div>
-        </div>
-      </div>
-      <button onClick={onRestart} style={{
-        background: "linear-gradient(135deg, #c8a96e, #a07840)",
-        border: "none", borderRadius: 12,
-        padding: "14px 36px",
-        color: "white", fontFamily: "'DM Sans', sans-serif",
-        fontSize: 15, fontWeight: 600, cursor: "pointer",
-        boxShadow: "0 4px 20px #c8a96e44",
-      }}>
-        Նորից սկսել
-      </button>
+      )}
     </div>
   );
 }
