@@ -514,19 +514,6 @@ const NAV = [
   { id:"settings", icon:"⚙️", label:"Settings" },
 ];
 
-function Sidebar({ active, onNav }) {
-  return (
-    <aside style={{ width:72,background:C.panel,borderRight:`1px solid ${C.border}`,display:"flex",flexDirection:"column",alignItems:"center",paddingTop:16,gap:4,flexShrink:0 }}>
-      <div style={{ width:40,height:40,borderRadius:10,background:`linear-gradient(135deg,${C.gold},${C.goldDim})`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Cormorant Garamond',serif",fontWeight:700,fontSize:20,color:"white",marginBottom:20 }}>Հ</div>
-      {NAV.map(n=>(
-        <button key={n.id} onClick={()=>onNav(n.id)} title={n.label} style={{ width:48,height:48,borderRadius:12,background:active===n.id?C.gold+"18":"transparent",border:`1px solid ${active===n.id?C.gold+"44":"transparent"}`,cursor:"pointer",fontSize:18,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,transition:"all .15s" }}>
-          {n.icon}
-          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:9,color:active===n.id?C.gold:C.muted }}>{n.label}</span>
-        </button>
-      ))}
-    </aside>
-  );
-}
 
 // ── Exams Page ────────────────────────────────────────────────────────────────
 function ExamsPage() {
@@ -561,7 +548,7 @@ function ExamsPage() {
   const statCounts = Object.fromEntries(Object.keys(STATUS_META).map(s=>[s,exams.filter(e=>e.status===s).length]));
 
   return (
-    <div style={{ flex:1,padding:"32px 36px",overflowY:"auto" }}>
+    <div style={{ flex:1, padding:"32px 40px", overflowY:"auto", minWidth:0, width:"100%" }}>
       {/* Header */}
       <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:24 }}>
         <div>
@@ -638,30 +625,21 @@ function ExamsPage() {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
-export default function App() {
-  const [page, setPage] = useState("exams");
-  const pages = { exams: <ExamsPage /> };
+export default function AdminExams() {
   return (
     <>
       <style>{FONTS}{`
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:${C.bg}}
         ::-webkit-scrollbar{width:5px;height:5px}
-        ::-webkit-scrollbar-thumb{background:${C.border2};border-radius:3px}
+        ::-webkit-scrollbar-thumb{background:#243050;border-radius:3px}
         ::-webkit-scrollbar-track{background:transparent}
         @keyframes fadeSlideIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
         button:active{transform:scale(.97)}
-        select option{background:${C.panel}}
+        select option{background:#080f1a}
         input[type=date],input[type=time]{color-scheme:dark}
       `}</style>
-      <div style={{ display:"flex",height:"100vh",background:C.bg,overflow:"hidden" }}>
-        <Sidebar active={page} onNav={setPage} />
-        {pages[page] || (
-          <div style={{ flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,color:C.muted }}>
-            <div style={{ fontSize:48 }}>🚧</div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,color:C.text }}>Շուտով · Coming soon</div>
-          </div>
-        )}
+      <div style={{ flex:1, display:"flex", overflow:"hidden", minWidth:0 }}>
+        <ExamsPage />
       </div>
     </>
   );

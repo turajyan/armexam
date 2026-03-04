@@ -231,16 +231,16 @@ function QuestionForm({ initial, onSave, onCancel }) {
 }
 
 // ── Question Row ──────────────────────────────────────────────────────────────
-function QRow({ q, onEdit, onDelete, onToggleStatus }) {
+function QRow({ q, onEdit, onDelete, onToggleStatus, onView }) {
   const t = qtype(q.type);
   const lc = LEVEL_COLORS[q.level]||"#94a3b8";
   return (
-    <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 80px 90px 80px 110px", alignItems:"center", gap:14, padding:"14px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
+    <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 70px 90px 90px 130px", alignItems:"center", gap:14, padding:"14px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
       onMouseEnter={e=>e.currentTarget.style.background=C.card}
       onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
       <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, fontWeight:500 }}>#{q.id}</span>
       <div>
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:340 }}>{q.text}</div>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"100%" }}>{q.text}</div>
         <div style={{ display:"flex", gap:6, alignItems:"center" }}>
           <span style={{ fontSize:13 }}>{t.icon}</span>
           <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.color }}>{t.label}</span>
@@ -255,8 +255,9 @@ function QRow({ q, onEdit, onDelete, onToggleStatus }) {
         {q.status==="published"?"● Published":"○ Draft"}
       </button>
       <div style={{ display:"flex", gap:6, justifyContent:"flex-end" }}>
-        <button onClick={()=>onEdit(q)} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.muted, fontSize:13, cursor:"pointer" }}>✎</button>
-        <button onClick={()=>onDelete(q.id)} style={{ background:"transparent", border:`1px solid #f8717130`, borderRadius:7, padding:"5px 11px", color:"#f87171", fontSize:13, cursor:"pointer" }}>✕</button>
+        <button onClick={()=>onView(q)} title="View" style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.info||"#60a5fa", fontSize:13, cursor:"pointer" }}>👁</button>
+        <button onClick={()=>onEdit(q)} title="Edit" style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.muted, fontSize:13, cursor:"pointer" }}>✎</button>
+        <button onClick={()=>onDelete(q.id)} title="Delete" style={{ background:"transparent", border:`1px solid #f8717130`, borderRadius:7, padding:"5px 11px", color:"#f87171", fontSize:13, cursor:"pointer" }}>✕</button>
       </div>
     </div>
   );
@@ -352,11 +353,120 @@ function Sidebar({ active, onNav }) {
   );
 }
 
+
+// ── View Question Modal ───────────────────────────────────────────────────────
+function ViewQuestion({ q, onEdit, onClose }) {
+  const t = qtype(q.type);
+  const lc = LEVEL_COLORS[q.level] || "#94a3b8";
+  const hasOptions = q.options && q.options.length > 0;
+
+  const correctLabel = (idx) => {
+    if (Array.isArray(q.correct)) return q.correct.includes(idx);
+    return q.correct === idx;
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      {/* Meta row */}
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+        <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 10px", fontSize:12, fontWeight:700, fontFamily:"'DM Sans',sans-serif" }}>{q.level}</span>
+        <span style={{ background:t.color+"18", color:t.color, border:`1px solid ${t.color}33`, borderRadius:6, padding:"3px 10px", fontSize:12, fontWeight:600, fontFamily:"'DM Sans',sans-serif" }}>{t.icon} {t.label}</span>
+        <span style={{ background:C.dim, color:C.muted, borderRadius:6, padding:"3px 10px", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>{q.section}</span>
+        <span style={{ background:q.status==="published"?C.success+"18":"#f59e0b18", color:q.status==="published"?C.success:"#f59e0b", border:`1px solid ${q.status==="published"?C.success+"44":"#f59e0b44"}`, borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", marginLeft:"auto" }}>
+          {q.status==="published" ? "● Published" : "○ Draft"}
+        </span>
+      </div>
+
+      {/* Question text */}
+      <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:14, padding:"20px 24px" }}>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>Question Text</div>
+        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, lineHeight:1.7, margin:0 }}>{q.text}</p>
+      </div>
+
+      {/* Options */}
+      {hasOptions && (
+        <div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>
+            Answer Options {Array.isArray(q.correct) ? "(multiple correct)" : "(one correct)"}
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {q.options.map((opt, i) => {
+              const isCorrect = correctLabel(i);
+              return (
+                <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", background:isCorrect?C.success+"0d":C.panel, border:`1.5px solid ${isCorrect?C.success+"55":C.border}`, borderRadius:10 }}>
+                  <div style={{ width:22, height:22, borderRadius:Array.isArray(q.correct)?4:"50%", border:`2px solid ${isCorrect?C.success:C.border2}`, background:isCorrect?C.success:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    {isCorrect && <svg width={12} height={12} viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth={2} strokeLinecap="round" fill="none"/></svg>}
+                  </div>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:isCorrect?C.success:C.text, fontWeight:isCorrect?600:400 }}>{opt}</span>
+                  {isCorrect && <span style={{ marginLeft:"auto", fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.success, fontWeight:700 }}>✓ Correct</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Fill blank answer */}
+      {q.answer && (
+        <div style={{ background:C.success+"0d", border:`1px solid ${C.success}44`, borderRadius:12, padding:"14px 18px" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:6 }}>Correct Answer</div>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:C.success, fontWeight:700 }}>{q.answer}</span>
+        </div>
+      )}
+
+      {/* Writing limits */}
+      {q.minWords && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+          {[["Min Words", q.minWords], ["Max Words", q.maxWords], ["Points", q.points]].map(([l,v])=>(
+            <div key={l} style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"12px 16px", textAlign:"center" }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, marginBottom:4 }}>{l}</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.gold, fontWeight:700 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Audio/Video config */}
+      {(q.maxPlays || q.pauseSeconds) && (
+        <div style={{ display:"flex", gap:10 }}>
+          {q.maxPlays && <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px" }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Max Plays</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.gold, fontWeight:700 }}>{q.maxPlays}×</div>
+          </div>}
+          {q.pauseSeconds && <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px" }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Pause Between</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.gold, fontWeight:700 }}>{q.pauseSeconds}s</div>
+          </div>}
+        </div>
+      )}
+
+      {/* Info row */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Points</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.gold, fontWeight:700 }}>{q.points} pt</div>
+        </div>
+        <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Created</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginTop:3 }}>{q.createdAt}</div>
+        </div>
+      </div>
+
+      {/* Footer actions */}
+      <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
+        <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Close</button>
+        <button onClick={onEdit} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 24px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 14px ${C.gold}44` }}>✎ Edit This Question</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Questions Page ─────────────────────────────────────────────────────────────
 function QuestionsPage() {
   const [questions, setQuestions] = useState(SEED);
-  const [modal, setModal] = useState(null); // null | "create" | "edit"
+  const [modal, setModal] = useState(null); // null | "create" | "edit" | "view"
   const [editing, setEditing] = useState(null);
+  const [viewing, setViewing] = useState(null);
   const [filterType, setFilterType] = useState("all");
   const [filterLevel, setFilterLevel] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -385,7 +495,7 @@ function QuestionsPage() {
   const handleToggleStatus = (id) => setQuestions(qs=>qs.map(q=>q.id===id?{...q,status:q.status==="published"?"draft":"published"}:q));
 
   return (
-    <div style={{ flex:1, padding:"32px 36px", overflowY:"auto" }}>
+    <div style={{ flex:1, padding:"32px 40px", overflowY:"auto", minWidth:0 }}>
       {/* Header */}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
         <div>
@@ -426,7 +536,7 @@ function QuestionsPage() {
       {/* Table */}
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
         {/* Head */}
-        <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 80px 90px 80px 110px", gap:14, padding:"11px 20px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
+        <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 70px 90px 90px 130px", gap:14, padding:"11px 20px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
           {["#","Հարց","Մակ.","Կետ","Ամ.","Կարգ.",""].map((h,i)=>(
             <span key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:600, letterSpacing:.8, textTransform:"uppercase" }}>{h}</span>
           ))}
@@ -437,6 +547,7 @@ function QuestionsPage() {
           </div>
         ) : filtered.map(q=>(
           <QRow key={q.id} q={q}
+            onView={q=>{setViewing(q);setModal("view")}}
             onEdit={q=>{setEditing(q);setModal("edit")}}
             onDelete={id=>setDeleteConfirm(id)}
             onToggleStatus={handleToggleStatus}
@@ -451,6 +562,13 @@ function QuestionsPage() {
       {(modal==="create"||modal==="edit") && (
         <Modal title={modal==="edit"?"Խմբ. հարց · Edit Question":"Նոր հարց · New Question"} onClose={()=>{setModal(null);setEditing(null)}}>
           <QuestionForm initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} />
+        </Modal>
+      )}
+
+      {/* View Modal */}
+      {modal==="view" && viewing && (
+        <Modal title={"View Question #"+viewing.id} onClose={()=>{setModal(null);setViewing(null)}}>
+          <ViewQuestion q={viewing} onEdit={()=>{setEditing(viewing);setModal("edit");setViewing(null)}} onClose={()=>{setModal(null);setViewing(null)}} />
         </Modal>
       )}
 
@@ -480,29 +598,15 @@ function PlaceholderPage({ title, icon }) {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
-export default function AdminApp() {
-  const [page, setPage] = useState("questions");
+export default function AdminQuestions() {
   return (
     <>
-      <style>{FONTS}{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:${C.bg}}
-        ::-webkit-scrollbar{width:6px;height:6px}
-        ::-webkit-scrollbar-track{background:transparent}
-        ::-webkit-scrollbar-thumb{background:${C.border2};border-radius:3px}
+      <style>{`
         @keyframes fadeSlideIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
         button:active{transform:scale(.97)}
-        select option{background:${C.panel}}
+        select option{background:#080f1a}
       `}</style>
-      <div style={{ display:"flex", height:"100vh", background:C.bg, overflow:"hidden" }}>
-        <Sidebar active={page} onNav={setPage} />
-        {page==="questions" && <QuestionsPage />}
-        {page==="exams"    && <PlaceholderPage title="Քննությունների կառ." icon="🎓" />}
-        {page==="students" && <PlaceholderPage title="Ուսանողների կառ." icon="👤" />}
-        {page==="results"  && <PlaceholderPage title="Արդյունքների վիճ." icon="📊" />}
-        {page==="media"    && <PlaceholderPage title="Ֆայլերի կառ." icon="📁" />}
-        {page==="settings" && <PlaceholderPage title="Կարգավ." icon="⚙️" />}
-      </div>
+      <QuestionsPage />
     </>
   );
 }

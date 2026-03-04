@@ -623,7 +623,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflowY:"auto", padding:"28px 32px", paddingBottom:80 }}>
+      <div style={{ flex:1, overflowY:"auto", minWidth:0, padding:"28px 32px", paddingBottom:80 }}>
         {renderTab()}
         <SaveBar onSave={handleSave} onReset={handleReset} saved={saved} />
       </div>
