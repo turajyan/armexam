@@ -286,7 +286,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
                 );
               })}
               {/* Visual explanation */}
-              <div style={{ marginTop:4,background:C.card,borderRadius:10,padding:"12px 16px",display:"flex",gap:0,overflow:"hidden",borderRadius:8 }}>
+              <div style={{ marginTop:4,background:C.card,borderRadius:8,padding:"12px 16px",display:"flex",gap:0,overflow:"hidden" }}>
                 {LEVELS.map((level,i)=>{
                   const from = (form.placementThresholds||{})[level]??0;
                   const to   = i<LEVELS.length-1 ? ((form.placementThresholds||{})[LEVELS[i+1]]??100) : 100;
@@ -568,7 +568,7 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
         <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:8 }}>
           Assigned Students · {assignedStudents.length}
         </div>
-        <div style={{ display:"flex",gap:4,flexWrap:"wrap",gap:4 }}>
+        <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>
           {assignedStudents.slice(0,5).map(s=>(
             <div key={s.id} title={s.name} style={{ width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,border:`2px solid ${C.panel}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:C.text,fontFamily:"'DM Sans',sans-serif" }}>
               {s.name[0]}
