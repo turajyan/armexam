@@ -611,7 +611,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ display:"flex", flex:1, height:"100%", overflow:"hidden" }}>
+    <div style={{ display:"flex", flex:1, overflow:"hidden", minWidth:0, width:"100%", boxSizing:"border-box" }}>
       {/* Tabs sidebar */}
       <div style={{ width:180, background:C.panel, borderRight:`1px solid ${C.border}`, padding:"20px 12px", flexShrink:0, overflowY:"auto" }}>
         <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:12, paddingLeft:4 }}>Settings</div>
@@ -623,7 +623,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflowY:"auto", minWidth:0, padding:"28px 32px", paddingBottom:80 }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box", paddingBottom:80 }}>
         {renderTab()}
         <SaveBar onSave={handleSave} onReset={handleReset} saved={saved} />
       </div>

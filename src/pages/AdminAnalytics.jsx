@@ -307,7 +307,7 @@ export default function AdminAnalytics() {
         @keyframes fadeSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         button:active{transform:scale(.97)}
       `}</style>
-      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", animation:"fadeSlideIn .35s ease" }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box", animation:"fadeSlideIn .35s ease" }}>
 
         {/* Header */}
         <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28, flexWrap:"wrap", gap:16 }}>
