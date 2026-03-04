@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
-// C palette comes from theme prop (see export default)
 
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LC = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };

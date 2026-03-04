@@ -2,7 +2,6 @@ import { useState } from "react";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
-// C palette comes from theme prop (see export default)
 
 // ── UI Atoms ──────────────────────────────────────────────────────────────────
 function Btn({ children, onClick, variant="ghost", small, disabled, style={} }) {
