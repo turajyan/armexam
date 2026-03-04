@@ -1,142 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { EXAMS, QUESTIONS, STUDENTS, LEVELS, LEVEL_COLORS, buildExamQuestions, computePlacementLevel } from "../data.js";
 
 const FONTS = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 `;
 
-// ── Demo question bank ──────────────────────────────────────────────────────
-const DEMO_QUESTIONS = [
-  {
-    id: 1,
-    type: "single_choice",
-    level: "A2",
-    section: "Կարդալ", // Reading
-    points: 1,
-    text: "Ընտրի՛ր ճիշտ պատասխանը։ «Ես ___ դպրոց եմ գնում ամեն օր»։",
-    options: ["դեպի", "մոտ", "կողքին", "առաջ"],
-    correct: 0,
-  },
-  {
-    id: 2,
-    type: "multi_choice",
-    level: "B1",
-    section: "Քերականություն", // Grammar
-    points: 2,
-    text: "Ո՞ր նախադասություններն են քերականորեն ճիշտ։",
-    options: [
-      "Նա գրքեր է կարդում։",
-      "Ես երեկ կինո գնացի։",
-      "Նրանք վաղը ուսումնարան կգնան։",
-      "Դու ճաշ ուտում ես արդեն։",
-    ],
-    correct: [0, 1, 2],
-  },
-  {
-    id: 3,
-    type: "multi_select",
-    level: "B2",
-    section: "Բառապաշար", // Vocabulary
-    points: 3,
-    text: "Ընտրի՛ր բոլոր բառերը, որոնք կապված են «ճամփորդություն» թեմայի հետ։",
-    options: ["ինքնաթիռ", "բժիշկ", "կայարան", "ճամպրուկ", "դպրոց", "անձնագիր"],
-    correct: [0, 2, 3, 5],
-  },
-  {
-    id: 4,
-    type: "audio",
-    level: "B1",
-    section: "Լսել", // Listening
-    points: 3,
-    text: "Լսի՛ր ձայնագրությունը և պատասխանի՛ր հարցին։ Ի՞նչ է պատմում մարդը։",
-    audioSrc: null, // demo
-    maxPlays: 2,
-    pauseSeconds: 25,
-    options: [
-      "Նա պատմում է իր ճամփորդության մասին",
-      "Նա պատմում է իր ընտանիքի մասին",
-      "Նա պատմում է իր աշխատանքի մասին",
-      "Նա պատմում է իր ծնողների մասին",
-    ],
-    correct: 0,
-  },
-  {
-    id: 5,
-    type: "video",
-    level: "C1",
-    section: "Լսել / Տեսնել",
-    points: 4,
-    text: "Դիտի՛ր տեսանյութը և պատասխանի՛ր հարցին։ Ի՞նչ թեմայի շուրջ է զրույցը։",
-    videoSrc: null,
-    maxPlays: 2,
-    options: [
-      "Կրթության բարեփոխումներ",
-      "Բնապահպանական խնդիրներ",
-      "Տնտեսական ճգնաժամ",
-      "Մշակութային ժառանգություն",
-    ],
-    correct: 1,
-  },
-  {
-    id: 6,
-    type: "fill_blank",
-    level: "A1",
-    section: "Գրել", // Writing
-    points: 1,
-    text: "Լրացրո՛ւ բաց թողնված բառը։ «Ես ___ եմ» (to be - first person)",
-    answer: "եմ",
-    placeholder: "Գրի՛ր բառը...",
-  },
-  {
-    id: 7,
-    type: "writing",
-    level: "C2",
-    section: "Ազատ շարադրություն",
-    points: 10,
-    text: "Գրի՛ր 150-200 բառ հետևյալ թեմայի շուրջ։ «Ժամանակակից տեխնոլոգիաների ազդեցությունը հայոց լեզվի վրա»",
-    minWords: 150,
-    maxWords: 200,
-  },
-  {
-    id: 8,
-    type: "fill_wordbank",
-    level: "A2",
-    section: "Քերականություն",
-    points: 4,
-    text: "Դասավորի՛ր բառերը ճիշտ տեղերում։ Arrange the words in the correct blanks.",
-    // segments: alternating plain text and blank slots
-    // blanks have ids matching wordBank keys
-    segments: [
-      { type: "text", content: "Ես ամեն օր " },
-      { type: "blank", id: 0 },
-      { type: "text", content: " դպրոց: Իմ ընկերը " },
-      { type: "blank", id: 1 },
-      { type: "text", content: " գրքեր, բայց ես " },
-      { type: "blank", id: 2 },
-      { type: "text", content: " երաժշտություն:" },
-    ],
-    wordBank: ["գնում եմ", "կարդում է", "լսում եմ", "խաղում է", "գրում եմ"],
-    correct: ["գնում եմ", "կարդում է", "լսում եմ"],
-  },
-  {
-    id: 9,
-    type: "voice",
-    level: "B1",
-    section: "Speaking",
-    points: 5,
-    text: "Ձայնագրի\u0580 պատասխանդ։ Պատմի\u0580 30\u201360 վայրկյան քո սիրած տոնի մասին։\n\n\"Describe your favourite holiday in Armenian. Speak for 30\u201360 seconds.\"",
-    maxAttempts: 3,
-    minSeconds: 5,
-    maxSeconds: 90,
-    hint: "Speak clearly. You have 3 attempts — re-record if not satisfied.",
-  },
-];
 
-const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
-const LEVEL_COLORS = {
-  A1: "#4ade80", A2: "#86efac",
-  B1: "#60a5fa", B2: "#93c5fd",
-  C1: "#f59e0b", C2: "#fbbf24",
-};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function LevelBadge({ level }) {
@@ -1237,8 +1106,10 @@ function scoreQuestion(q, a) {
   return 0;
 }
 
-function ResultsScreen({ answers, questions, onRestart }) {
+function ResultsScreen({ answers, questions, exam, onRestart }) {
   const [showDetails, setShowDetails] = useState(false);
+
+  const isPlacement = exam?.examType === "placement";
 
   let score = 0, maxScore = 0;
   const qResults = questions.map(q => {
@@ -1252,8 +1123,14 @@ function ResultsScreen({ answers, questions, onRestart }) {
   });
 
   const pct = Math.round((score / maxScore) * 100);
-  const grade = pct >= 90 ? "C2" : pct >= 75 ? "C1" : pct >= 60 ? "B2" : pct >= 45 ? "B1" : pct >= 30 ? "A2" : "A1";
-  const passed = pct >= 60;
+
+  // Placement: compute detected level from thresholds
+  const placement = isPlacement ? computePlacementLevel(exam, questions, answers) : null;
+  const detectedLevel = placement?.detectedLevel || null;
+
+  // Fixed: pass/fail based on exam's passingScore
+  const passingPct = exam?.passingScore ?? 60;
+  const passed = isPlacement ? false : pct >= passingPct; // placement has no pass/fail
   const GLD = "#c8a96e";
   const typeLabels = { single_choice:"Choice", multi_choice:"Multi", multi_select:"Select", audio:"Audio", video:"Video", fill_blank:"Fill", fill_wordbank:"Word Bank", writing:"Writing", voice:"Voice" };
 
@@ -1261,32 +1138,65 @@ function ResultsScreen({ answers, questions, onRestart }) {
     <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:20, animation:"fadeSlideIn .4s ease" }}>
 
       {/* ── Score card ── */}
-      <div style={{ background:"linear-gradient(160deg,#0d1829 0%,#0a1120 100%)", border:`1px solid ${passed?"#22c55e33":"#f8717133"}`, borderRadius:24, padding:"40px", textAlign:"center", boxShadow:"0 24px 64px #00000080", position:"relative", overflow:"hidden", maxWidth:800, alignSelf:"center", width:"100%" }}>
-        {/* BG glow */}
-        <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at 50% 0%, ${passed?"#22c55e":"#f87171"}0a 0%, transparent 70%)`, pointerEvents:"none" }} />
+      <div style={{ background:"linear-gradient(160deg,#0d1829 0%,#0a1120 100%)", border:`1px solid ${isPlacement?"#a78bfa33":passed?"#22c55e33":"#f8717133"}`, borderRadius:24, padding:"40px", textAlign:"center", boxShadow:"0 24px 64px #00000080", position:"relative", overflow:"hidden", maxWidth:800, alignSelf:"center", width:"100%" }}>
+        <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at 50% 0%, ${isPlacement?"#a78bfa":passed?"#22c55e":"#f87171"}0a 0%, transparent 70%)`, pointerEvents:"none" }} />
 
         {/* Donut */}
-        <div style={{ width:140, height:140, borderRadius:"50%", margin:"0 auto 24px", background:`conic-gradient(${passed?GLD:"#f87171"} ${pct*3.6}deg, #1e293b 0deg)`, display:"flex", alignItems:"center", justifyContent:"center", position:"relative" }}>
+        <div style={{ width:140, height:140, borderRadius:"50%", margin:"0 auto 24px", background:`conic-gradient(${isPlacement?"#a78bfa":passed?GLD:"#f87171"} ${pct*3.6}deg, #1e293b 0deg)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
           <div style={{ width:112, height:112, borderRadius:"50%", background:"#080f1a", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:2 }}>
-            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color:passed?GLD:"#f87171", lineHeight:1 }}>{pct}%</span>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color:isPlacement?"#a78bfa":passed?GLD:"#f87171", lineHeight:1 }}>{pct}%</span>
             <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#475569", letterSpacing:1 }}>SCORE</span>
           </div>
         </div>
 
-        <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:"#e2e8f0", margin:"0 0 6px", fontWeight:600 }}>
-          {passed ? "Քննությունն անցված է ✓" : "Քննությունն ավարտված է"}
-        </h2>
-        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#64748b", marginBottom:28 }}>
-          {passed ? "Congratulations — exam passed!" : "Exam completed — review your answers below"}
-        </p>
+        {/* Title */}
+        {isPlacement ? (
+          <>
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:"#e2e8f0", margin:"0 0 10px", fontWeight:600 }}>
+              Placement Complete ✓
+            </h2>
+            {/* Detected level badge */}
+            <div style={{ display:"inline-flex", alignItems:"center", gap:12, background:"#a78bfa14", border:"1px solid #a78bfa44", borderRadius:16, padding:"14px 28px", marginBottom:28 }}>
+              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#a78bfa" }}>Detected Language Level</span>
+              <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color: LEVEL_COLORS[detectedLevel] || "#a78bfa", lineHeight:1 }}>
+                {detectedLevel}
+              </span>
+            </div>
+            {/* Level scale */}
+            <div style={{ display:"flex", gap:0, borderRadius:10, overflow:"hidden", marginBottom:28, maxWidth:500, margin:"0 auto 28px" }}>
+              {["A1","A2","B1","B2","C1","C2"].map(l => {
+                const lc = LEVEL_COLORS[l];
+                const isDetected = l === detectedLevel;
+                return (
+                  <div key={l} style={{ flex:1, background:isDetected?lc+"33":"#0f172a", border:`1px solid ${isDetected?lc+"88":lc+"22"}`, padding:"10px 4px", textAlign:"center", transition:"all .3s" }}>
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, color:isDetected?lc:"#334155" }}>{l}</div>
+                    {isDetected && <div style={{ fontSize:10, color:lc, marginTop:2 }}>▲</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:"#e2e8f0", margin:"0 0 6px", fontWeight:600 }}>
+              {passed ? "Քննությունն անցված է ✓" : "Քննությունն ավարտված է"}
+            </h2>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#64748b", marginBottom:28 }}>
+              {passed ? `Congratulations — passed! (threshold: ${passingPct}%)` : `Exam completed — score below ${passingPct}% threshold`}
+            </p>
+          </>
+        )}
 
         {/* Stats row */}
         <div style={{ display:"flex", gap:12, justifyContent:"center", marginBottom:28, flexWrap:"wrap" }}>
           {[
-            { label:"Score", value:`${score}/${maxScore}`, color:GLD },
-            { label:"Level", value:grade, color:LEVEL_COLORS[grade] },
-            { label:"Correct", value:qResults.filter(r=>r.isCorrect).length+"/"+qResults.filter(r=>r.isAuto).length, color:"#22c55e" },
-            { label:"Unanswered", value:qResults.filter(r=>!r.answered).length, color:"#f59e0b" },
+            { label:"Score",     value:`${score}/${maxScore}`, color:GLD },
+            ...(isPlacement
+              ? [{ label:"Level", value:detectedLevel, color:LEVEL_COLORS[detectedLevel]||"#a78bfa" }]
+              : [{ label:passed?"Passed":"Failed", value:passed?"✓":"✗", color:passed?"#22c55e":"#f87171" }]
+            ),
+            { label:"Correct",   value:qResults.filter(r=>r.isCorrect).length+"/"+qResults.filter(r=>r.isAuto).length, color:"#22c55e" },
+            { label:"Unanswered",value:qResults.filter(r=>!r.answered).length, color:"#f59e0b" },
           ].map(s=>(
             <div key={s.label} style={{ background:"#0f172a", borderRadius:14, padding:"16px 22px", border:"1px solid #1e293b", minWidth:90, textAlign:"center" }}>
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#475569", marginBottom:5, letterSpacing:.8, textTransform:"uppercase" }}>{s.label}</div>
@@ -1300,7 +1210,7 @@ function ResultsScreen({ answers, questions, onRestart }) {
             {showDetails ? "▲ Hide Details" : "▼ Review Answers"}
           </button>
           <button onClick={onRestart} style={{ background:`linear-gradient(135deg,${GLD},#a07840)`, border:"none", borderRadius:12, padding:"12px 28px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 20px ${GLD}44` }}>
-            ↺ Նորից սկսել
+            ↺ Choose Another Exam
           </button>
         </div>
       </div>
@@ -1382,43 +1292,23 @@ function ResultsScreen({ answers, questions, onRestart }) {
 
 // ── Start Screen ──────────────────────────────────────────────────────────────
 function StartScreen({ onStart }) {
-  const [lang, setLang] = useState("hy");
-  const [level, setLevel] = useState("B1");
-  const texts = {
-    hy: { title: "Հայոց Լեզվի Քննություն", sub: "Armenian Language Examination", start: "Սկսել Քննությունը" },
-    ru: { title: "Экзамен по Армянскому", sub: "Armenian Language Examination", start: "Начать Экзамен" },
-    en: { title: "Armenian Language Exam", sub: "Հայոց Լեզվի Քննություն", start: "Start Examination" },
-  };
-  const t = texts[lang];
+  const [selected, setSelected] = useState(null);
+  const activeExams = EXAMS.filter(e => e.status === "active");
+  const STATUS_COLORS = { active:"#22c55e", draft:"#f59e0b", scheduled:"#60a5fa", completed:"#94a3b8" };
   return (
     <div style={{
-      maxWidth: 680, width: "100%",
-      background: "linear-gradient(160deg, #0d1829 0%, #0a1120 100%)",
-      border: "1px solid #1e293b",
-      borderRadius: 24, padding: "52px 44px",
-      textAlign: "center",
-      boxShadow: "0 32px 80px #00000090",
+      maxWidth: 780, width: "100%",
       animation: "fadeSlideIn 0.4s ease",
+      display: "flex", flexDirection: "column", gap: 24,
     }}>
-      {/* Logo */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 12,
-          background: "#0f172a", border: "1px solid #1e293b",
-          borderRadius: 16, padding: "12px 20px",
-        }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10,
-            background: "linear-gradient(135deg, #c8a96e, #7c5830)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "'Cormorant Garamond', serif", fontWeight: 700,
-            fontSize: 20, color: "white",
-          }}>Հ</div>
-          <div style={{ textAlign: "left" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#e2e8f0", letterSpacing: 1 }}>ArmExam</div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: "#475569", letterSpacing: 2, textTransform: "uppercase" }}>Language Testing</div>
-          </div>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, color:"#e2e8f0", margin:"0 0 6px", fontWeight:600 }}>
+          Հայոց Լեզվի Քննություններ
+        </h1>
+        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#475569", margin:0 }}>
+          Armenian Language Examinations · Select an exam to begin
+        </p>
       </div>
 
       <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, color: "#e2e8f0", margin: "0 0 8px", lineHeight: 1.2 }}>
@@ -1440,69 +1330,126 @@ function StartScreen({ onStart }) {
         ))}
       </div>
 
-      {/* Level selector */}
-      <div style={{ marginBottom: 36 }}>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#475569", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>
-          Ընտրի՛ր մակարդակ
-        </div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-          {LEVELS.map(l => (
-            <button key={l} onClick={() => setLevel(l)} style={{
-              width: 48, height: 48, borderRadius: 10,
-              background: level === l ? LEVEL_COLORS[l] + "22" : "#0f172a",
-              border: `1.5px solid ${level === l ? LEVEL_COLORS[l] : "#1e293b"}`,
-              color: level === l ? LEVEL_COLORS[l] : "#475569",
-              fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700,
-              cursor: "pointer", transition: "all 0.2s",
-            }}>{l}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* Exam info */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 36, justifyContent: "center" }}>
-        {[["📋", "7 հարց", "Questions"], ["⏱", "45 րոպե", "Minutes"], ["🎯", level, "Level"]].map(([icon, val, lbl]) => (
-          <div key={lbl} style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, padding: "12px 16px", flex: 1 }}>
-            <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#c8a96e", fontWeight: 600 }}>{val}</div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: "#475569" }}>{lbl}</div>
+      {/* Exam list */}
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {activeExams.length === 0 && (
+          <div style={{ textAlign:"center", padding:"48px 0", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:"#475569" }}>
+            No active exams available
           </div>
-        ))}
+        )}
+        {activeExams.map(exam => {
+          const sel = selected?.id === exam.id;
+          const lc = LEVEL_COLORS[exam.level] || "#a78bfa";
+          const isPlacement = exam.examType === "placement";
+          const qCount = isPlacement
+            ? (exam.placementTemplate||[]).reduce((s,r)=>s+r.count,0)
+            : exam.questionIds.length;
+          return (
+            <div key={exam.id} onClick={() => setSelected(exam)}
+              style={{ background: sel?"linear-gradient(135deg,#0d1829,#0a1522)":"#0d1829",
+                border:`2px solid ${sel?"#c8a96e":"#1e293b"}`,
+                borderRadius:18, padding:"22px 26px", cursor:"pointer",
+                transition:"all .2s", boxShadow: sel?"0 0 0 1px #c8a96e33":"none",
+                display:"flex", alignItems:"center", gap:20 }}>
+              {/* Left icon */}
+              <div style={{ width:52, height:52, borderRadius:14, flexShrink:0,
+                background: isPlacement ? "#a78bfa18" : lc+"18",
+                border:`1.5px solid ${isPlacement?"#a78bfa44":lc+"44"}`,
+                display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>
+                {isPlacement ? "📊" : "🎯"}
+              </div>
+              {/* Info */}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
+                  {isPlacement
+                    ? <span style={{ background:"#a78bfa18",color:"#a78bfa",border:"1px solid #a78bfa33",borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>📊 Placement</span>
+                    : <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{exam.level}</span>
+                  }
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#22c55e",background:"#22c55e18",border:"1px solid #22c55e33",borderRadius:5,padding:"1px 8px" }}>Active</span>
+                </div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:"#e2e8f0",fontWeight:600,marginBottom:4 }}>{exam.title}</div>
+                <div style={{ display:"flex", gap:16 }}>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#475569" }}>📋 {qCount} questions</span>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#475569" }}>⏱ {exam.duration} min</span>
+                  {!isPlacement && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#475569" }}>🎯 Pass: {exam.passingScore}%</span>}
+                  {isPlacement  && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#a78bfa" }}>🎚 All levels · auto-detect</span>}
+                </div>
+              </div>
+              {/* Select indicator */}
+              <div style={{ width:24, height:24, borderRadius:"50%", border:`2px solid ${sel?"#c8a96e":"#334155"}`,
+                background:sel?"#c8a96e":"transparent", flexShrink:0,
+                display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}>
+                {sel && <svg width={12} height={12} viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth={2} fill="none" strokeLinecap="round"/></svg>}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <button onClick={() => onStart(lang, level)} style={{
-        width: "100%",
-        background: "linear-gradient(135deg, #c8a96e, #a07840)",
-        border: "none", borderRadius: 14,
-        padding: "16px",
-        color: "white", fontFamily: "'DM Sans', sans-serif",
-        fontSize: 16, fontWeight: 600, cursor: "pointer",
-        boxShadow: "0 8px 32px #c8a96e44",
-        letterSpacing: 0.5,
-        transition: "all 0.2s",
-      }}>
-        {t.start} →
-      </button>
+      {/* Selected exam detail + Start button */}
+      {selected && (
+        <div style={{ background:"linear-gradient(135deg,#0a1520,#080f1a)", border:"1px solid #c8a96e33", borderRadius:18, padding:"24px 28px", animation:"fadeSlideIn .25s ease" }}>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:"#e2e8f0", fontWeight:600, marginBottom:16 }}>
+            {selected.title}
+          </div>
+          {selected.examType==="placement" ? (
+            <div style={{ marginBottom:20 }}>
+              <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#64748b", margin:"0 0 14px", lineHeight:1.6 }}>
+                This is a <strong style={{color:"#a78bfa"}}>Placement Exam</strong>. Questions from all levels will be selected automatically. After completion, the system determines your Armenian language level.
+              </p>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                {(selected.placementTemplate||[]).map(r=>{
+                  const lc = LEVEL_COLORS[r.level]||"#94a3b8";
+                  return <span key={r.level} style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{r.level}: {r.count}q</span>;
+                })}
+              </div>
+            </div>
+          ) : (
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#64748b", margin:"0 0 20px", lineHeight:1.6 }}>
+              Level <strong style={{color:LEVEL_COLORS[selected.level]||"#94a3b8"}}>{selected.level}</strong> · {selected.questionIds.length} questions · {selected.duration} minutes · Pass score: {selected.passingScore}%
+            </p>
+          )}
+          <button onClick={() => onStart(selected)} style={{
+            width:"100%", background:"linear-gradient(135deg,#c8a96e,#a07840)",
+            border:"none", borderRadius:14, padding:"16px",
+            color:"white", fontFamily:"'DM Sans',sans-serif",
+            fontSize:16, fontWeight:600, cursor:"pointer",
+            boxShadow:"0 8px 32px #c8a96e44", letterSpacing:.5, transition:"all .2s",
+          }}>
+            Սկսել Քննությունը →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function ArmExam() {
-  const [screen, setScreen] = useState("start"); // start | exam | results
+  const [screen, setScreen]   = useState("start"); // start | exam | results
+  const [activeExam, setActiveExam] = useState(null);   // selected exam object
+  const [examQuestions, setExamQuestions] = useState([]); // built question list
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
 
-  const handleStart = () => setScreen("exam");
+  const handleStart = (exam) => {
+    const qs = buildExamQuestions(exam);
+    setActiveExam(exam);
+    setExamQuestions(qs);
+    setCurrent(0);
+    setAnswers({});
+    setScreen("exam");
+  };
+
   const handleAnswer = (val) => {
-    setAnswers(a => ({ ...a, [DEMO_QUESTIONS[current].id]: val }));
+    setAnswers(a => ({ ...a, [examQuestions[current].id]: val }));
   };
   const handleNext = () => {
-    if (current < DEMO_QUESTIONS.length - 1) setCurrent(c => c + 1);
+    if (current < examQuestions.length - 1) setCurrent(c => c + 1);
     else setScreen("results");
   };
   const handlePrev = () => { if (current > 0) setCurrent(c => c - 1); };
-  const handleRestart = () => { setScreen("start"); setCurrent(0); setAnswers({}); };
+  const handleRestart = () => { setScreen("start"); setActiveExam(null); setCurrent(0); setAnswers({}); };
 
   return (
     <>
@@ -1543,6 +1490,7 @@ export default function ArmExam() {
           borderBottom: "1px solid #0f1f38",
           background: "#04080f99",
           backdropFilter: "blur(12px)",
+          flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
@@ -1554,10 +1502,18 @@ export default function ArmExam() {
             <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700, color: "#e2e8f0", letterSpacing: 1 }}>
               ArmExam
             </span>
+            {activeExam && screen === "exam" && (
+              <>
+                <span style={{ color:"#1e293b", fontSize:16 }}>·</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#64748b", maxWidth:300, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {activeExam.title}
+                </span>
+              </>
+            )}
           </div>
           {screen === "exam" && (
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-              <Timer seconds={45 * 60} />
+              <Timer seconds={(activeExam?.duration || 45) * 60} />
               <button onClick={() => setScreen("results")} style={{
                 background: "transparent", border: "1px solid #334155",
                 borderRadius: 8, padding: "6px 16px",
@@ -1583,27 +1539,34 @@ export default function ArmExam() {
               <StartScreen onStart={handleStart} />
             </div>
           )}
-          {screen === "exam" && (
+          {screen === "exam" && examQuestions.length > 0 && (
             <div style={{ display: "flex", gap: 24, alignItems: "flex-start", width: "100%" }}>
               <QuestionNav
-                questions={DEMO_QUESTIONS}
+                questions={examQuestions}
                 current={current}
                 answers={answers}
                 onJump={setCurrent}
               />
               <QuestionCard
-                question={DEMO_QUESTIONS[current]}
+                question={examQuestions[current]}
                 index={current}
-                total={DEMO_QUESTIONS.length}
-                value={answers[DEMO_QUESTIONS[current].id]}
+                total={examQuestions.length}
+                value={answers[examQuestions[current].id]}
                 onChange={handleAnswer}
                 onNext={handleNext}
                 onPrev={handlePrev}
-                isLast={current === DEMO_QUESTIONS.length - 1}
+                isLast={current === examQuestions.length - 1}
               />
             </div>
           )}
-          {screen === "results" && <ResultsScreen answers={answers} questions={DEMO_QUESTIONS} onRestart={handleRestart} />}
+          {screen === "results" && (
+            <ResultsScreen
+              answers={answers}
+              questions={examQuestions}
+              exam={activeExam}
+              onRestart={handleRestart}
+            />
+          )}
         </main>
 
         {/* Footer */}
@@ -1611,6 +1574,7 @@ export default function ArmExam() {
           textAlign: "center", padding: "16px",
           fontFamily: "'DM Sans', sans-serif", fontSize: 11,
           color: "#1e293b", borderTop: "1px solid #0f1f38",
+          flexShrink: 0,
         }}>
           ArmExam © 2025 · Armenian Language Testing Platform
         </footer>

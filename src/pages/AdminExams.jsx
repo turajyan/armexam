@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { QUESTIONS as DATA_QUESTIONS, EXAMS as DATA_EXAMS, STUDENTS as DATA_STUDENTS } from "../data.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
@@ -14,46 +15,11 @@ const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#
 const SECTIONS = ["Կարդալ","Գրել","Լսել","Քերականություն","Բառապաշար","Լսել / Տեսնել","Ազատ շարադրություն"];
 
 // ── Seed ─────────────────────────────────────────────────────────────────────
-const SEED_QUESTIONS = [
-  { id:1,  type:"single_choice", level:"A2", section:"Կարդալ",       points:1, text:"Ընտրի՛ր ճիշտ պատասխանը. «Ես ___ դպրոց եմ գնում»" },
-  { id:2,  type:"multi_choice",  level:"B1", section:"Քերականություն",points:2, text:"Ո՞ր նախ. են ճիշտ կառուցված" },
-  { id:3,  type:"audio",         level:"B2", section:"Լսել",          points:3, text:"Լսի՛ր — ինչի՞ մասին է խոսում բ." },
-  { id:4,  type:"video",         level:"C1", section:"Լսել / Տ.",     points:4, text:"Դիտի՛ր — ո՞ր թեման է հիմն." },
-  { id:5,  type:"multi_select",  level:"B2", section:"Բառապաշար",    points:3, text:"Ընտ. ճ. բառ. «ճամփ.» թ." },
-  { id:6,  type:"fill_blank",    level:"A1", section:"Գրել",          points:1, text:"Լր. «Ես ___ եմ»" },
-  { id:7,  type:"writing",       level:"C2", section:"Ազատ շ.",       points:10,text:"Գրի՛ր 150-200 բ. «Տ. ազդ. հ. լ.»" },
-  { id:8,  type:"single_choice", level:"A1", section:"Կարդալ",       points:1, text:"«Բ.» բ. ի՞նչ է նշ." },
-  { id:9,  type:"audio",         level:"C1", section:"Լսել",          points:4, text:"Լ. 2 ան. — ի՞նչ ասաց խ." },
-  { id:10, type:"multi_choice",  level:"B2", section:"Քերականություն",points:2, text:"Ո՞ր ձ. ձ. են ճ." },
-];
+const SEED_QUESTIONS = DATA_QUESTIONS;
 
-const SEED_STUDENTS = [
-  { id:1, name:"Անի Հակոբյան",    email:"ani@example.am",   group:"Խ-101", level:"B1" },
-  { id:2, name:"Արամ Պետրոսյան",  email:"aram@example.am",  group:"Խ-101", level:"A2" },
-  { id:3, name:"Մարինե Գ.",       email:"marine@example.am",group:"Խ-102", level:"B2" },
-  { id:4, name:"Դավիթ Ս.",        email:"davit@example.am", group:"Խ-102", level:"C1" },
-  { id:5, name:"Նարեկ Ավ.",       email:"narek@example.am", group:"Խ-103", level:"A1" },
-  { id:6, name:"Լուսինե Կ.",      email:"lusine@example.am",group:"Խ-103", level:"B1" },
-  { id:7, name:"Վահե Մ.",         email:"vahe@example.am",  group:"Խ-101", level:"A2" },
-  { id:8, name:"Հայկ Ա.",         email:"hayk@example.am",  group:"Խ-102", level:"B2" },
-];
+const SEED_STUDENTS = DATA_STUDENTS;
 
-const SEED_EXAMS = [
-  { id:1, title:"Summer B1 Examination",   examType:"fixed",     level:"B1", duration:60,  passingScore:70, shuffle:true,  showResults:true,  questionIds:[1,2,3,5,8],   assignedTo:[1,2,7], status:"active",    startDate:"2025-06-01", endDate:"2025-06-30", createdAt:"2025-05-15" },
-  { id:2, title:"A2 Entrance Test",          examType:"fixed",     level:"A2", duration:45,  passingScore:60, shuffle:false, showResults:false, questionIds:[1,6,8],       assignedTo:[2,7],   status:"draft",     startDate:"2025-07-01", endDate:"2025-07-15", createdAt:"2025-05-20" },
-  { id:3, title:"C1–C2 Final Examination",   examType:"fixed",     level:"C1", duration:90,  passingScore:80, shuffle:true,  showResults:true,  questionIds:[3,4,7,9],     assignedTo:[3,4,8], status:"completed", startDate:"2025-04-10", endDate:"2025-04-10", createdAt:"2025-04-01" },
-  { id:4, title:"Language Placement Test",   examType:"placement", level:null, duration:120, passingScore:null, shuffle:true, showResults:true,  questionIds:[],            assignedTo:[1,2,3,4,5,6,7,8], status:"active", startDate:"2025-09-01", endDate:"2025-09-30", createdAt:"2025-08-01",
-    placementTemplate:[
-      { level:"A1", count:5, pointsEach:1 },
-      { level:"A2", count:5, pointsEach:1 },
-      { level:"B1", count:5, pointsEach:2 },
-      { level:"B2", count:5, pointsEach:2 },
-      { level:"C1", count:5, pointsEach:3 },
-      { level:"C2", count:5, pointsEach:3 },
-    ],
-    placementThresholds:{ A1:0, A2:25, B1:40, B2:55, B2plus:65, C1:75, C2:88 },
-  },
-];
+const SEED_EXAMS = DATA_EXAMS.map(e=>({...e}));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STATUS_META = {
