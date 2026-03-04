@@ -39,10 +39,20 @@ const SEED_STUDENTS = [
 ];
 
 const SEED_EXAMS = [
-  { id:1, title:"Summer B1 Examination", level:"B1", duration:60, sections:["Կարդալ","Լսել","Քերականություն"], questionIds:[1,2,3,5,8], assignedTo:[1,2,7], status:"active",   startDate:"2025-06-01", endDate:"2025-06-30", passingScore:70, shuffle:true,  showResults:true,  createdAt:"2025-05-15" },
-  { id:2, title:"A2 Entrance Test",  level:"A2", duration:45, sections:["Կարդալ","Գրել"],                  questionIds:[1,6,8],    assignedTo:[2,7],   status:"draft",    startDate:"2025-07-01", endDate:"2025-07-15", passingScore:60, shuffle:false, showResults:false, createdAt:"2025-05-20" },
-  { id:3, title:"C1–C2 Final Examination",level:"C1", duration:90, sections:["All"],                          questionIds:[3,4,7,9],  assignedTo:[3,4,8], status:"completed",startDate:"2025-04-10", endDate:"2025-04-10", passingScore:80, shuffle:true,  showResults:true,  createdAt:"2025-04-01" },
-  { id:4, title:"B2 Vocabulary Exam",    level:"B2", duration:75, sections:["Listening","Video","Vocabulary"],              questionIds:[3,4,5,10], assignedTo:[3,8],   status:"scheduled",startDate:"2025-08-01", endDate:"2025-08-05", passingScore:75, shuffle:true,  showResults:true,  createdAt:"2025-06-01" },
+  { id:1, title:"Summer B1 Examination",   examType:"fixed",     level:"B1", duration:60,  passingScore:70, shuffle:true,  showResults:true,  questionIds:[1,2,3,5,8],   assignedTo:[1,2,7], status:"active",    startDate:"2025-06-01", endDate:"2025-06-30", createdAt:"2025-05-15" },
+  { id:2, title:"A2 Entrance Test",          examType:"fixed",     level:"A2", duration:45,  passingScore:60, shuffle:false, showResults:false, questionIds:[1,6,8],       assignedTo:[2,7],   status:"draft",     startDate:"2025-07-01", endDate:"2025-07-15", createdAt:"2025-05-20" },
+  { id:3, title:"C1–C2 Final Examination",   examType:"fixed",     level:"C1", duration:90,  passingScore:80, shuffle:true,  showResults:true,  questionIds:[3,4,7,9],     assignedTo:[3,4,8], status:"completed", startDate:"2025-04-10", endDate:"2025-04-10", createdAt:"2025-04-01" },
+  { id:4, title:"Language Placement Test",   examType:"placement", level:null, duration:120, passingScore:null, shuffle:true, showResults:true,  questionIds:[],            assignedTo:[1,2,3,4,5,6,7,8], status:"active", startDate:"2025-09-01", endDate:"2025-09-30", createdAt:"2025-08-01",
+    placementTemplate:[
+      { level:"A1", count:5, pointsEach:1 },
+      { level:"A2", count:5, pointsEach:1 },
+      { level:"B1", count:5, pointsEach:2 },
+      { level:"B2", count:5, pointsEach:2 },
+      { level:"C1", count:5, pointsEach:3 },
+      { level:"C2", count:5, pointsEach:3 },
+    ],
+    placementThresholds:{ A1:0, A2:25, B1:40, B2:55, B2plus:65, C1:75, C2:88 },
+  },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -157,7 +167,20 @@ const WIZARD_STEPS = ["General","Questions","Students","Schedule"];
 
 function ExamWizard({ initial, onSave, onCancel }) {
   const isEdit = !!initial;
-  const blank = { title:"", level:"B1", duration:60, sections:[], passingScore:70, shuffle:true, showResults:true, allowReview:false, randomQuestions:false, questionCount:10, questionIds:[], assignedTo:[], assignedGroups:[], startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"" };
+  const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, questionIds:[], assignedTo:[], startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"" };
+  const blankPlacement = { examType:"placement", title:"", level:null, duration:90, passingScore:null, shuffle:true, showResults:true, allowReview:false, questionIds:[], assignedTo:[],
+    startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"",
+    placementTemplate:[
+      { level:"A1", count:5, pointsEach:1 },
+      { level:"A2", count:5, pointsEach:1 },
+      { level:"B1", count:5, pointsEach:2 },
+      { level:"B2", count:5, pointsEach:2 },
+      { level:"C1", count:5, pointsEach:3 },
+      { level:"C2", count:5, pointsEach:3 },
+    ],
+    placementThresholds:{ A1:0, A2:25, B1:40, B2:55, C1:75, C2:88 },
+  };
+  const blank = blankFixed;
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initial ? {...blank,...initial} : blank);
   const set = (k,v) => setForm(p=>({...p,[k]:v}));
@@ -168,61 +191,248 @@ function ExamWizard({ initial, onSave, onCancel }) {
 
   const pts = totalPoints(form.questionIds);
 
-  // Step 0 — General info
+  // Step 0 — Exam type + General info
+  const updateTemplate = (level, field, val) => {
+    const tpl = (form.placementTemplate||[]).map(r => r.level===level ? {...r,[field]:+val} : r);
+    set("placementTemplate", tpl);
+  };
+  const updateThreshold = (level, val) => {
+    set("placementThresholds", {...(form.placementThresholds||{}), [level]:+val});
+  };
+
+  const placementTotalQ = (form.placementTemplate||[]).reduce((s,r)=>s+r.count,0);
+  const placementTotalPts = (form.placementTemplate||[]).reduce((s,r)=>s+r.count*r.pointsEach,0);
+
   const Step0 = () => (
-    <div style={{ display:"flex",flexDirection:"column",gap:18 }}>
-      <Input label="Exam Title" value={form.title} onChange={v=>set("title",v)} placeholder="օր. «Ամառային B1 Քննություն»" />
-      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14 }}>
-        <Select label="Level" value={form.level} onChange={v=>set("level",v)} options={[{value:"all",label:"All"},...LEVELS.map(l=>({value:l,label:l}))]} />
-        <Input label="Duration (min)" value={form.duration} onChange={v=>set("duration",+v)} type="number" />
-        <Input label="Passing Score (%)" value={form.passingScore} onChange={v=>set("passingScore",+v)} type="number" />
-      </div>
+    <div style={{ display:"flex",flexDirection:"column",gap:22 }}>
+
+      {/* ── Exam Type selector ── */}
       <div>
-        <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase",display:"block",marginBottom:10 }}>Բաժիններ</label>
-        <div style={{ display:"flex",flexWrap:"wrap",gap:8 }}>
-          {SECTIONS.map(s=>{
-            const sel = form.sections.includes(s);
-            return <button key={s} onClick={()=>set("sections",sel?form.sections.filter(x=>x!==s):[...form.sections,s])} style={{ background:sel?C.gold+"22":"transparent",border:`1px solid ${sel?C.gold:C.border2}`,borderRadius:8,padding:"6px 14px",color:sel?C.gold:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>{s}</button>;
+        <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase",display:"block",marginBottom:12 }}>Exam Type</label>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+          {[
+            { id:"fixed",     icon:"🎯", title:"Fixed Level Exam",
+              desc:"All questions are from one level (A1–C2). Pass/fail based on a fixed score threshold." },
+            { id:"placement", icon:"📊", title:"Placement Exam",
+              desc:"Questions from all levels (e.g. 5×A1, 5×A2 … 5×C2). The system calculates the student's language level automatically." },
+          ].map(t=>{
+            const sel = form.examType===t.id;
+            return (
+              <button key={t.id} onClick={()=>{
+                if (t.id==="fixed") setForm({...blankFixed, title:form.title});
+                else setForm({...blankPlacement, title:form.title});
+              }} style={{
+                background: sel?C.gold+"14":"transparent",
+                border:`2px solid ${sel?C.gold:C.border2}`,
+                borderRadius:14, padding:"18px 20px", textAlign:"left",
+                cursor:"pointer", transition:"all .2s", position:"relative",
+              }}>
+                {sel && <div style={{ position:"absolute",top:12,right:14,width:18,height:18,borderRadius:"50%",background:C.gold,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width={10} height={10} viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 5-5" stroke="white" strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg></div>}
+                <div style={{ fontSize:24,marginBottom:8 }}>{t.icon}</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:sel?C.gold:C.text,fontWeight:600,marginBottom:6 }}>{t.title}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,lineHeight:1.5 }}>{t.desc}</div>
+              </button>
+            );
           })}
         </div>
       </div>
-      <Input label="Notes (optional)" value={form.notes} onChange={v=>set("notes",v)} placeholder="Ներքին գ. կամ ն. ..." />
+
+      {/* ── Common fields ── */}
+      <Input label="Exam Title" value={form.title} onChange={v=>set("title",v)} placeholder={form.examType==="placement"?"e.g. «Language Placement Test»":"e.g. «Summer B1 Examination»"} />
+      <div style={{ display:"grid",gridTemplateColumns:`${form.examType==="fixed"?"1fr 1fr 1fr":"1fr 1fr"}`,gap:14 }}>
+        {form.examType==="fixed" && (
+          <Select label="Language Level" value={form.level||"B1"} onChange={v=>set("level",v)}
+            options={LEVELS.map(l=>({value:l,label:l}))} />
+        )}
+        <Input label="Duration (min)" value={form.duration} onChange={v=>set("duration",+v)} type="number" />
+        {form.examType==="fixed" && (
+          <Input label="Passing Score (%)" value={form.passingScore} onChange={v=>set("passingScore",+v)} type="number" />
+        )}
+      </div>
+
+      {/* ── FIXED: nothing extra needed ── */}
+
+      {/* ── PLACEMENT: template editor ── */}
+      {form.examType==="placement" && (
+        <div style={{ display:"flex",flexDirection:"column",gap:20 }}>
+
+          {/* Question template per level */}
+          <div>
+            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
+              <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>Questions per Level</label>
+              <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold }}>
+                Total: {placementTotalQ} questions · {placementTotalPts} pts
+              </span>
+            </div>
+            <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
+              {/* Header */}
+              <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 1fr 1fr",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,background:C.dim }}>
+                {["Level","Questions","Pts each","Subtotal"].map(h=>(
+                  <span key={h} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,fontWeight:700,letterSpacing:.6,textTransform:"uppercase" }}>{h}</span>
+                ))}
+              </div>
+              {(form.placementTemplate||[]).map(row=>{
+                const lc = LEVEL_COLORS[row.level]||"#94a3b8";
+                return (
+                  <div key={row.level} style={{ display:"grid",gridTemplateColumns:"60px 1fr 1fr 1fr",gap:12,padding:"12px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center" }}>
+                    <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",textAlign:"center" }}>{row.level}</span>
+                    <input type="number" min={0} max={30} value={row.count}
+                      onChange={e=>updateTemplate(row.level,"count",e.target.value)}
+                      style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:8,padding:"7px 12px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",width:80 }} />
+                    <input type="number" min={1} max={10} value={row.pointsEach}
+                      onChange={e=>updateTemplate(row.level,"pointsEach",e.target.value)}
+                      style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:8,padding:"7px 12px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",width:80 }} />
+                    <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:C.gold,fontWeight:700 }}>{row.count*row.pointsEach} pt</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Level thresholds */}
+          <div>
+            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
+              <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>Level Thresholds (%)</label>
+              <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>Student is assigned the highest level they exceed</span>
+            </div>
+            <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px",display:"flex",flexDirection:"column",gap:12 }}>
+              {LEVELS.map((level,i)=>{
+                const thresh = (form.placementThresholds||{})[level]??0;
+                const lc = LEVEL_COLORS[level]||"#94a3b8";
+                return (
+                  <div key={level} style={{ display:"flex",alignItems:"center",gap:16 }}>
+                    <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",width:44,textAlign:"center",flexShrink:0 }}>{level}</span>
+                    <div style={{ flex:1,height:6,background:C.dim,borderRadius:3,overflow:"hidden" }}>
+                      <div style={{ width:`${thresh}%`,height:"100%",background:lc,borderRadius:3,transition:"width .3s" }}/>
+                    </div>
+                    <div style={{ display:"flex",alignItems:"center",gap:8,flexShrink:0 }}>
+                      <input type="range" min={0} max={100} value={thresh}
+                        onChange={e=>updateThreshold(level,e.target.value)}
+                        style={{ width:100,accentColor:lc,cursor:"pointer" }} />
+                      <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:lc,fontWeight:700,width:36,textAlign:"right" }}>{thresh}%</span>
+                    </div>
+                    {i>0 && (
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,width:140 }}>
+                        score ≥ {thresh}% → {level}
+                      </span>
+                    )}
+                    {i===0 && (
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,width:140 }}>
+                        score &lt; {(form.placementThresholds||{})["A2"]??25}% → Below A1
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Visual explanation */}
+              <div style={{ marginTop:4,background:C.card,borderRadius:10,padding:"12px 16px",display:"flex",gap:0,overflow:"hidden",borderRadius:8 }}>
+                {LEVELS.map((level,i)=>{
+                  const from = (form.placementThresholds||{})[level]??0;
+                  const to   = i<LEVELS.length-1 ? ((form.placementThresholds||{})[LEVELS[i+1]]??100) : 100;
+                  const w    = to-from;
+                  const lc   = LEVEL_COLORS[level]||"#94a3b8";
+                  if(w<=0) return null;
+                  return (
+                    <div key={level} style={{ flex:w,background:lc+"22",borderLeft:i>0?`1px solid ${lc}44`:"none",display:"flex",alignItems:"center",justifyContent:"center",padding:"6px 4px",minWidth:0 }}>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:lc,fontWeight:700,whiteSpace:"nowrap" }}>{level}</span>
+                    </div>
+                  );
+                })}
+                <div style={{ flex:Math.max(0,(form.placementThresholds||{})["A1"]??0),background:C.dim,display:"flex",alignItems:"center",justifyContent:"center",padding:"6px 4px",minWidth:0,order:-1 }}>
+                  {((form.placementThresholds||{})["A1"]??0)>0 && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:9,color:C.muted }}>—</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Input label="Notes (optional)" value={form.notes} onChange={v=>set("notes",v)} placeholder="Internal notes..." />
     </div>
   );
 
-  // Step 1 — Questions
-  const Step1 = () => (
-    <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
-      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-        <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>
-          Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.questionIds.length}</span> հ. · <span style={{ color:C.gold,fontWeight:700 }}>{pts}</span> կ.
-        </div>
-        <div style={{ display:"flex",gap:8 }}>
-          <Btn small onClick={()=>set("questionIds",availableQs.map(q=>q.id))}>Select All</Btn>
-          <Btn small onClick={()=>set("questionIds",[])}>Clear</Btn>
-        </div>
-      </div>
-      <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:380,overflowY:"auto" }}>
-        {availableQs.map(q=>{
-          const sel = form.questionIds.includes(q.id);
-          const lc = LEVEL_COLORS[q.level]||"#94a3b8";
-          return (
-            <div key={q.id} onClick={()=>toggleQ(q.id)} style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:sel?C.gold+"0e":C.panel,border:`1.5px solid ${sel?C.gold+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .15s" }}>
-              <div style={{ width:20,height:20,borderRadius:4,border:`2px solid ${sel?C.gold:C.border2}`,background:sel?C.gold+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                {sel && <svg width={11} height={11} viewBox="0 0 11 11"><path d="M1.5 6l3 3 5-5" stroke={C.gold} strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg>}
-              </div>
-              <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,minWidth:24 }}>#{q.id}</span>
-              <span style={{ fontSize:14 }}>{QTYPE_ICON[q.type]}</span>
-              <span style={{ flex:1,fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{q.text}</span>
-              <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{q.level}</span>
-              <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold,fontWeight:600,minWidth:28,textAlign:"right" }}>{q.points}pt</span>
+  // Step 1 — Questions (fixed) or Pool overview (placement)
+  const Step1 = () => {
+    if (form.examType === "placement") {
+      // Placement: show pool status per level - how many questions exist vs needed
+      return (
+        <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
+          <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"18px 22px" }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6 }}>
+              In a Placement Exam, questions are drawn <strong style={{color:C.text}}>automatically from the question bank</strong> at exam time, based on the template you defined in Step 1.<br/>
+              <span style={{ color:C.gold }}>Review the question pool availability below.</span>
             </div>
-          );
-        })}
+            <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
+              <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 80px 80px",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,background:C.dim }}>
+                {["Level","Pool available","Needed","Status","Pts each"].map(h=>(
+                  <span key={h} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,fontWeight:700,letterSpacing:.6,textTransform:"uppercase" }}>{h}</span>
+                ))}
+              </div>
+              {(form.placementTemplate||[]).map(row=>{
+                const lc = LEVEL_COLORS[row.level]||"#94a3b8";
+                const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level).length;
+                const ok = poolCount >= row.count;
+                return (
+                  <div key={row.level} style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 80px 80px",gap:12,padding:"13px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center" }}>
+                    <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",textAlign:"center" }}>{row.level}</span>
+                    <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                      <div style={{ flex:1,height:4,background:C.dim,borderRadius:2 }}>
+                        <div style={{ width:`${Math.min(100,(poolCount/Math.max(row.count,1))*100)}%`,height:"100%",background:ok?C.success:C.warning,borderRadius:2 }}/>
+                      </div>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:C.warning,minWidth:20 }}>{poolCount}</span>
+                    </div>
+                    <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,textAlign:"center" }}>{row.count}</span>
+                    <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:ok?C.success:C.warning }}>
+                      {ok ? "✓ OK" : `⚠ Need ${row.count-poolCount} more`}
+                    </span>
+                    <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold,textAlign:"center" }}>{row.pointsEach}pt</span>
+                  </div>
+                );
+              })}
+              <div style={{ padding:"12px 18px",display:"flex",justifyContent:"space-between" }}>
+                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>Total: {placementTotalQ} questions · {placementTotalPts} points</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>Questions selected randomly at exam time</span>
+              </div>
+            </div>
+          </div>
+          <Toggle label="Shuffle Questions" hint="Randomize order within each level group" value={form.shuffle} onChange={v=>set("shuffle",v)} />
+        </div>
+      );
+    }
+    // Fixed exam — manual question selection
+    return (
+      <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>
+            Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.questionIds.length}</span> questions · <span style={{ color:C.gold,fontWeight:700 }}>{pts}</span> pts
+          </div>
+          <div style={{ display:"flex",gap:8 }}>
+            <Btn small onClick={()=>set("questionIds",availableQs.map(q=>q.id))}>Select All</Btn>
+            <Btn small onClick={()=>set("questionIds",[])}>Clear</Btn>
+          </div>
+        </div>
+        <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:380,overflowY:"auto" }}>
+          {availableQs.map(q=>{
+            const sel = form.questionIds.includes(q.id);
+            const lc = LEVEL_COLORS[q.level]||"#94a3b8";
+            return (
+              <div key={q.id} onClick={()=>toggleQ(q.id)} style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:sel?C.gold+"0e":C.panel,border:`1.5px solid ${sel?C.gold+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .15s" }}>
+                <div style={{ width:20,height:20,borderRadius:4,border:`2px solid ${sel?C.gold:C.border2}`,background:sel?C.gold+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                  {sel && <svg width={11} height={11} viewBox="0 0 11 11"><path d="M1.5 6l3 3 5-5" stroke={C.gold} strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg>}
+                </div>
+                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,minWidth:24 }}>#{q.id}</span>
+                <span style={{ fontSize:14 }}>{QTYPE_ICON[q.type]}</span>
+                <span style={{ flex:1,fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{q.text}</span>
+                <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{q.level}</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold,fontWeight:600,minWidth:28,textAlign:"right" }}>{q.points}pt</span>
+              </div>
+            );
+          })}
+        </div>
+        <Toggle label="Shuffle Questions" hint="Randomize question order for each student" value={form.shuffle} onChange={v=>set("shuffle",v)} />
       </div>
-      <Toggle label="Shuffle Questions" hint="Randomize question order for each student" value={form.shuffle} onChange={v=>set("shuffle",v)} />
-    </div>
-  );
+    );
+  };
 
   // Step 2 — Students
   const Step2 = () => {
@@ -280,15 +490,15 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const Step3 = () => (
     <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
       <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
-        <Input label="Մ. ամ." value={form.startDate} onChange={v=>set("startDate",v)} type="date" />
-        <Input label="Ա. ամ." value={form.endDate} onChange={v=>set("endDate",v)} type="date" />
-        <Input label="Մ. ժ." value={form.startTime} onChange={v=>set("startTime",v)} type="time" />
-        <Input label="Ա. ժ." value={form.endTime} onChange={v=>set("endTime",v)} type="time" />
+        <Input label="Start Date" value={form.startDate} onChange={v=>set("startDate",v)} type="date" />
+        <Input label="End Date" value={form.endDate} onChange={v=>set("endDate",v)} type="date" />
+        <Input label="Start Time" value={form.startTime} onChange={v=>set("startTime",v)} type="time" />
+        <Input label="End Time" value={form.endTime} onChange={v=>set("endTime",v)} type="time" />
       </div>
       <Select label="Settings" value={form.status} onChange={v=>set("status",v)} options={Object.entries(STATUS_META).map(([v,m])=>({value:v,label:m.label}))} />
       <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
         <Toggle label="Show results to student" hint="Show results to student after exam" value={form.showResults} onChange={v=>set("showResults",v)} />
-        <Toggle label="Վ. ու. թ." hint="Allow answer review after submission" value={form.allowReview} onChange={v=>set("allowReview",v)} />
+        <Toggle label="Allow Answer Review" hint="Allow answer review after submission" value={form.allowReview} onChange={v=>set("allowReview",v)} />
       </div>
       {/* Summary card */}
       <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px" }}>
@@ -313,7 +523,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const STEP_CONTENT = [<Step0/>,<Step1/>,<Step2/>,<Step3/>];
   const canProceed = [
     form.title.trim().length > 0,
-    form.questionIds.length > 0,
+    form.examType === "placement" ? true : form.questionIds.length > 0,
     form.assignedTo.length > 0,
     true,
   ];
@@ -353,7 +563,10 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
       <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12 }}>
         <div style={{ flex:1,minWidth:0 }}>
           <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:6 }}>
-            <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"2px 9px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{exam.level}</span>
+            {exam.examType==="placement"
+              ? <span style={{ background:"#a78bfa18",color:"#a78bfa",border:"1px solid #a78bfa33",borderRadius:6,padding:"2px 9px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>📊 Placement</span>
+              : <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"2px 9px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{exam.level}</span>
+            }
             <span style={{ background:sm.color+"18",color:sm.color,border:`1px solid ${sm.color}33`,borderRadius:6,padding:"2px 9px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{sm.icon} {sm.label}</span>
           </div>
           <h3 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:C.text,margin:"0 0 4px",fontWeight:600,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{exam.title}</h3>
@@ -363,12 +576,17 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
 
       {/* Stats row */}
       <div style={{ display:"flex",gap:12 }}>
-        {[
-          { icon:"📋",val:exam.questionIds.length+" հ.",tip:"Questions" },
-          { icon:"🏆",val:pts+" կ.",tip:"Settings" },
+        {(exam.examType==="placement" ? [
+          { icon:"📊",val:(exam.placementTemplate||[]).reduce((s,r)=>s+r.count,0)+" q",tip:"Total Questions" },
+          { icon:"🎚",val:"A1→C2",tip:"All Levels" },
           { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
-          { icon:"🎯",val:exam.passingScore+"%",tip:"Pass %" },
-        ].map(x=>(
+          { icon:"🔢",val:"Auto",tip:"Level auto-detected" },
+        ] : [
+          { icon:"📋",val:exam.questionIds.length+" q",tip:"Questions" },
+          { icon:"🏆",val:pts+" pts",tip:"Total Points" },
+          { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
+          { icon:"🎯",val:(exam.passingScore??0)+"%",tip:"Pass Score" },
+        ]).map(x=>(
           <div key={x.tip} style={{ flex:1,background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:"8px",textAlign:"center" }}>
             <div style={{ fontSize:14,marginBottom:2 }}>{x.icon}</div>
             <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,fontWeight:600 }}>{x.val}</div>
