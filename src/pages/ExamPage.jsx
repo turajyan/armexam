@@ -1081,7 +1081,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
       border: "1px solid #1e293b",
       borderRadius: 20,
       padding: "32px 36px",
-      maxWidth: 760,
+      maxWidth: "100%",
       width: "100%",
       boxShadow: "0 24px 64px #00000080",
       animation: "fadeSlideIn 0.35s cubic-bezier(.4,0,.2,1)",
@@ -1258,10 +1258,10 @@ function ResultsScreen({ answers, questions, onRestart }) {
   const typeLabels = { single_choice:"Choice", multi_choice:"Multi", multi_select:"Select", audio:"Audio", video:"Video", fill_blank:"Fill", fill_wordbank:"Word Bank", writing:"Writing", voice:"Voice" };
 
   return (
-    <div style={{ maxWidth:760, width:"100%", display:"flex", flexDirection:"column", gap:20, animation:"fadeSlideIn .4s ease" }}>
+    <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:20, animation:"fadeSlideIn .4s ease" }}>
 
       {/* ── Score card ── */}
-      <div style={{ background:"linear-gradient(160deg,#0d1829 0%,#0a1120 100%)", border:`1px solid ${passed?"#22c55e33":"#f8717133"}`, borderRadius:24, padding:"40px", textAlign:"center", boxShadow:"0 24px 64px #00000080", position:"relative", overflow:"hidden" }}>
+      <div style={{ background:"linear-gradient(160deg,#0d1829 0%,#0a1120 100%)", border:`1px solid ${passed?"#22c55e33":"#f8717133"}`, borderRadius:24, padding:"40px", textAlign:"center", boxShadow:"0 24px 64px #00000080", position:"relative", overflow:"hidden", maxWidth:800, alignSelf:"center", width:"100%" }}>
         {/* BG glow */}
         <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at 50% 0%, ${passed?"#22c55e":"#f87171"}0a 0%, transparent 70%)`, pointerEvents:"none" }} />
 
@@ -1392,7 +1392,7 @@ function StartScreen({ onStart }) {
   const t = texts[lang];
   return (
     <div style={{
-      maxWidth: 600, width: "100%",
+      maxWidth: 680, width: "100%",
       background: "linear-gradient(160deg, #0d1829 0%, #0a1120 100%)",
       border: "1px solid #1e293b",
       borderRadius: 24, padding: "52px 44px",
@@ -1530,10 +1530,11 @@ export default function ArmExam() {
         textarea { scrollbar-width: thin; scrollbar-color: #1e293b transparent; }
       `}</style>
       <div style={{
-        minHeight: "100vh",
-        background: "radial-gradient(ellipse at 20% 50%, #0d1f3c 0%, #050c18 60%, #020709 100%)",
+        flex: 1, minWidth: 0,
         display: "flex", flexDirection: "column",
+        background: "radial-gradient(ellipse at 20% 50%, #0d1f3c 0%, #050c18 60%, #020709 100%)",
         fontFamily: "'DM Sans', sans-serif",
+        overflow: "hidden",
       }}>
         {/* Top bar */}
         <header style={{
@@ -1571,12 +1572,19 @@ export default function ArmExam() {
 
         {/* Main */}
         <main style={{
-          flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "32px 20px",
+          flex: 1, overflowY: "auto",
+          padding: "32px 40px",
+          display: "flex", flexDirection: "column",
+          alignItems: "stretch",
+          minHeight: 0,
         }}>
-          {screen === "start" && <StartScreen onStart={handleStart} />}
+          {screen === "start" && (
+            <div style={{ display:"flex", justifyContent:"center", alignItems:"flex-start" }}>
+              <StartScreen onStart={handleStart} />
+            </div>
+          )}
           {screen === "exam" && (
-            <div style={{ display: "flex", gap: 24, alignItems: "flex-start", width: "100%", maxWidth: 1000 }}>
+            <div style={{ display: "flex", gap: 24, alignItems: "flex-start", width: "100%" }}>
               <QuestionNav
                 questions={DEMO_QUESTIONS}
                 current={current}
