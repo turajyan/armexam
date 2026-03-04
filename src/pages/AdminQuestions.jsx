@@ -1,0 +1,508 @@
+import { useState, useRef } from "react";
+
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const LEVELS = ["A1","A2","B1","B2","C1","C2"];
+const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
+const SECTIONS = ["Կարդալ","Գրել","Լսել","Քերականություն","Բառապաշար","Լսել / Տեսնել","Ազատ շարադրություն"];
+const QTYPES = [
+  { id:"single_choice", label:"Single Choice", icon:"◉", color:"#60a5fa" },
+  { id:"multi_choice",  label:"Multi Choice",  icon:"☑", color:"#a78bfa" },
+  { id:"multi_select",  label:"Multi Select",  icon:"⊞", color:"#34d399" },
+  { id:"audio",         label:"Audio",         icon:"🎧", color:"#f59e0b" },
+  { id:"video",         label:"Video",         icon:"🎬", color:"#f87171" },
+  { id:"fill_blank",    label:"Fill Blank",    icon:"✎", color:"#e879f9" },
+  { id:"writing",       label:"Writing",       icon:"✍", color:"#94a3b8" },
+];
+
+// ── Seed data ────────────────────────────────────────────────────────────────
+const SEED = [
+  { id:1, type:"single_choice", level:"A2", section:"Կարդալ",      points:1, status:"published", text:"Ընտրի՛ր ճիշտ պատասխանը. «Ես ___ դպրոց եմ գնում»",          options:["դեպի","մոտ","կողքին","առաջ"],  correct:0,   createdAt:"2025-01-10" },
+  { id:2, type:"multi_choice",  level:"B1", section:"Քերականություն",points:2, status:"published", text:"Ո՞ր նախադասություններն են ճիշտ",                            options:["Նա կարդում է","Ես գնաcի","Դու կուտես","Նա գալու է"], correct:[0,1], createdAt:"2025-01-11" },
+  { id:3, type:"audio",         level:"B2", section:"Լսել",          points:3, status:"draft",    text:"Լսի՛ր և պատասխանի՛ր — ինչի՞ մասին է խոսում բանախոսը",     options:["Ճամփ.","Ընտ.","Աշխ.","Կրթ."],  correct:2,   maxPlays:2, pauseSeconds:25, createdAt:"2025-02-03" },
+  { id:4, type:"video",         level:"C1", section:"Լսել / Տեսնել", points:4, status:"published", text:"Դիտի՛ր տեսանյութը — ո՞ր թեման է հիմնականը",               options:["Քաղ.","Բնապ.","Տնտ.","Մշակ."],  correct:1,   maxPlays:2, createdAt:"2025-02-10" },
+  { id:5, type:"multi_select",  level:"B2", section:"Բառապաշար",    points:3, status:"published", text:"Ընտրի՛ր բոլոր բառերը կապված «ճամփ.» թեմայի հետ",          options:["ինքն.","բժ.","կայ.","ճամ.","դպ.","անձ."], correct:[0,2,3,5], createdAt:"2025-02-15" },
+  { id:6, type:"fill_blank",    level:"A1", section:"Գրել",          points:1, status:"draft",    text:"Լրացրո՛ւ. «Ես ___ եմ» (to be)",                            answer:"եմ", createdAt:"2025-03-01" },
+  { id:7, type:"writing",       level:"C2", section:"Ազատ շարադրություն",points:10,status:"published",text:"Գրի՛ր 150-200 բառ. «Ժամ. տեխ. ազդ. հայ. լեզ. վրա»", minWords:150, maxWords:200, createdAt:"2025-03-05" },
+];
+
+// ── Palette ──────────────────────────────────────────────────────────────────
+const C = {
+  bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
+  border2:"#243050", gold:"#c8a96e", goldDim:"#7c5830",
+  text:"#e2e8f0", muted:"#475569", dim:"#1e293b",
+  success:"#22c55e", danger:"#f87171", warning:"#f59e0b",
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const qtype = (id) => QTYPES.find(q=>q.id===id) || QTYPES[0];
+
+function Badge({ children, color="#64748b", bg }) {
+  return <span style={{ background: bg||(color+"18"), color, border:`1px solid ${color}33`, borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:.5 }}>{children}</span>;
+}
+
+function Pill({ label, active, onClick, color="#c8a96e" }) {
+  return (
+    <button onClick={onClick} style={{ background:active?(color+"22"):"transparent", border:`1px solid ${active?color:C.border}`, borderRadius:8, padding:"5px 14px", color:active?color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, cursor:"pointer", transition:"all .15s" }}>
+      {label}
+    </button>
+  );
+}
+
+function Input({ label, value, onChange, placeholder, type="text", style={} }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+      {label && <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>}
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+        style={{ background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:14, outline:"none", transition:"border .15s", ...style }}
+        onFocus={e=>e.target.style.borderColor=C.gold} onBlur={e=>e.target.style.borderColor=C.border2}
+      />
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+      {label && <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>}
+      <select value={value} onChange={e=>onChange(e.target.value)}
+        style={{ background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:14, outline:"none", cursor:"pointer" }}>
+        {options.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function Textarea({ label, value, onChange, placeholder, rows=4 }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+      {label && <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>}
+      <textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows}
+        style={{ background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:14, outline:"none", resize:"vertical", transition:"border .15s" }}
+        onFocus={e=>e.target.style.borderColor=C.gold} onBlur={e=>e.target.style.borderColor=C.border2}
+      />
+    </div>
+  );
+}
+
+function UploadZone({ label, accept, icon, hint }) {
+  const [drag, setDrag] = useState(false);
+  const [file, setFile] = useState(null);
+  const ref = useRef();
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+      {label && <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>}
+      <div
+        onClick={()=>ref.current.click()}
+        onDragOver={e=>{e.preventDefault();setDrag(true)}}
+        onDragLeave={()=>setDrag(false)}
+        onDrop={e=>{e.preventDefault();setDrag(false);setFile(e.dataTransfer.files[0])}}
+        style={{ border:`2px dashed ${drag?C.gold:file?C.success:C.border2}`, borderRadius:12, padding:"24px 16px", textAlign:"center", cursor:"pointer", transition:"all .2s", background:drag?C.gold+"08":file?C.success+"08":"transparent" }}>
+        <div style={{ fontSize:28, marginBottom:6 }}>{icon}</div>
+        {file ? (
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.success }}>{file.name}</div>
+        ) : (
+          <>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>Քաշի՛ր կամ սեղմի՛ր</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.dim, marginTop:4 }}>{hint}</div>
+          </>
+        )}
+        <input ref={ref} type="file" accept={accept} style={{ display:"none" }} onChange={e=>setFile(e.target.files[0])} />
+      </div>
+    </div>
+  );
+}
+
+// ── Question Form ─────────────────────────────────────────────────────────────
+function QuestionForm({ initial, onSave, onCancel }) {
+  const isEdit = !!initial;
+  const blank = { type:"single_choice", level:"B1", section:"Կարդալ", points:1, status:"draft", text:"", options:["","","",""], correct:0 };
+  const [q, setQ] = useState(initial ? {...initial, options: initial.options ? [...initial.options] : ["","","",""] } : blank);
+  const set = (k,v) => setQ(p=>({...p,[k]:v}));
+
+  const toggleCorrect = (i) => {
+    if (["single_choice","audio","video"].includes(q.type)) { set("correct", i); }
+    else {
+      const cur = Array.isArray(q.correct) ? q.correct : [];
+      set("correct", cur.includes(i) ? cur.filter(x=>x!==i) : [...cur, i]);
+    }
+  };
+  const isCorrect = (i) => Array.isArray(q.correct) ? q.correct.includes(i) : q.correct===i;
+
+  const hasOptions = ["single_choice","multi_choice","multi_select","audio","video"].includes(q.type);
+  const hasMedia   = ["audio","video"].includes(q.type);
+  const hasBlank   = q.type==="fill_blank";
+  const hasWriting = q.type==="writing";
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:22 }}>
+      {/* Type selector */}
+      <div>
+        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>Հարցի տեսակ</label>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+          {QTYPES.map(t=>(
+            <button key={t.id} onClick={()=>set("type",t.id)} style={{ background:q.type===t.id?(t.color+"20"):"transparent", border:`1.5px solid ${q.type===t.id?t.color:C.border}`, borderRadius:10, padding:"8px 14px", color:q.type===t.id?t.color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, cursor:"pointer", transition:"all .15s", display:"flex", alignItems:"center", gap:6 }}>
+              <span>{t.icon}</span>{t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Row: level + section + points + status */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 100px", gap:14 }}>
+        <Select label="Մակարդակ" value={q.level} onChange={v=>set("level",v)} options={LEVELS} />
+        <Select label="Բաժին" value={q.section} onChange={v=>set("section",v)} options={SECTIONS} />
+        <Input label="Կետ" value={q.points} onChange={v=>set("points",+v)} type="number" />
+        <Select label="Կարգ." value={q.status} onChange={v=>set("status",v)} options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
+      </div>
+
+      {/* Question text */}
+      <Textarea label="Հարցի տեքստ" value={q.text} onChange={v=>set("text",v)} placeholder="Գրի՛ր հարցը հայերեն..." rows={3} />
+
+      {/* Media upload */}
+      {hasMedia && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+          {q.type==="audio" && <UploadZone label="Ձայնագրություն" accept="audio/*" icon="🎧" hint="MP3, WAV, OGG · max 50MB" />}
+          {q.type==="video" && <UploadZone label="Տեսանյութ" accept="video/*" icon="🎬" hint="MP4, WebM · max 500MB" />}
+          <UploadZone label="Նկար (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB" />
+        </div>
+      )}
+      {!hasMedia && !hasBlank && !hasWriting && (
+        <UploadZone label="Նկար (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB" />
+      )}
+
+      {/* Replay settings for audio/video */}
+      {hasMedia && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+          <Select label="Կրկնությունների քանակ" value={q.maxPlays||2} onChange={v=>set("maxPlays",+v)} options={[{value:1,label:"1 անգամ"},{value:2,label:"2 անգամ"},{value:3,label:"3 անգամ"}]} />
+          <Select label="Դադար կրկնությունների միջև" value={q.pauseSeconds||20} onChange={v=>set("pauseSeconds",+v)} options={[{value:20,label:"20 վ"},{value:25,label:"25 վ"},{value:30,label:"30 վ"}]} />
+        </div>
+      )}
+
+      {/* Options */}
+      {hasOptions && (
+        <div>
+          <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
+            Պատասխանի տարբերակներ
+            <span style={{ marginLeft:8, color:C.gold, fontSize:10 }}>· կանաչ = ճիշտ</span>
+          </label>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {(q.options||[]).map((opt,i)=>(
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <button onClick={()=>toggleCorrect(i)} style={{ width:30, height:30, borderRadius:["single_choice","audio","video"].includes(q.type)?"50%":"6px", border:`2px solid ${isCorrect(i)?C.success:C.border2}`, background:isCorrect(i)?C.success+"22":"transparent", cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .15s" }}>
+                  {isCorrect(i) && <svg width={13} height={13} viewBox="0 0 13 13"><path d="M2 7l3 3 6-6" stroke={C.success} strokeWidth={2} fill="none" strokeLinecap="round"/></svg>}
+                </button>
+                <input value={opt} onChange={e=>{const a=[...q.options];a[i]=e.target.value;set("options",a)}} placeholder={`Տ ${i+1}...`}
+                  style={{ flex:1, background:C.panel, border:`1.5px solid ${isCorrect(i)?C.success+"44":C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:14, outline:"none", transition:"border .15s" }}
+                />
+                {q.options.length > 2 && (
+                  <button onClick={()=>{const a=q.options.filter((_,j)=>j!==i);set("options",a)}} style={{ background:"transparent", border:"none", color:C.muted, cursor:"pointer", fontSize:16, padding:"4px 6px" }}>✕</button>
+                )}
+              </div>
+            ))}
+            <button onClick={()=>set("options",[...q.options,""])} style={{ background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:10, padding:"9px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", marginTop:4 }}>
+              + Ավելացնել տարբերակ
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Fill blank */}
+      {hasBlank && <Input label="Ճիշտ պատասխան" value={q.answer||""} onChange={v=>set("answer",v)} placeholder="Ճիշտ բառը..." />}
+
+      {/* Writing */}
+      {hasWriting && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+          <Input label="Նվազ. բառ" value={q.minWords||150} onChange={v=>set("minWords",+v)} type="number" />
+          <Input label="Առավ. բառ" value={q.maxWords||200} onChange={v=>set("maxWords",+v)} type="number" />
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
+        <button onClick={onCancel} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Չեղարկել</button>
+        <button onClick={()=>onSave(q)} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 28px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 16px ${C.gold}44` }}>
+          {isEdit ? "✓ Պահպանել" : "✓ Ստեղծել"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Question Row ──────────────────────────────────────────────────────────────
+function QRow({ q, onEdit, onDelete, onToggleStatus }) {
+  const t = qtype(q.type);
+  const lc = LEVEL_COLORS[q.level]||"#94a3b8";
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 80px 90px 80px 110px", alignItems:"center", gap:14, padding:"14px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
+      onMouseEnter={e=>e.currentTarget.style.background=C.card}
+      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, fontWeight:500 }}>#{q.id}</span>
+      <div>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:340 }}>{q.text}</div>
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          <span style={{ fontSize:13 }}>{t.icon}</span>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.color }}>{t.label}</span>
+          <span style={{ color:C.border }}>·</span>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{q.section}</span>
+        </div>
+      </div>
+      <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{q.level}</span>
+      <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:600, textAlign:"center" }}>{q.points}pt</span>
+      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center" }}>{q.createdAt}</span>
+      <button onClick={()=>onToggleStatus(q.id)} style={{ background:q.status==="published"?C.success+"18":"#f59e0b18", border:`1px solid ${q.status==="published"?C.success+"44":"#f59e0b44"}`, borderRadius:6, padding:"4px 10px", color:q.status==="published"?C.success:"#f59e0b", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>
+        {q.status==="published"?"● Published":"○ Draft"}
+      </button>
+      <div style={{ display:"flex", gap:6, justifyContent:"flex-end" }}>
+        <button onClick={()=>onEdit(q)} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.muted, fontSize:13, cursor:"pointer" }}>✎</button>
+        <button onClick={()=>onDelete(q.id)} style={{ background:"transparent", border:`1px solid #f8717130`, borderRadius:7, padding:"5px 11px", color:"#f87171", fontSize:13, cursor:"pointer" }}>✕</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Stats Bar ─────────────────────────────────────────────────────────────────
+function StatsBar({ questions }) {
+  const total = questions.length;
+  const pub = questions.filter(q=>q.status==="published").length;
+  const byLevel = LEVELS.map(l=>({ l, n:questions.filter(q=>q.level===l).length }));
+  return (
+    <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
+      {[
+        { label:"Ընդամենը", value:total, color:C.gold },
+        { label:"Published", value:pub, color:C.success },
+        { label:"Draft", value:total-pub, color:"#f59e0b" },
+      ].map(s=>(
+        <div key={s.label} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 20px", minWidth:100 }}>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:700, color:s.color }}>{s.value}</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:2 }}>{s.label}</div>
+        </div>
+      ))}
+      <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 20px", display:"flex", gap:10, alignItems:"center" }}>
+        {byLevel.map(({l,n})=>(
+          <div key={l} style={{ textAlign:"center" }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:700, color:LEVEL_COLORS[l]||"#94a3b8" }}>{n}</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>{l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"#00000090", backdropFilter:"blur(6px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }}
+      onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div style={{ background:C.panel, border:`1px solid ${C.border2}`, borderRadius:20, padding:"32px 36px", width:"100%", maxWidth:700, maxHeight:"90vh", overflowY:"auto", animation:"fadeSlideIn .3s ease", boxShadow:"0 32px 80px #00000099" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+          <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:C.text, margin:0, fontWeight:600 }}>{title}</h2>
+          <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:8, width:34, height:34, color:C.muted, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+const NAV = [
+  { id:"questions", icon:"📋", label:"Հարցեր" },
+  { id:"exams",     icon:"🎓", label:"Քննություններ" },
+  { id:"students",  icon:"👤", label:"Ուսանողներ" },
+  { id:"results",   icon:"📊", label:"Արդյունքներ" },
+  { id:"media",     icon:"📁", label:"Ֆայլեր" },
+  { id:"settings",  icon:"⚙️",  label:"Կարգավ." },
+];
+
+function Sidebar({ active, onNav }) {
+  return (
+    <aside style={{ width:220, background:C.panel, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", flexShrink:0, height:"100vh", position:"sticky", top:0 }}>
+      {/* Logo */}
+      <div style={{ padding:"24px 20px 20px", borderBottom:`1px solid ${C.border}` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:36, height:36, borderRadius:10, background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Cormorant Garamond',serif", fontWeight:700, fontSize:18, color:"white" }}>Հ</div>
+          <div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700, color:C.text, letterSpacing:.5 }}>ArmExam</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:C.muted, letterSpacing:1.5, textTransform:"uppercase" }}>Admin Panel</div>
+          </div>
+        </div>
+      </div>
+      {/* Nav */}
+      <nav style={{ flex:1, padding:"14px 12px", display:"flex", flexDirection:"column", gap:3 }}>
+        {NAV.map(n=>(
+          <button key={n.id} onClick={()=>onNav(n.id)} style={{ background:active===n.id?C.gold+"18":"transparent", border:`1px solid ${active===n.id?C.gold+"44":"transparent"}`, borderRadius:10, padding:"10px 14px", color:active===n.id?C.gold:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:active===n.id?600:400, cursor:"pointer", display:"flex", alignItems:"center", gap:10, textAlign:"left", transition:"all .15s" }}>
+            <span style={{ fontSize:16 }}>{n.icon}</span>{n.label}
+          </button>
+        ))}
+      </nav>
+      {/* User */}
+      <div style={{ padding:"16px 20px", borderTop:`1px solid ${C.border}` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,#334155,#1e293b)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>👤</div>
+          <div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text, fontWeight:500 }}>Admin</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Examinator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ── Questions Page ─────────────────────────────────────────────────────────────
+function QuestionsPage() {
+  const [questions, setQuestions] = useState(SEED);
+  const [modal, setModal] = useState(null); // null | "create" | "edit"
+  const [editing, setEditing] = useState(null);
+  const [filterType, setFilterType] = useState("all");
+  const [filterLevel, setFilterLevel] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [search, setSearch] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const filtered = questions.filter(q => {
+    if (filterType!=="all" && q.type!==filterType) return false;
+    if (filterLevel!=="all" && q.level!==filterLevel) return false;
+    if (filterStatus!=="all" && q.status!==filterStatus) return false;
+    if (search && !q.text.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const handleSave = (q) => {
+    if (modal==="edit") {
+      setQuestions(qs=>qs.map(x=>x.id===q.id?q:x));
+    } else {
+      const newQ = { ...q, id: Date.now(), createdAt: new Date().toISOString().slice(0,10) };
+      setQuestions(qs=>[newQ,...qs]);
+    }
+    setModal(null); setEditing(null);
+  };
+
+  const handleDelete = (id) => { setQuestions(qs=>qs.filter(q=>q.id!==id)); setDeleteConfirm(null); };
+  const handleToggleStatus = (id) => setQuestions(qs=>qs.map(q=>q.id===id?{...q,status:q.status==="published"?"draft":"published"}:q));
+
+  return (
+    <div style={{ flex:1, padding:"32px 36px", overflowY:"auto" }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
+        <div>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:C.text, margin:"0 0 4px", fontWeight:600 }}>Հարցերի կառ.</h1>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:0 }}>Question Management</p>
+        </div>
+        <div style={{ display:"flex", gap:10 }}>
+          <button style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 18px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", gap:7 }}>
+            ↑ Import JSON
+          </button>
+          <button onClick={()=>{setEditing(null);setModal("create")}} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 22px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 16px ${C.gold}44`, display:"flex", alignItems:"center", gap:7 }}>
+            + Նոր հարց
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ marginBottom:24 }}><StatsBar questions={questions} /></div>
+
+      {/* Filters */}
+      <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 20px", marginBottom:20, display:"flex", gap:16, flexWrap:"wrap", alignItems:"center" }}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Որոնել հարցեր..." style={{ flex:"1 1 200px", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          <Pill label="Բոլոր" active={filterType==="all"} onClick={()=>setFilterType("all")} />
+          {QTYPES.map(t=><Pill key={t.id} label={t.icon+" "+t.label} active={filterType===t.id} onClick={()=>setFilterType(t.id)} color={t.color} />)}
+        </div>
+        <div style={{ display:"flex", gap:6 }}>
+          <Pill label="All" active={filterLevel==="all"} onClick={()=>setFilterLevel("all")} />
+          {LEVELS.map(l=><Pill key={l} label={l} active={filterLevel===l} onClick={()=>setFilterLevel(l)} color={LEVEL_COLORS[l]} />)}
+        </div>
+        <div style={{ display:"flex", gap:6 }}>
+          {[["all","Բոլոր"],["published","Published"],["draft","Draft"]].map(([v,label])=>(
+            <Pill key={v} label={label} active={filterStatus===v} onClick={()=>setFilterStatus(v)} color={v==="published"?C.success:v==="draft"?"#f59e0b":C.gold} />
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
+        {/* Head */}
+        <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 80px 90px 80px 110px", gap:14, padding:"11px 20px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
+          {["#","Հարց","Մակ.","Կետ","Ամ.","Կարգ.",""].map((h,i)=>(
+            <span key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:600, letterSpacing:.8, textTransform:"uppercase" }}>{h}</span>
+          ))}
+        </div>
+        {filtered.length === 0 ? (
+          <div style={{ padding:"48px", textAlign:"center", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
+            Հարցեր չկան · No questions found
+          </div>
+        ) : filtered.map(q=>(
+          <QRow key={q.id} q={q}
+            onEdit={q=>{setEditing(q);setModal("edit")}}
+            onDelete={id=>setDeleteConfirm(id)}
+            onToggleStatus={handleToggleStatus}
+          />
+        ))}
+      </div>
+      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginTop:12, textAlign:"right" }}>
+        {filtered.length} / {questions.length} հարց
+      </div>
+
+      {/* Create/Edit Modal */}
+      {(modal==="create"||modal==="edit") && (
+        <Modal title={modal==="edit"?"Խմբ. հարց · Edit Question":"Նոր հարց · New Question"} onClose={()=>{setModal(null);setEditing(null)}}>
+          <QuestionForm initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} />
+        </Modal>
+      )}
+
+      {/* Delete confirm */}
+      {deleteConfirm && (
+        <Modal title="Ջնջե՞լ հարցը" onClose={()=>setDeleteConfirm(null)}>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted, marginBottom:24 }}>Այս գործողությունն անհնար է չեղարկել։ Delete question #{deleteConfirm}?</p>
+          <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+            <button onClick={()=>setDeleteConfirm(null)} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Չեղ.</button>
+            <button onClick={()=>handleDelete(deleteConfirm)} style={{ background:"#f8717122", border:"1px solid #f8717144", borderRadius:10, padding:"10px 22px", color:"#f87171", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer" }}>✕ Ջնջել</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ── Placeholder pages ─────────────────────────────────────────────────────────
+function PlaceholderPage({ title, icon }) {
+  return (
+    <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:12, color:C.muted }}>
+      <div style={{ fontSize:48 }}>{icon}</div>
+      <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, color:C.text }}>{title}</div>
+      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>Շուտով · Coming soon</div>
+    </div>
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+export default function AdminApp() {
+  const [page, setPage] = useState("questions");
+  return (
+    <>
+      <style>{FONTS}{`
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:${C.bg}}
+        ::-webkit-scrollbar{width:6px;height:6px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:${C.border2};border-radius:3px}
+        @keyframes fadeSlideIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+        button:active{transform:scale(.97)}
+        select option{background:${C.panel}}
+      `}</style>
+      <div style={{ display:"flex", height:"100vh", background:C.bg, overflow:"hidden" }}>
+        <Sidebar active={page} onNav={setPage} />
+        {page==="questions" && <QuestionsPage />}
+        {page==="exams"    && <PlaceholderPage title="Քննությունների կառ." icon="🎓" />}
+        {page==="students" && <PlaceholderPage title="Ուսանողների կառ." icon="👤" />}
+        {page==="results"  && <PlaceholderPage title="Արդյունքների վիճ." icon="📊" />}
+        {page==="media"    && <PlaceholderPage title="Ֆայլերի կառ." icon="📁" />}
+        {page==="settings" && <PlaceholderPage title="Կարգավ." icon="⚙️" />}
+      </div>
+    </>
+  );
+}
