@@ -2,12 +2,7 @@ import { useState, useMemo } from "react";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
-const C = {
-  bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
-  border2:"#243050", gold:"#c8a96e", goldDim:"#7c5830",
-  text:"#e2e8f0", muted:"#475569", dim:"#1e293b",
-  success:"#22c55e", danger:"#f87171", warning:"#f59e0b", info:"#60a5fa", purple:"#a78bfa",
-};
+// C palette comes from theme prop (see export default)
 
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LC = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
@@ -578,7 +573,8 @@ function StudentsTable() {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export default function AdminStudents() {
+export default function AdminStudents({ theme }) {
+  const C = theme || { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
   return (
     <>
       <style>{FONTS}{`

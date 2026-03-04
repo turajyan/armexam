@@ -2,13 +2,7 @@ import { useState } from "react";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
-const C = {
-  bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
-  border2:"#243050", gold:"#c8a96e", goldDim:"#7c5830",
-  text:"#e2e8f0", muted:"#475569", dim:"#1e293b",
-  success:"#22c55e", danger:"#f87171", warning:"#f59e0b",
-  info:"#60a5fa", purple:"#a78bfa",
-};
+// C palette comes from theme prop (see export default)
 
 // ── UI Atoms ──────────────────────────────────────────────────────────────────
 function Btn({ children, onClick, variant="ghost", small, disabled, style={} }) {
@@ -196,7 +190,8 @@ const SEED_BACKUPS = [
 ];
 
 // ── Main Settings Page ────────────────────────────────────────────────────────
-export default function SettingsPage() {
+export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
+  const C = theme || { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
   const [tab, setTab] = useState("general");
   const [saved, setSaved] = useState(true);
   const [admins, setAdmins] = useState(SEED_ADMINS);
@@ -235,7 +230,7 @@ export default function SettingsPage() {
     primaryColor:"#c8a96e",
     accentColor:"#60a5fa",
     dangerColor:"#f87171",
-    theme:"dark",
+    theme:currentTheme||"dark",
     fontHeading:"Cormorant Garamond",
     fontBody:"DM Sans",
     borderRadius:"14",
@@ -392,8 +387,8 @@ export default function SettingsPage() {
 
         <SettingSection title="Typography & Layout" icon="✍" description="Fonts, border radius, and display preferences">
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
-            <Select label="Theme" value={appearance.theme} onChange={v=>setA("theme",v)}
-              options={[{value:"dark",label:"Dark 🌙"},{value:"light",label:"Light ☀️"}]} />
+            <Select label="Theme" value={appearance.theme} onChange={v=>{setA("theme",v); if(onThemeChange) onThemeChange(v);}}
+              options={[{value:"dark",label:"Dark 🌙"},{value:"medium",label:"Dim 🌆"},{value:"light",label:"Light ☀️"}]} />
             <Select label="Heading Font" value={appearance.fontHeading} onChange={v=>setA("fontHeading",v)}
               options={["Cormorant Garamond","Playfair Display","Merriweather"].map(f=>({value:f,label:f}))} />
             <Select label="Body Font" value={appearance.fontBody} onChange={v=>setA("fontBody",v)}

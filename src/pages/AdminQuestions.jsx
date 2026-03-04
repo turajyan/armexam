@@ -31,12 +31,7 @@ const SEED = [
 ];
 
 // ── Palette ──────────────────────────────────────────────────────────────────
-const C = {
-  bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
-  border2:"#243050", gold:"#c8a96e", goldDim:"#7c5830",
-  text:"#e2e8f0", muted:"#475569", dim:"#1e293b",
-  success:"#22c55e", danger:"#f87171", warning:"#f59e0b",
-};
+// C palette comes from theme prop
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const qtype = (id) => QTYPES.find(q=>q.id===id) || QTYPES[0];
@@ -720,7 +715,8 @@ function PlaceholderPage({ title, icon }) {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
-export default function AdminQuestions() {
+export default function AdminQuestions({ theme }) {
+  const C = theme || { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
   return (
     <>
       <style>{`
