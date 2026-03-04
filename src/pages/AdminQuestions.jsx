@@ -13,7 +13,9 @@ const QTYPES = [
   { id:"audio",         label:"Audio",         icon:"🎧", color:"#f59e0b" },
   { id:"video",         label:"Video",         icon:"🎬", color:"#f87171" },
   { id:"fill_blank",    label:"Fill Blank",    icon:"✎", color:"#e879f9" },
+  { id:"fill_wordbank", label:"Word Bank",     icon:"🧩", color:"#f472b6" },
   { id:"writing",       label:"Writing",       icon:"✍", color:"#94a3b8" },
+  { id:"voice",         label:"Voice",         icon:"🎤", color:"#fb923c" },
 ];
 
 // ── Seed data ────────────────────────────────────────────────────────────────
@@ -115,6 +117,109 @@ function UploadZone({ label, accept, icon, hint }) {
 }
 
 // ── Question Form ─────────────────────────────────────────────────────────────
+
+// ── Word Bank Editor (inside QuestionForm) ─────────────────────────────────────
+function WordBankEditor({ q, set }) {
+  const segments = q.segments || [];
+  const wordBank = q.wordBank || [];
+  const blankCount = segments.filter(s=>s.type==="blank").length;
+
+  const addWord = () => set("wordBank", [...wordBank, ""]);
+  const updateWord = (i, v) => { const w=[...wordBank]; w[i]=v; set("wordBank",w); };
+  const removeWord = (i) => set("wordBank", wordBank.filter((_,j)=>j!==i));
+
+  // Segments editor: text chunks + blank markers
+  const addText  = () => set("segments", [...segments, { type:"text",  content:"" }]);
+  const addBlank = () => set("segments", [...segments, { type:"blank", id: blankCount }]);
+  const updateSeg = (i, v) => { const s=[...segments]; s[i]={...s[i],content:v}; set("segments",s); };
+  const removeSeg = (i) => {
+    const s = segments.filter((_,j)=>j!==i);
+    // re-index blanks
+    let bi=0; s.forEach(seg=>{ if(seg.type==="blank") seg.id=bi++; });
+    set("segments",s);
+  };
+
+  // Correct answers: ordered list matching blanks
+  const correct = q.correct || [];
+  const updateCorrect = (blankIdx, word) => {
+    const c = [...correct];
+    c[blankIdx] = word;
+    set("correct", c);
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      {/* Sentence builder */}
+      <div>
+        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
+          Sentence / Text Segments
+        </label>
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          {segments.map((seg, i) => (
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ background: seg.type==="blank"?"#f472b622":"#1e293b", color: seg.type==="blank"?"#f472b6":C.muted, borderRadius:6, padding:"2px 8px", fontSize:11, fontWeight:700, width:52, textAlign:"center", flexShrink:0 }}>
+                {seg.type==="blank" ? `Blank ${seg.id+1}` : "Text"}
+              </span>
+              {seg.type==="text"
+                ? <input value={seg.content} onChange={e=>updateSeg(i,e.target.value)}
+                    placeholder="Enter text..."
+                    style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 12px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+                : <span style={{ flex:1, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#f472b6" }}>[ blank slot ]</span>
+              }
+              <button onClick={()=>removeSeg(i)} style={{ background:"transparent", border:"none", color:C.muted, cursor:"pointer", fontSize:15, padding:"4px" }}>✕</button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:8, marginTop:10 }}>
+          <button onClick={addText} style={{ background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:9, padding:"7px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" }}>+ Text chunk</button>
+          <button onClick={addBlank} style={{ background:"#f472b612", border:`1px dashed #f472b644`, borderRadius:9, padding:"7px 14px", color:"#f472b6", fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" }}>+ Blank slot</button>
+        </div>
+      </div>
+
+      {/* Word bank */}
+      <div>
+        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
+          Word Bank (all available words, including distractors)
+        </label>
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          {wordBank.map((w,i)=>(
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <input value={w} onChange={e=>updateWord(i,e.target.value)} placeholder={`Word ${i+1}...`}
+                style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 12px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+              <button onClick={()=>removeWord(i)} style={{ background:"transparent", border:"none", color:C.muted, cursor:"pointer", fontSize:15, padding:"4px" }}>✕</button>
+            </div>
+          ))}
+          <button onClick={addWord} style={{ background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:9, padding:"7px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer", marginTop:2 }}>
+            + Add word
+          </button>
+        </div>
+      </div>
+
+      {/* Correct answers per blank */}
+      {blankCount > 0 && (
+        <div>
+          <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
+            Correct Answer per Blank
+          </label>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {Array.from({length:blankCount}).map((_,bi)=>(
+              <div key={bi} style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#f472b6", fontWeight:700, width:60 }}>Blank {bi+1}</span>
+                <select value={correct[bi]||""} onChange={e=>updateCorrect(bi,e.target.value)}
+                  style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 12px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }}>
+                  <option value="">— select correct word —</option>
+                  {wordBank.filter(Boolean).map(w=><option key={w} value={w}>{w}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Question Form ───────────────────────────────────────────────────────────────
 function QuestionForm({ initial, onSave, onCancel }) {
   const isEdit = !!initial;
   const blank = { type:"single_choice", level:"B1", section:"Կարդալ", points:1, status:"draft", text:"", options:["","","",""], correct:0 };
@@ -132,8 +237,10 @@ function QuestionForm({ initial, onSave, onCancel }) {
 
   const hasOptions = ["single_choice","multi_choice","multi_select","audio","video"].includes(q.type);
   const hasMedia   = ["audio","video"].includes(q.type);
-  const hasBlank   = q.type==="fill_blank";
-  const hasWriting = q.type==="writing";
+  const hasBlank    = q.type==="fill_blank";
+  const hasWordBank = q.type==="fill_wordbank";
+  const hasWriting  = q.type==="writing";
+  const hasVoice    = q.type==="voice";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:22 }}>
@@ -168,7 +275,7 @@ function QuestionForm({ initial, onSave, onCancel }) {
           <UploadZone label="Նկար (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB" />
         </div>
       )}
-      {!hasMedia && !hasBlank && !hasWriting && (
+      {!hasMedia && !hasBlank && !hasWordBank && !hasWriting && !hasVoice && (
         <UploadZone label="Նկար (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB" />
       )}
 
@@ -211,11 +318,25 @@ function QuestionForm({ initial, onSave, onCancel }) {
       {/* Fill blank */}
       {hasBlank && <Input label="Ճիշտ պատասխան" value={q.answer||""} onChange={v=>set("answer",v)} placeholder="Ճիշտ բառը..." />}
 
+      {/* Fill Word Bank editor */}
+      {hasWordBank && (
+        <WordBankEditor q={q} set={set} />
+      )}
+
       {/* Writing */}
       {hasWriting && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
           <Input label="Նվազ. բառ" value={q.minWords||150} onChange={v=>set("minWords",+v)} type="number" />
           <Input label="Առավ. բառ" value={q.maxWords||200} onChange={v=>set("maxWords",+v)} type="number" />
+        </div>
+      )}
+
+      {/* Voice settings */}
+      {hasVoice && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+          <Input label="Max Attempts" value={q.maxAttempts||3} onChange={v=>set("maxAttempts",+v)} type="number" />
+          <Input label="Min seconds" value={q.minSeconds||10} onChange={v=>set("minSeconds",+v)} type="number" />
+          <Input label="Max seconds" value={q.maxSeconds||90} onChange={v=>set("maxSeconds",+v)} type="number" />
         </div>
       )}
 

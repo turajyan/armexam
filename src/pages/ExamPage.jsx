@@ -98,6 +98,27 @@ const DEMO_QUESTIONS = [
   },
   {
     id: 8,
+    type: "fill_wordbank",
+    level: "A2",
+    section: "Քերականություն",
+    points: 4,
+    text: "Դասավորի՛ր բառերը ճիշտ տեղերում։ Arrange the words in the correct blanks.",
+    // segments: alternating plain text and blank slots
+    // blanks have ids matching wordBank keys
+    segments: [
+      { type: "text", content: "Ես ամեն օր " },
+      { type: "blank", id: 0 },
+      { type: "text", content: " դպրոց: Իմ ընկերը " },
+      { type: "blank", id: 1 },
+      { type: "text", content: " գրքեր, բայց ես " },
+      { type: "blank", id: 2 },
+      { type: "text", content: " երաժշտություն:" },
+    ],
+    wordBank: ["գնում եմ", "կարդում է", "լսում եմ", "խաղում է", "գրում եմ"],
+    correct: ["գնում եմ", "կարդում է", "լսում եմ"],
+  },
+  {
+    id: 9,
     type: "voice",
     level: "B1",
     section: "Speaking",
@@ -505,6 +526,195 @@ function WritingQuestion({ question, value = "", onChange }) {
 }
 
 
+
+// ── Fill in the Blank — Word Bank (Drag & Drop) ───────────────────────────────
+// value = { [blankId]: word } — map of blank index -> placed word
+function FillWordBankQuestion({ question, value = {}, onChange }) {
+  // dragState: which word is being dragged and from where
+  const [dragWord, setDragWord]     = useState(null);   // the word string
+  const [dragFrom, setDragFrom]     = useState(null);   // "bank" | blankId (number)
+  const [overBlank, setOverBlank]   = useState(null);   // blankId being hovered
+  const [overBank,  setOverBank]    = useState(false);  // hovering the bank
+
+  // Words still in the bank = wordBank minus all placed words
+  const placed    = Object.values(value);
+  const inBank    = question.wordBank.filter(w => !placed.includes(w));
+  const filledIds = Object.keys(value).map(Number);
+
+  // ── drag handlers ──
+  const onDragStartWord = (word, from) => (e) => {
+    setDragWord(word);
+    setDragFrom(from);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const onDropBlank = (blankId) => (e) => {
+    e.preventDefault();
+    if (dragWord === null) return;
+    const next = { ...value };
+    // If blank already has a word, send it back to bank (just remove it from value)
+    // If dragging FROM another blank, free that blank
+    if (typeof dragFrom === "number") delete next[dragFrom];
+    next[blankId] = dragWord;
+    onChange(next);
+    setDragWord(null); setDragFrom(null); setOverBlank(null);
+  };
+
+  const onDropBank = (e) => {
+    e.preventDefault();
+    if (dragWord === null || dragFrom === "bank") return;
+    const next = { ...value };
+    if (typeof dragFrom === "number") delete next[dragFrom];
+    onChange(next);
+    setDragWord(null); setDragFrom(null); setOverBank(false);
+  };
+
+  const onDragOver = (setter, val) => (e) => { e.preventDefault(); setter(val); };
+  const onDragEnd  = () => { setDragWord(null); setDragFrom(null); setOverBlank(null); setOverBank(false); };
+
+  const GLD = "#c8a96e";
+  const BLU = "#60a5fa";
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+
+      {/* ── Sentence / text area ── */}
+      <div style={{
+        background:"#0a111e", border:`1px solid #1e293b`,
+        borderRadius:16, padding:"24px 28px",
+        fontFamily:"'Cormorant Garamond',serif", fontSize:20,
+        color:"#e2e8f0", lineHeight:2.2,
+      }}>
+        {question.segments.map((seg, si) => {
+          if (seg.type === "text") {
+            return <span key={si}>{seg.content}</span>;
+          }
+          // blank slot
+          const blankId  = seg.id;
+          const word     = value[blankId];
+          const isOver   = overBlank === blankId;
+          const isDraggingThis = dragFrom === blankId;
+
+          return (
+            <span
+              key={si}
+              onDragOver={onDragOver(setOverBlank, blankId)}
+              onDragLeave={() => setOverBlank(null)}
+              onDrop={onDropBlank(blankId)}
+              style={{
+                display:"inline-flex", alignItems:"center", justifyContent:"center",
+                minWidth: word ? "auto" : 100,
+                height: 36,
+                margin:"0 4px",
+                borderRadius: 8,
+                border: `2px ${isOver ? "solid" : "dashed"} ${
+                  isOver   ? BLU :
+                  word     ? GLD+"88" :
+                             "#334155"
+                }`,
+                background: isOver   ? BLU+"15" :
+                            word     ? GLD+"10" :
+                                       "#0f172a",
+                padding: word ? "0 12px" : "0 8px",
+                cursor: word ? "grab" : "default",
+                transition:"all .15s",
+                verticalAlign:"middle",
+                position:"relative",
+                opacity: isDraggingThis ? 0.4 : 1,
+              }}
+            >
+              {word ? (
+                <span
+                  draggable
+                  onDragStart={onDragStartWord(word, blankId)}
+                  onDragEnd={onDragEnd}
+                  style={{
+                    fontFamily:"'DM Sans',sans-serif", fontSize:15,
+                    fontWeight:600, color:GLD,
+                    cursor:"grab", userSelect:"none",
+                    display:"flex", alignItems:"center", gap:6,
+                  }}
+                >
+                  {word}
+                  {/* ✕ click to return to bank */}
+                  <span
+                    onClick={() => { const next={...value}; delete next[blankId]; onChange(next); }}
+                    style={{ fontSize:11, color:"#475569", cursor:"pointer", lineHeight:1 }}
+                    title="Remove"
+                  >✕</span>
+                </span>
+              ) : (
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#334155" }}>
+                  {isOver ? "drop here" : `_____`}
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* ── Word bank ── */}
+      <div>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569", letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>
+          Word Bank — drag words into the blanks above
+        </div>
+        <div
+          onDragOver={onDragOver(setOverBank, true)}
+          onDragLeave={() => setOverBank(false)}
+          onDrop={onDropBank}
+          style={{
+            display:"flex", flexWrap:"wrap", gap:10,
+            background: overBank ? BLU+"0d" : "#0a111e",
+            border:`2px ${overBank ? "solid" : "dashed"} ${overBank ? BLU : "#1e293b"}`,
+            borderRadius:14, padding:"16px 20px",
+            minHeight:60,
+            transition:"all .15s",
+          }}
+        >
+          {inBank.length === 0 && (
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#334155", alignSelf:"center" }}>
+              All words placed ✓
+            </span>
+          )}
+          {inBank.map(word => (
+            <span
+              key={word}
+              draggable
+              onDragStart={onDragStartWord(word, "bank")}
+              onDragEnd={onDragEnd}
+              style={{
+                background:`linear-gradient(135deg, #1e293b, #0f172a)`,
+                border:`1.5px solid #334155`,
+                borderRadius:9, padding:"8px 16px",
+                fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:500,
+                color:"#e2e8f0", cursor:"grab", userSelect:"none",
+                transition:"all .15s",
+                boxShadow: dragWord===word && dragFrom==="bank" ? "none" : "0 2px 8px #00000044",
+                opacity: dragWord===word && dragFrom==="bank" ? 0.4 : 1,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = GLD; e.currentTarget.style.color = GLD; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#334155"; e.currentTarget.style.color = "#e2e8f0"; }}
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#334155", marginTop:8 }}>
+          {placed.filter(Boolean).length} / {question.segments.filter(s=>s.type==="blank").length} blanks filled
+          {placed.filter(Boolean).length > 0 && (
+            <button
+              onClick={() => onChange({})}
+              style={{ marginLeft:12, background:"transparent", border:"none", color:"#475569", fontSize:11, cursor:"pointer", textDecoration:"underline" }}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Voice Recording Question ──────────────────────────────────────────────────
 function VoiceQuestion({ question, value, onChange }) {
   // value = { blob, url, duration, attemptsDone } | null
@@ -842,6 +1052,8 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
         return <VideoQuestion question={question} value={value} onChange={onChange} />;
       case "fill_blank":
         return <FillBlankQuestion question={question} value={value} onChange={onChange} />;
+      case "fill_wordbank":
+        return <FillWordBankQuestion question={question} value={value || {}} onChange={onChange} />;
       case "writing":
         return <WritingQuestion question={question} value={value} onChange={onChange} />;
       case "voice":
@@ -858,6 +1070,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
     audio: "Listening",
     video: "Video",
     fill_blank: "Fill in the Blank",
+    fill_wordbank: "🧩 Word Bank",
     writing: "Writing",
     voice: "🎤 Voice Recording",
   };
