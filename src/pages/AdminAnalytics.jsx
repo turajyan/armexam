@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
 const C = {
   bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
@@ -9,474 +9,368 @@ const C = {
   success:"#22c55e", danger:"#f87171", warning:"#f59e0b",
   info:"#60a5fa", purple:"#a78bfa",
 };
-
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
-const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
+const LC = { A1:"#4ade80", A2:"#86efac", B1:"#60a5fa", B2:"#93c5fd", C1:"#f59e0b", C2:"#fbbf24" };
 
-// ── Seed data ────────────────────────────────────────────────────────────────
-const SEED_RESULTS = [
-  { id:1,  studentId:1, studentName:"Անի Հակոբյան",   examId:1, examTitle:"Armenian A2 Test",     score:78, maxScore:100, passed:true,  date:"2025-03-01", level:"A2", duration:32 },
-  { id:2,  studentId:2, studentName:"Հայկ Պետրոսյան", examId:1, examTitle:"Armenian A2 Test",     score:45, maxScore:100, passed:false, date:"2025-03-01", level:"A2", duration:41 },
-  { id:3,  studentId:3, studentName:"Մարիա Սարգսյան",  examId:2, examTitle:"Grammar B1 Quiz",      score:90, maxScore:100, passed:true,  date:"2025-03-02", level:"B1", duration:28 },
-  { id:4,  studentId:1, studentName:"Անի Հակոբյան",   examId:2, examTitle:"Grammar B1 Quiz",      score:82, maxScore:100, passed:true,  date:"2025-03-03", level:"B1", duration:30 },
-  { id:5,  studentId:4, studentName:"Արամ Ղազարյան",  examId:3, examTitle:"Reading Comp C1",      score:67, maxScore:100, passed:true,  date:"2025-03-04", level:"C1", duration:55 },
-  { id:6,  studentId:5, studentName:"Նարե Մկրտչյան",  examId:1, examTitle:"Armenian A2 Test",     score:55, maxScore:100, passed:true,  date:"2025-03-04", level:"A2", duration:38 },
-  { id:7,  studentId:2, studentName:"Հայկ Պետրոսյան", examId:3, examTitle:"Reading Comp C1",      score:30, maxScore:100, passed:false, date:"2025-03-05", level:"C1", duration:60 },
-  { id:8,  studentId:6, studentName:"Սոֆյա Դավթյան",  examId:2, examTitle:"Grammar B1 Quiz",      score:95, maxScore:100, passed:true,  date:"2025-03-05", level:"B1", duration:22 },
-  { id:9,  studentId:3, studentName:"Մարիա Սարգսյան",  examId:4, examTitle:"Vocabulary B2 Pack",   score:73, maxScore:100, passed:true,  date:"2025-03-06", level:"B2", duration:44 },
-  { id:10, studentId:7, studentName:"Տիգրան Ավետիսյան",examId:1, examTitle:"Armenian A2 Test",    score:88, maxScore:100, passed:true,  date:"2025-03-06", level:"A2", duration:29 },
-  { id:11, studentId:4, studentName:"Արամ Ղազարյան",  examId:4, examTitle:"Vocabulary B2 Pack",   score:61, maxScore:100, passed:true,  date:"2025-03-07", level:"B2", duration:50 },
-  { id:12, studentId:8, studentName:"Լուսինե Գրիգ.",  examId:2, examTitle:"Grammar B1 Quiz",      score:40, maxScore:100, passed:false, date:"2025-03-07", level:"B1", duration:45 },
-  { id:13, studentId:5, studentName:"Նարե Մկրտչյան",  examId:4, examTitle:"Vocabulary B2 Pack",   score:77, maxScore:100, passed:true,  date:"2025-03-08", level:"B2", duration:47 },
-  { id:14, studentId:9, studentName:"Կարեն Ստեփ.",    examId:3, examTitle:"Reading Comp C1",      score:52, maxScore:100, passed:true,  date:"2025-03-08", level:"C1", duration:58 },
-  { id:15, studentId:6, studentName:"Սոֆյա Դավթյան",  examId:5, examTitle:"Speaking B2 Test",     score:84, maxScore:100, passed:true,  date:"2025-03-09", level:"B2", duration:20 },
+const STUDENTS = [
+  { id:1,  name:"Անի Հակոբյան",   group:"Խ-101", level:"B1", status:"active" },
+  { id:2,  name:"Արամ Պետ.",      group:"Խ-101", level:"A2", status:"active" },
+  { id:3,  name:"Մարինե Գ.",      group:"Խ-102", level:"B2", status:"active" },
+  { id:4,  name:"Դավիթ Ս.",       group:"Խ-102", level:"C1", status:"active" },
+  { id:5,  name:"Նարեկ Ա.",       group:"Խ-103", level:"A1", status:"inactive" },
+  { id:6,  name:"Լուսինե Կ.",     group:"Խ-103", level:"B1", status:"active" },
+  { id:7,  name:"Վահե Մ.",        group:"Խ-101", level:"A2", status:"active" },
+  { id:8,  name:"Հայկ Ա.",        group:"Խ-102", level:"B2", status:"active" },
+  { id:9,  name:"Սոնա Բ.",        group:"Խ-103", level:"C2", status:"active" },
+  { id:10, name:"Տիգրան Ղ.",      group:"Խ-101", level:"B2", status:"active" },
+];
+const EXAMS_LIST = [
+  { id:1, title:"Ամ. B1 Ք.",   level:"B1", maxScore:20, passingScore:70, date:"2024-10-15" },
+  { id:2, title:"A2 Ախ. Փ.",   level:"A2", maxScore:10, passingScore:60, date:"2024-11-01" },
+  { id:3, title:"C1–C2 Բ. Մ.", level:"C1", maxScore:30, passingScore:80, date:"2024-11-20" },
+  { id:4, title:"B2 Պ. Ք.",    level:"B2", maxScore:22, passingScore:75, date:"2024-12-05" },
+];
+function fakeResult(sId, eId) {
+  const seed = (sId * 31 + eId * 17) % 100;
+  const score = Math.round(5 + seed * 0.9);
+  const exam  = EXAMS_LIST.find(e=>e.id===eId);
+  const p     = Math.round((score / exam.maxScore) * 100);
+  return { studentId:sId, examId:eId, score, maxScore:exam.maxScore, pct:p, passed:p>=exam.passingScore, date:exam.date };
+}
+const ALL_RESULTS = STUDENTS.flatMap(s => EXAMS_LIST.slice(0, 2+(s.id%3)).map(e=>fakeResult(s.id,e.id)));
+const MONTHLY = [
+  { month:"Sep", exams:4,  passed:3  },
+  { month:"Oct", exams:7,  passed:5  },
+  { month:"Nov", exams:12, passed:8  },
+  { month:"Dec", exams:9,  passed:7  },
+  { month:"Jan", exams:6,  passed:4  },
+  { month:"Feb", exams:8,  passed:6  },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
-const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+const avg  = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+const pct2 = (n,t) => t ? Math.round((n/t)*100) : 0;
 
 function StatCard({ icon, label, value, sub, color=C.gold, trend }) {
   return (
-    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px", flex:1, minWidth:160 }}>
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12 }}>
-        <div style={{ fontSize:24 }}>{icon}</div>
-        {trend !== undefined && (
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600,
-            color: trend >= 0 ? C.success : C.danger,
-            background: (trend >= 0 ? C.success : C.danger)+"18",
-            borderRadius:6, padding:"2px 7px" }}>
-            {trend >= 0 ? "↑" : "↓"} {Math.abs(trend)}%
+    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px", display:"flex", flexDirection:"column", gap:8, flex:1, minWidth:160 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <span style={{ fontSize:22 }}>{icon}</span>
+        {trend!==undefined && (
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, color:trend>=0?C.success:C.danger, background:trend>=0?C.success+"18":C.danger+"18", border:`1px solid ${trend>=0?C.success+"44":C.danger+"44"}`, borderRadius:6, padding:"2px 8px" }}>
+            {trend>=0?"↑":"↓"} {Math.abs(trend)}%
           </span>
         )}
       </div>
       <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:700, color, lineHeight:1 }}>{value}</div>
-      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginTop:6 }}>{label}</div>
-      {sub && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted+"aa", marginTop:2 }}>{sub}</div>}
+      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>{label}</div>
+      {sub && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#334155" }}>{sub}</div>}
     </div>
   );
 }
 
-// Mini bar chart
-function BarChart({ data, color=C.gold, height=80 }) {
-  const max = Math.max(...data.map(d=>d.value), 1);
+function BarChart({ data }) {
+  const maxV = Math.max(...data.map(d=>Math.max(d.exams,d.passed)));
+  const W=500, H=180, PL=32, PR=10, PT=10, PB=38;
+  const cW=W-PL-PR, cH=H-PT-PB;
+  const bW=(cW/data.length)*0.33;
   return (
-    <div style={{ display:"flex", alignItems:"flex-end", gap:6, height }}>
-      {data.map((d,i) => (
-        <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-          <div style={{ width:"100%", background: color+"22", borderRadius:"4px 4px 0 0", overflow:"hidden", height: height - 20 }}>
-            <div style={{
-              width:"100%",
-              height:`${(d.value/max)*100}%`,
-              background:`linear-gradient(to top, ${color}88, ${color})`,
-              borderRadius:"4px 4px 0 0",
-              marginTop:"auto",
-              transition:"height .5s cubic-bezier(.4,0,.2,1)",
-            }} />
+    <div>
+      <div style={{ display:"flex", gap:16, marginBottom:10 }}>
+        {[["Exams Taken",C.info],["Passed",C.success]].map(([l,c])=>(
+          <div key={l} style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{ width:10, height:10, borderRadius:3, background:c }} />
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{l}</span>
           </div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, whiteSpace:"nowrap" }}>{d.label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Donut chart (CSS conic-gradient)
-function DonutChart({ value, total, color=C.gold, size=100, label }) {
-  const p = pct(value, total);
-  return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
-      <div style={{
-        width:size, height:size, borderRadius:"50%",
-        background:`conic-gradient(${color} ${p*3.6}deg, ${C.dim} 0deg)`,
-        display:"flex", alignItems:"center", justifyContent:"center",
-        position:"relative",
-      }}>
-        <div style={{ width:size*0.68, height:size*0.68, borderRadius:"50%", background:C.card, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:size*0.2, fontWeight:700, color, lineHeight:1 }}>{p}%</div>
-        </div>
-      </div>
-      {label && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{label}</div>}
-    </div>
-  );
-}
-
-// Score distribution sparkline
-function ScoreSparkline({ scores, width=200, height=50 }) {
-  if (!scores.length) return null;
-  // bucket into 10 ranges: 0-9, 10-19, ... 90-100
-  const buckets = Array(10).fill(0);
-  scores.forEach(s => { buckets[Math.min(Math.floor(s/10), 9)]++; });
-  const max = Math.max(...buckets, 1);
-  return (
-    <svg width={width} height={height} style={{ overflow:"visible" }}>
-      {buckets.map((b, i) => {
-        const bw = (width-18)/10;
-        const bh = (b/max) * (height-8);
-        const x = i*(bw+2);
-        const y = height - bh - 4;
-        const hue = i < 4 ? C.danger : i < 6 ? C.warning : C.success;
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width={bw} height={bh} rx={2} fill={hue} opacity={0.8} />
-            <text x={x+bw/2} y={height} textAnchor="middle" fontSize={8} fill={C.muted} fontFamily="DM Sans">
-              {i*10}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ── Results Table ─────────────────────────────────────────────────────────────
-function ResultsTable({ results }) {
-  const [sort, setSort] = useState("date");
-  const [dir, setDir] = useState(-1);
-
-  const sorted = [...results].sort((a,b) => {
-    if (sort === "score") return dir * (a.score - b.score);
-    if (sort === "date")  return dir * (a.date > b.date ? 1 : -1);
-    if (sort === "name")  return dir * a.studentName.localeCompare(b.studentName);
-    return 0;
-  });
-
-  const toggle = (col) => { if (sort===col) setDir(d=>-d); else { setSort(col); setDir(-1); }; };
-  const SortBtn = ({col, label}) => (
-    <span onClick={()=>toggle(col)} style={{ cursor:"pointer", userSelect:"none",
-      color: sort===col ? C.gold : C.muted,
-      display:"inline-flex", alignItems:"center", gap:3 }}>
-      {label} {sort===col ? (dir===-1?"↓":"↑") : ""}
-    </span>
-  );
-
-  return (
-    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
-      {/* Head */}
-      <div style={{ display:"grid", gridTemplateColumns:"2fr 2fr 80px 80px 70px 80px", gap:14, padding:"11px 20px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
-        {[["name","Student"], ["examTitle","Exam"], [null,"Level"], ["score","Score"], ["duration","Min"], ["date","Date"]].map(([col,label],i) => (
-          <span key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:600, letterSpacing:.8, textTransform:"uppercase" }}>
-            {col ? <SortBtn col={col} label={label} /> : label}
-          </span>
         ))}
       </div>
-      {sorted.map(r => (
-        <div key={r.id} style={{ display:"grid", gridTemplateColumns:"2fr 2fr 80px 80px 70px 80px", gap:14, padding:"13px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
-          onMouseEnter={e=>e.currentTarget.style.background=C.panel}
-          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text }}>{r.studentName}</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>{r.examTitle}</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:700,
-            color: LEVEL_COLORS[r.level]||"#94a3b8",
-            background: (LEVEL_COLORS[r.level]||"#94a3b8")+"18",
-            border:`1px solid ${(LEVEL_COLORS[r.level]||"#94a3b8")}33`,
-            borderRadius:6, padding:"2px 8px", textAlign:"center" }}>{r.level}</span>
-          <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-            <div style={{ flex:1, height:4, background:C.dim, borderRadius:2, overflow:"hidden" }}>
-              <div style={{ width:`${r.score}%`, height:"100%", borderRadius:2,
-                background: r.score>=60 ? C.success : r.score>=40 ? C.warning : C.danger,
-                transition:"width .4s" }} />
-            </div>
-            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700,
-              color: r.score>=60 ? C.success : r.score>=40 ? C.warning : C.danger, minWidth:36, textAlign:"right" }}>
-              {r.score}
-            </span>
-          </div>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, textAlign:"center" }}>{r.duration}′</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{r.date}</span>
-        </div>
-      ))}
-      {sorted.length === 0 && (
-        <div style={{ padding:48, textAlign:"center", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
-          No results found
-        </div>
-      )}
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
+        {[0,.25,.5,.75,1].map(r=>{
+          const y=PT+cH*(1-r);
+          return <g key={r}>
+            <line x1={PL} y1={y} x2={W-PR} y2={y} stroke={C.border} strokeWidth={1} strokeDasharray={r===0?"none":"3 3"}/>
+            <text x={PL-5} y={y+4} textAnchor="end" style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, fill:C.muted }}>{Math.round(maxV*r)}</text>
+          </g>;
+        })}
+        {data.map((d,i)=>{
+          const sw=cW/data.length, x0=PL+sw*i+sw*0.12;
+          const h1=(d.exams/maxV)*cH, h2=(d.passed/maxV)*cH;
+          return <g key={i}>
+            <rect x={x0}      y={PT+cH-h1} width={bW} height={h1} fill={C.info}    rx={3} opacity={.85}/>
+            <rect x={x0+bW+2} y={PT+cH-h2} width={bW} height={h2} fill={C.success} rx={3} opacity={.9}/>
+            <text x={x0+bW+1} y={H-8} textAnchor="middle" style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, fill:C.muted }}>{d.month}</text>
+          </g>;
+        })}
+      </svg>
     </div>
   );
 }
 
-// ── Main Analytics Page ───────────────────────────────────────────────────────
-export default function AdminAnalytics() {
-  const [results] = useState(SEED_RESULTS);
-  const [filterLevel, setFilterLevel] = useState("all");
-  const [filterPassed, setFilterPassed] = useState("all");
-  const [tab, setTab] = useState("overview"); // overview | results | students | exams
-
-  const filtered = results.filter(r => {
-    if (filterLevel !== "all" && r.level !== filterLevel) return false;
-    if (filterPassed === "passed" && !r.passed) return false;
-    if (filterPassed === "failed" && r.passed) return false;
-    return true;
+function DonutChart({ segments, size=130 }) {
+  const total = segments.reduce((a,s)=>a+s.value,0);
+  if (!total) return null;
+  const R=size/2-12, r=R*.58, cx=size/2, cy=size/2;
+  let angle=-Math.PI/2;
+  const paths = segments.map(seg=>{
+    const sw=(seg.value/total)*2*Math.PI;
+    const x1=cx+R*Math.cos(angle), y1=cy+R*Math.sin(angle);
+    angle+=sw;
+    const x2=cx+R*Math.cos(angle), y2=cy+R*Math.sin(angle);
+    const lg=sw>Math.PI?1:0;
+    return { ...seg, d:`M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${lg} 1 ${x2} ${y2} Z`, pct:Math.round((seg.value/total)*100) };
   });
-
-  // Aggregates
-  const totalExams   = filtered.length;
-  const passCount    = filtered.filter(r=>r.passed).length;
-  const passRate     = pct(passCount, totalExams);
-  const avgScore     = avg(filtered.map(r=>r.score));
-  const avgDuration  = avg(filtered.map(r=>r.duration));
-  const uniqueStudents = new Set(filtered.map(r=>r.studentId)).size;
-
-  // By level
-  const byLevel = LEVELS.map(l => ({
-    label: l,
-    value: filtered.filter(r=>r.level===l).length,
-    avg: avg(filtered.filter(r=>r.level===l).map(r=>r.score)),
-    pass: pct(filtered.filter(r=>r.level===l&&r.passed).length, filtered.filter(r=>r.level===l).length),
-  }));
-
-  // By exam
-  const exams = [...new Set(filtered.map(r=>r.examTitle))];
-  const byExam = exams.map(e => ({
-    label: e.length > 16 ? e.slice(0,14)+"…" : e,
-    full: e,
-    value: filtered.filter(r=>r.examTitle===e).length,
-    avg: avg(filtered.filter(r=>r.examTitle===e).map(r=>r.score)),
-    pass: pct(filtered.filter(r=>r.examTitle===e&&r.passed).length, filtered.filter(r=>r.examTitle===e).length),
-  }));
-
-  // Top / bottom students
-  const studentMap = {};
-  filtered.forEach(r => {
-    if (!studentMap[r.studentId]) studentMap[r.studentId] = { name:r.studentName, scores:[], count:0 };
-    studentMap[r.studentId].scores.push(r.score);
-    studentMap[r.studentId].count++;
-  });
-  const studentStats = Object.values(studentMap).map(s => ({ ...s, avg: avg(s.scores) }))
-    .sort((a,b) => b.avg - a.avg);
-
-  const TAB_BTN = (id, label) => (
-    <button key={id} onClick={()=>setTab(id)} style={{
-      background: tab===id ? C.gold+"22" : "transparent",
-      border: `1px solid ${tab===id ? C.gold+"55" : C.border}`,
-      borderRadius:10, padding:"8px 18px",
-      color: tab===id ? C.gold : C.muted,
-      fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight: tab===id ? 600 : 400,
-      cursor:"pointer", transition:"all .15s",
-    }}>{label}</button>
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:20, flexWrap:"wrap" }}>
+      <svg width={size} height={size} style={{ flexShrink:0 }}>
+        {paths.map((p,i)=><path key={i} d={p.d} fill={p.color} opacity={.9} stroke={C.bg} strokeWidth={2}/>)}
+        <circle cx={cx} cy={cy} r={r} fill={C.card}/>
+        <text x={cx} y={cy-5} textAnchor="middle" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fill:C.gold, fontWeight:700 }}>{total}</text>
+        <text x={cx} y={cy+12} textAnchor="middle" style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, fill:C.muted }}>total</text>
+      </svg>
+      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+        {paths.map((p,i)=>(
+          <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:10, height:10, borderRadius:3, background:p.color, flexShrink:0 }}/>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text }}>{p.label}</span>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, color:p.color, fontWeight:700, marginLeft:8 }}>
+              {p.value} <span style={{ fontSize:11, color:C.muted }}>({p.pct}%)</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
+}
+
+function ScoreDist({ results }) {
+  const buckets=[
+    { label:"90–100%", min:90, max:100, color:"#22c55e" },
+    { label:"75–89%",  min:75, max:89,  color:"#86efac" },
+    { label:"60–74%",  min:60, max:74,  color:"#f59e0b" },
+    { label:"40–59%",  min:40, max:59,  color:"#f97316" },
+    { label:"0–39%",   min:0,  max:39,  color:"#f87171" },
+  ];
+  const maxN=Math.max(...buckets.map(b=>results.filter(r=>r.pct>=b.min&&r.pct<=b.max).length),1);
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+      {buckets.map(b=>{
+        const n=results.filter(r=>r.pct>=b.min&&r.pct<=b.max).length;
+        return (
+          <div key={b.label} style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, width:60, flexShrink:0 }}>{b.label}</span>
+            <div style={{ flex:1, height:18, background:C.dim, borderRadius:4, overflow:"hidden" }}>
+              <div style={{ width:`${(n/maxN)*100}%`, height:"100%", background:b.color, borderRadius:4, transition:"width .4s" }}/>
+            </div>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, color:b.color, fontWeight:700, width:24, textAlign:"right" }}>{n}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LevelDist({ students }) {
+  const total=students.length;
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+      {LEVELS.map(l=>{
+        const n=students.filter(s=>s.level===l).length;
+        const w=pct2(n,total);
+        return (
+          <div key={l} style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, color:LC[l], width:28 }}>{l}</span>
+            <div style={{ flex:1, height:20, background:C.dim, borderRadius:5, overflow:"hidden" }}>
+              <div style={{ width:`${w}%`, height:"100%", background:LC[l]+"88", borderRadius:5, display:"flex", alignItems:"center", paddingLeft:8 }}>
+                {w>=15 && <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.bg, fontWeight:700 }}>{n}</span>}
+              </div>
+            </div>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:LC[l], fontWeight:700, width:24, textAlign:"right" }}>{n}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TopStudentsTable({ students, results }) {
+  const rows = students.map(s=>{
+    const rs=results.filter(r=>r.studentId===s.id);
+    return { ...s, examCount:rs.length, avgPct:avg(rs.map(r=>r.pct)), passRate:pct2(rs.filter(r=>r.passed).length, rs.length) };
+  }).sort((a,b)=>b.avgPct-a.avgPct).slice(0,8);
+  return (
+    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
+      <div style={{ padding:"18px 22px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600 }}>Top Students</span>
+        <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>ranked by avg score</span>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 100px 110px", gap:12, padding:"10px 22px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
+        {["#","Student","Level","Exams","Pass Rate","Avg Score"].map(h=>(
+          <span key={h} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:700, letterSpacing:.6, textTransform:"uppercase" }}>{h}</span>
+        ))}
+      </div>
+      {rows.map((s,i)=>{
+        const lc=LC[s.level]||"#94a3b8";
+        const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
+        return (
+          <div key={s.id} style={{ display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 100px 110px", gap:12, padding:"12px 22px", borderBottom:`1px solid ${C.border}`, alignItems:"center", transition:"background .15s" }}
+            onMouseEnter={e=>e.currentTarget.style.background=C.panel}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>{medal||`${i+1}`}</span>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:30, height:30, borderRadius:"50%", background:`${lc}22`, border:`1px solid ${lc}44`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:lc, fontWeight:700, flexShrink:0 }}>{s.name[0]}</div>
+              <div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, fontWeight:500 }}>{s.name}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{s.group}</div>
+              </div>
+            </div>
+            <span style={{ background:`${lc}18`, color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 8px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{s.level}</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, textAlign:"center" }}>{s.examCount}</span>
+            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ flex:1, height:4, background:C.dim, borderRadius:2 }}>
+                <div style={{ width:`${s.passRate}%`, height:"100%", background:s.passRate>=75?C.success:s.passRate>=50?C.warning:C.danger, borderRadius:2 }}/>
+              </div>
+              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, width:32, textAlign:"right" }}>{s.passRate}%</span>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ flex:1, height:6, background:C.dim, borderRadius:3 }}>
+                <div style={{ width:`${s.avgPct}%`, height:"100%", background:`linear-gradient(90deg,${C.gold},${C.goldDim})`, borderRadius:3 }}/>
+              </div>
+              <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:C.gold, fontWeight:700, width:38, textAlign:"right" }}>{s.avgPct}%</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ExamPerfTable({ exams, results }) {
+  return (
+    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
+      <div style={{ padding:"18px 22px", borderBottom:`1px solid ${C.border}` }}>
+        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600 }}>Exam Performance</span>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 70px 70px 1fr 70px", gap:12, padding:"10px 22px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
+        {["Exam","Level","Taken","Passed","Pass Rate","Avg"].map(h=>(
+          <span key={h} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:700, letterSpacing:.6, textTransform:"uppercase" }}>{h}</span>
+        ))}
+      </div>
+      {exams.map(exam=>{
+        const rs=results.filter(r=>r.examId===exam.id);
+        const taken=rs.length, passed=rs.filter(r=>r.passed).length;
+        const passR=pct2(passed,taken), avgSc=avg(rs.map(r=>r.pct));
+        const lc=LC[exam.level]||"#94a3b8";
+        return (
+          <div key={exam.id} style={{ display:"grid", gridTemplateColumns:"1fr 60px 70px 70px 1fr 70px", gap:12, padding:"14px 22px", borderBottom:`1px solid ${C.border}`, alignItems:"center", transition:"background .15s" }}
+            onMouseEnter={e=>e.currentTarget.style.background=C.panel}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            <div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, fontWeight:500 }}>{exam.title}</div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:2 }}>{exam.date}</div>
+            </div>
+            <span style={{ background:`${lc}18`, color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 8px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{exam.level}</span>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.text, textAlign:"center" }}>{taken}</span>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.success, textAlign:"center" }}>{passed}</span>
+            <div>
+              <div style={{ height:6, background:C.dim, borderRadius:3, marginBottom:4 }}>
+                <div style={{ width:`${passR}%`, height:"100%", background:passR>=75?C.success:passR>=50?C.warning:C.danger, borderRadius:3 }}/>
+              </div>
+              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:passR>=75?C.success:passR>=50?C.warning:C.danger }}>{passR}%</span>
+            </div>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:700, textAlign:"center" }}>{avgSc}%</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function AdminAnalytics() {
+  const [period, setPeriod] = useState("all");
+
+  const results = useMemo(()=>{
+    if (period==="all") return ALL_RESULTS;
+    const cutoff = period==="month" ? "2024-11-20" : "2024-11-01";
+    return ALL_RESULTS.filter(r=>r.date>=cutoff);
+  }, [period]);
+
+  const totalStudents  = STUDENTS.length;
+  const activeStudents = STUDENTS.filter(s=>s.status==="active").length;
+  const totalTaken     = results.length;
+  const totalPassed    = results.filter(r=>r.passed).length;
+  const avgScore       = avg(results.map(r=>r.pct));
+  const passRate       = pct2(totalPassed, totalTaken);
 
   return (
     <>
       <style>{FONTS}{`
         *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:5px;height:5px}
-        ::-webkit-scrollbar-thumb{background:#243050;border-radius:3px}
-        ::-webkit-scrollbar-track{background:transparent}
-        @keyframes fadeSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         button:active{transform:scale(.97)}
       `}</style>
-      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", animation:"fadeSlideIn .3s ease" }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", animation:"fadeSlideIn .35s ease" }}>
 
         {/* Header */}
-        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
+        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28, flexWrap:"wrap", gap:16 }}>
           <div>
             <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:C.text, margin:"0 0 4px", fontWeight:600 }}>Analytics</h1>
-            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:0 }}>Exam results & performance overview</p>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:0 }}>Platform performance overview</p>
           </div>
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            {/* Level filter */}
-            <div style={{ display:"flex", gap:5 }}>
-              {["all",...LEVELS].map(l => (
-                <button key={l} onClick={()=>setFilterLevel(l)} style={{
-                  background: filterLevel===l ? (LEVEL_COLORS[l]||C.gold)+"22" : "transparent",
-                  border:`1px solid ${filterLevel===l ? (LEVEL_COLORS[l]||C.gold) : C.border}`,
-                  borderRadius:8, padding:"5px 10px",
-                  color: filterLevel===l ? (LEVEL_COLORS[l]||C.gold) : C.muted,
-                  fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600,
-                  cursor:"pointer", transition:"all .15s",
-                }}>{l==="all"?"All":l}</button>
-              ))}
-            </div>
-            {/* Pass filter */}
-            <div style={{ display:"flex", gap:5 }}>
-              {[["all","All"],["passed","Passed"],["failed","Failed"]].map(([v,l]) => (
-                <button key={v} onClick={()=>setFilterPassed(v)} style={{
-                  background: filterPassed===v ? (v==="passed"?C.success:v==="failed"?C.danger:C.gold)+"22" : "transparent",
-                  border:`1px solid ${filterPassed===v ? (v==="passed"?C.success:v==="failed"?C.danger:C.gold) : C.border}`,
-                  borderRadius:8, padding:"5px 10px",
-                  color: filterPassed===v ? (v==="passed"?C.success:v==="failed"?C.danger:C.gold) : C.muted,
-                  fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600,
-                  cursor:"pointer", transition:"all .15s",
-                }}>{l}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Stat cards */}
-        <div style={{ display:"flex", gap:14, marginBottom:28, flexWrap:"wrap" }}>
-          <StatCard icon="📝" label="Total Attempts" value={totalExams} sub={`${uniqueStudents} students`} color={C.gold} trend={12} />
-          <StatCard icon="✅" label="Pass Rate" value={passRate+"%"} sub={`${passCount} passed`} color={C.success} trend={5} />
-          <StatCard icon="📊" label="Avg Score" value={avgScore} sub="out of 100" color={C.info} trend={-2} />
-          <StatCard icon="⏱" label="Avg Duration" value={avgDuration+"′"} sub="minutes" color={C.purple} />
-          <StatCard icon="👤" label="Active Students" value={uniqueStudents} color={C.warning} trend={8} />
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display:"flex", gap:8, marginBottom:24 }}>
-          {[["overview","📈 Overview"],["results","📋 All Results"],["students","👤 Students"],["exams","🎓 By Exam"]].map(([id,l])=>TAB_BTN(id,l))}
-        </div>
-
-        {/* ── OVERVIEW TAB ── */}
-        {tab === "overview" && (
-          <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-
-            {/* Score distribution + pass donut */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16 }}>
-
-              {/* Score distribution */}
-              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:16 }}>Score Distribution</div>
-                <ScoreSparkline scores={filtered.map(r=>r.score)} width={220} height={70} />
-              </div>
-
-              {/* Pass/Fail donut */}
-              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", alignSelf:"flex-start" }}>Pass / Fail</div>
-                <DonutChart value={passCount} total={totalExams} color={C.success} size={110} />
-                <div style={{ display:"flex", gap:16 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                    <div style={{ width:8, height:8, borderRadius:"50%", background:C.success }} />
-                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>Passed {passCount}</span>
-                  </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                    <div style={{ width:8, height:8, borderRadius:"50%", background:C.danger }} />
-                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>Failed {totalExams-passCount}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Avg score by level */}
-              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:16 }}>Avg Score by Level</div>
-                <BarChart data={byLevel.map(l=>({ label:l.label, value:l.avg }))} height={90} />
-              </div>
-            </div>
-
-            {/* By level table */}
-            <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:16 }}>Performance by Level</div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:12 }}>
-                {byLevel.map(l => (
-                  <div key={l.label} style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px", textAlign:"center" }}>
-                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:700, color:LEVEL_COLORS[l.label]||"#94a3b8", marginBottom:8 }}>{l.label}</div>
-                    <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:700, color:C.text, lineHeight:1 }}>{l.avg||"—"}</div>
-                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, marginTop:3 }}>avg score</div>
-                    <div style={{ marginTop:8, height:3, background:C.dim, borderRadius:2, overflow:"hidden" }}>
-                      <div style={{ width:`${l.pass}%`, height:"100%", background: l.pass>=60?C.success:l.pass>=40?C.warning:C.danger, borderRadius:2 }} />
-                    </div>
-                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, marginTop:3 }}>{l.pass}% pass · {l.value} attempts</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Top students */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:16 }}>Top Performers</div>
-                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                  {studentStats.slice(0,5).map((s,i) => (
-                    <div key={i} style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <div style={{ width:28, height:28, borderRadius:"50%", background:`linear-gradient(135deg, ${i===0?C.gold:i===1?"#94a3b8":i===2?"#cd7f32":C.dim}, ${C.dim})`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, color:"white", flexShrink:0 }}>{i+1}</div>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text }}>{s.name}</div>
-                        <div style={{ height:4, background:C.dim, borderRadius:2, overflow:"hidden", marginTop:4 }}>
-                          <div style={{ width:`${s.avg}%`, height:"100%", background:i===0?C.gold:C.success, borderRadius:2, transition:"width .5s" }} />
-                        </div>
-                      </div>
-                      <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700, color:i===0?C.gold:C.text, minWidth:36, textAlign:"right" }}>{s.avg}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:16 }}>By Exam</div>
-                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                  {byExam.map((e,i) => (
-                    <div key={i} style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <div style={{ flex:1 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text }}>{e.label}</span>
-                          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{e.value} attempts · {e.pass}% pass</span>
-                        </div>
-                        <div style={{ height:4, background:C.dim, borderRadius:2, overflow:"hidden" }}>
-                          <div style={{ width:`${e.avg}%`, height:"100%", background:e.avg>=60?C.success:C.warning, borderRadius:2 }} />
-                        </div>
-                      </div>
-                      <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700, color:C.info, minWidth:36, textAlign:"right" }}>{e.avg}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── RESULTS TAB ── */}
-        {tab === "results" && (
-          <div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginBottom:12, textAlign:"right" }}>{filtered.length} results</div>
-            <ResultsTable results={filtered} />
-          </div>
-        )}
-
-        {/* ── STUDENTS TAB ── */}
-        {tab === "students" && (
-          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:16 }}>Student Performance Summary</div>
-            <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 80px 80px 80px 80px", gap:14, padding:"10px 16px", borderBottom:`1px solid ${C.border}`, background:C.panel, borderRadius:"8px 8px 0 0" }}>
-              {["#","Student","Attempts","Avg Score","Highest","Pass Rate"].map((h,i) => (
-                <span key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:600, letterSpacing:.8, textTransform:"uppercase" }}>{h}</span>
-              ))}
-            </div>
-            {studentStats.map((s,i) => (
-              <div key={i} style={{ display:"grid", gridTemplateColumns:"40px 1fr 80px 80px 80px 80px", gap:14, padding:"14px 16px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
-                onMouseEnter={e=>e.currentTarget.style.background=C.panel}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>{i+1}</span>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, fontWeight:500 }}>{s.name}</span>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, textAlign:"center" }}>{s.count}</span>
-                <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700, color: s.avg>=60?C.success:C.danger, textAlign:"center" }}>{s.avg}</span>
-                <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700, color:C.gold, textAlign:"center" }}>{Math.max(...s.scores)}</span>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, textAlign:"center" }}>
-                  {pct(s.scores.filter(x=>x>=60).length, s.scores.length)}%
-                </span>
-              </div>
+          <div style={{ display:"flex", gap:6 }}>
+            {[["all","All Time"],["quarter","Last Quarter"],["month","Last Month"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setPeriod(v)} style={{ background:period===v?C.gold+"22":"transparent", border:`1px solid ${period===v?C.gold:C.border2}`, borderRadius:9, padding:"8px 16px", color:period===v?C.gold:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, cursor:"pointer", transition:"all .15s" }}>{l}</button>
             ))}
           </div>
-        )}
+        </div>
 
-        {/* ── EXAMS TAB ── */}
-        {tab === "exams" && (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px,1fr))", gap:16 }}>
-            {byExam.map((e,i) => {
-              const examResults = filtered.filter(r=>r.examTitle===e.full);
-              return (
-                <div key={i} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-                  <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, color:C.text, fontWeight:600, marginBottom:16, lineHeight:1.3 }}>{e.full}</div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
-                    {[["Attempts", e.value],["Avg Score", e.avg],["Pass Rate", e.pass+"%"],["Avg Time", avg(examResults.map(r=>r.duration))+"′"]].map(([l,v])=>(
-                      <div key={l} style={{ background:C.panel, borderRadius:10, padding:"10px 14px" }}>
-                        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, marginBottom:3 }}>{l}</div>
-                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:700, color:C.gold }}>{v}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ height:4, background:C.dim, borderRadius:2, overflow:"hidden" }}>
-                    <div style={{ width:`${e.avg}%`, height:"100%", background:e.avg>=60?C.success:C.warning, borderRadius:2 }} />
-                  </div>
-                  <div style={{ display:"flex", justifyContent:"space-between", marginTop:6 }}>
-                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>avg {e.avg}/100</span>
-                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:e.pass>=60?C.success:C.danger }}>{e.pass}% pass rate</span>
-                  </div>
-                </div>
-              );
-            })}
+        {/* KPI row */}
+        <div style={{ display:"flex", gap:16, marginBottom:24, flexWrap:"wrap" }}>
+          <StatCard icon="👤" label="Total Students"  value={totalStudents}  sub={`${activeStudents} active`}          color={C.info}    trend={8}  />
+          <StatCard icon="📝" label="Exams Taken"     value={totalTaken}    sub={`across ${EXAMS_LIST.length} exams`}  color={C.purple}  trend={12} />
+          <StatCard icon="✅" label="Pass Rate"       value={`${passRate}%`} sub={`${totalPassed} passed`}             color={C.success} trend={3}  />
+          <StatCard icon="⭐" label="Avg Score"       value={`${avgScore}%`} sub="across all exams"                    color={C.gold}    trend={-2} />
+        </div>
+
+        {/* Charts row */}
+        <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:20, marginBottom:20 }}>
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600, marginBottom:16 }}>Monthly Activity</div>
+            <BarChart data={MONTHLY}/>
           </div>
-        )}
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 24px" }}>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, color:C.text, fontWeight:600, marginBottom:14 }}>Pass / Fail</div>
+              <DonutChart segments={[
+                { label:"Passed", value:totalPassed,              color:C.success },
+                { label:"Failed", value:totalTaken-totalPassed,   color:C.danger  },
+              ]}/>
+            </div>
+            <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 24px" }}>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, color:C.text, fontWeight:600, marginBottom:14 }}>Groups</div>
+              <DonutChart segments={["Խ-101","Խ-102","Խ-103"].map((g,i)=>({
+                label:g, value:STUDENTS.filter(s=>s.group===g).length,
+                color:[C.info,C.purple,C.warning][i],
+              }))}/>
+            </div>
+          </div>
+        </div>
+
+        {/* Score dist + Level dist */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:20 }}>
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600, marginBottom:16 }}>Score Distribution</div>
+            <ScoreDist results={results}/>
+          </div>
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600, marginBottom:16 }}>Student Levels</div>
+            <LevelDist students={STUDENTS}/>
+          </div>
+        </div>
+
+        {/* Tables */}
+        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+          <ExamPerfTable exams={EXAMS_LIST} results={results}/>
+          <TopStudentsTable students={STUDENTS} results={results}/>
+        </div>
 
       </div>
     </>

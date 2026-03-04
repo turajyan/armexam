@@ -18,6 +18,7 @@ const NAV = [
   { id:"students",  icon:"👤", label:"Students",  component:AdminStudents },
   { id:"analytics", icon:"📊", label:"Analytics", component:AdminAnalytics },
   { id:"media",     icon:"📁", label:"Media",     component:AdminMedia },
+  { id:"analytics", icon:"📊", label:"Analytics", component:AdminAnalytics },
   { id:"settings",  icon:"⚙️",  label:"Settings",  component:AdminSettings },
 ];
 
