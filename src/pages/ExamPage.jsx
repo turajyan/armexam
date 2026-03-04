@@ -1176,8 +1176,12 @@ function QuestionNav({ questions, current, answers, onJump }) {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {questions.map((q, i) => {
-          const answered = answers[q.id] !== undefined && answers[q.id] !== "" &&
-            !(Array.isArray(answers[q.id]) && answers[q.id].length === 0);
+          const ans = answers[q.id];
+          const answered = q.type === "fill_wordbank"
+            ? (ans && typeof ans === "object" && Object.keys(ans).length > 0)
+            : q.type === "voice"
+            ? (ans && ans.url)
+            : ans !== undefined && ans !== "" && !(Array.isArray(ans) && ans.length === 0) && ans !== null;
           const isCurrent = i === current;
           return (
             <button key={q.id} onClick={() => onJump(i)} style={{

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import ExamPage       from "./pages/ExamPage";
-import AdminQuestions from "./pages/AdminQuestions";
-import AdminExams     from "./pages/AdminExams";
-import AdminStudents  from "./pages/AdminStudents";
-import AdminMedia     from "./pages/AdminMedia";
-import AdminSettings  from "./pages/AdminSettings";
+import ExamPage        from "./pages/ExamPage";
+import AdminQuestions  from "./pages/AdminQuestions";
+import AdminExams      from "./pages/AdminExams";
+import AdminStudents   from "./pages/AdminStudents";
+import AdminAnalytics  from "./pages/AdminAnalytics";
+import AdminMedia      from "./pages/AdminMedia";
+import AdminSettings   from "./pages/AdminSettings";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -15,6 +16,7 @@ const NAV = [
   { id:"questions", icon:"📋", label:"Questions", component:AdminQuestions },
   { id:"exams",     icon:"🗂",  label:"Exams",     component:AdminExams },
   { id:"students",  icon:"👤", label:"Students",  component:AdminStudents },
+  { id:"analytics", icon:"📊", label:"Analytics", component:AdminAnalytics },
   { id:"media",     icon:"📁", label:"Media",     component:AdminMedia },
   { id:"settings",  icon:"⚙️",  label:"Settings",  component:AdminSettings },
 ];
