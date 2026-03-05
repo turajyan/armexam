@@ -70,6 +70,32 @@ export const QUESTIONS = [
     options:["շնորհ","ոգի","յուր","նա","ահա","ես"], correct:[2] },
   { id:30, type:"writing",       level:"C2", section:"Ազատ շարադրություն", points:10, text:"Գրի՛ր 150-200 բառ. «Գրականության դերը ազգային ինքնության պահպանման մեջ»",
     minWords:150, maxWords:220 },
+
+  // Word Bank examples
+  { id:31, type:"fill_wordbank", level:"A2", section:"Քերականություն", points:2,
+    text:"Տեղադրի՛ր բառերը ճիշտ տեղերում:",
+    segments:[
+      { type:"text",  content:"Ես ամեն օր " },
+      { type:"blank", id:0 },
+      { type:"text",  content:" դպրոց եմ գնում " },
+      { type:"blank", id:1 },
+      { type:"text",  content:" ավտոբուսով:" },
+    ],
+    wordBank:["առավոտյան","դեպի","երեկոյան","կողքին"],
+    correct:[1, 0],
+  },
+  { id:32, type:"fill_wordbank", level:"B1", section:"Բառապաշար", points:3,
+    text:"Լրացրո՛ւ նախադասությունները ճիշտ բառերով:",
+    segments:[
+      { type:"text",  content:"Երկիրը " },
+      { type:"blank", id:0 },
+      { type:"text",  content:" ունի, իսկ մայրաքաղաքը " },
+      { type:"blank", id:1 },
+      { type:"text",  content:" է:" },
+    ],
+    wordBank:["Երևան","լեռներ","ծով","Թբիլիսի"],
+    correct:[1, 0],
+  },
 ];
 
 export const STUDENTS = [

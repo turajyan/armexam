@@ -524,10 +524,75 @@ function ViewQuestion({ q, onEdit, onClose }) {
       )}
 
       {/* Fill blank answer */}
-      {q.answer && (
+      {q.type === "fill_blank" && q.answer && (
         <div style={{ background:C.success+"0d", border:`1px solid ${C.success}44`, borderRadius:12, padding:"14px 18px" }}>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:6 }}>Correct Answer</div>
           <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:C.success, fontWeight:700 }}>{q.answer}</span>
+        </div>
+      )}
+
+      {/* Word Bank preview */}
+      {q.type === "fill_wordbank" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {/* Sentence with blanks */}
+          <div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>Sentence</div>
+            <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:14, padding:"18px 22px", fontFamily:"'Cormorant Garamond',serif", fontSize:19, color:C.text, lineHeight:2.2 }}>
+              {(q.segments || []).map((seg, i) => {
+                if (seg.type === "text") return <span key={i}>{seg.content}</span>;
+                // blank slot — show correct word if available
+                const correctWord = (q.correct || [])[seg.id] !== undefined
+                  ? (q.wordBank || [])[(q.correct || [])[seg.id]]
+                  : null;
+                return (
+                  <span key={i} style={{
+                    display:"inline-flex", alignItems:"center", justifyContent:"center",
+                    minWidth:80, height:32, margin:"0 4px",
+                    borderRadius:7, border:`2px dashed ${C.success}88`,
+                    background:C.success+"0d", padding:"0 10px", verticalAlign:"middle",
+                    fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.success, fontWeight:600,
+                  }}>
+                    {correctWord || `_${seg.id+1}_`}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          {/* Word bank */}
+          <div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>
+              Word Bank ({(q.wordBank||[]).length} words)
+            </div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+              {(q.wordBank || []).filter(Boolean).map((w, i) => (
+                <span key={i} style={{
+                  background:C.info+"15", color:C.info,
+                  border:`1.5px solid ${C.info}44`,
+                  borderRadius:8, padding:"6px 14px",
+                  fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:500,
+                }}>
+                  {w}
+                </span>
+              ))}
+            </div>
+          </div>
+          {/* Correct order */}
+          {q.correct && q.correct.length > 0 && (
+            <div style={{ background:C.success+"0d", border:`1px solid ${C.success}33`, borderRadius:10, padding:"12px 16px" }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:8 }}>Correct Order</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6, alignItems:"center" }}>
+                {(q.correct || []).map((wi, i) => (
+                  <span key={i} style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>#{i+1}</span>
+                    <span style={{ background:C.success+"18", color:C.success, border:`1px solid ${C.success}44`, borderRadius:6, padding:"3px 10px", fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600 }}>
+                      {(q.wordBank||[])[wi] || `word[${wi}]`}
+                    </span>
+                    {i < (q.correct||[]).length-1 && <span style={{ color:C.muted, fontSize:10 }}>→</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
