@@ -93,7 +93,7 @@ function UploadZone({ label, accept, icon, hint, onFile, fileName }) {
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.success }}>{fileName}</div>
         ) : (
           <>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>Քаши՛р кам сехми՛р</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>Drag or click to upload</div>
             <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.dim, marginTop:4 }}>{hint}</div>
           </>
         )}
@@ -233,7 +233,7 @@ function QuestionForm({ initial, onSave, onCancel }) {
     <div style={{ display:"flex", flexDirection:"column", gap:22 }}>
       {/* Type selector */}
       <div>
-        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>Հարցի տեսակ</label>
+        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>Question type</label>
         <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
           {QTYPES.map(t=>(
             <button key={t.id} onClick={()=>set("type",t.id)} style={{ background:q.type===t.id?(t.color+"20"):"transparent", border:`1.5px solid ${q.type===t.id?t.color:C.border}`, borderRadius:10, padding:"8px 14px", color:q.type===t.id?t.color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, cursor:"pointer", transition:"all .15s", display:"flex", alignItems:"center", gap:6 }}>
@@ -252,14 +252,14 @@ function QuestionForm({ initial, onSave, onCancel }) {
       </div>
 
       {/* Question text */}
-      <Textarea label="Հարցի տեքստ" value={q.text} onChange={v=>set("text",v)} placeholder="Գրի՛ր հարցը հայերեն..." rows={3} />
+      <Textarea label="Հարցի տեքստ" value={q.text} onChange={v=>set("text",v)} placeholder="Write the question in Armenian..." rows={3} />
 
       {/* Media upload */}
       {hasMedia && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
           {q.type==="audio" && (
             <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              <UploadZone label="🎧 Ձайнагрություн" accept="audio/*" icon="🎧" hint="MP3, WAV, OGG · max 50MB"
+              <UploadZone label="🎧 Audio file" accept="audio/*" icon="🎧" hint="MP3, WAV, OGG · max 50MB"
                 fileName={q.audioSrc ? (q.audioSrc.split("/").pop().split("?")[0] || "audio") : null}
                 onFile={f => { const url = URL.createObjectURL(f); set("audioSrc", url); set("_audioFile", f); }}
               />
@@ -299,8 +299,8 @@ function QuestionForm({ initial, onSave, onCancel }) {
       {/* Replay settings for audio/video */}
       {hasMedia && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          <Select label="Կրկնությունների քանակ" value={q.maxPlays||2} onChange={v=>set("maxPlays",+v)} options={[{value:1,label:"1 անգամ"},{value:2,label:"2 անգամ"},{value:3,label:"3 անգամ"}]} />
-          <Select label="Դադար կրկնությունների միջև" value={q.pauseSeconds||20} onChange={v=>set("pauseSeconds",+v)} options={[{value:20,label:"20 վ"},{value:25,label:"25 վ"},{value:30,label:"30 վ"}]} />
+          <Select label="Repeat count" value={q.maxPlays||2} onChange={v=>set("maxPlays",+v)} options={[{value:1,label:"1 անգամ"},{value:2,label:"2 անգամ"},{value:3,label:"3 անգամ"}]} />
+          <Select label="Pause between" value={q.pauseSeconds||20} onChange={v=>set("pauseSeconds",+v)} options={[{value:20,label:"20 վ"},{value:25,label:"25 վ"},{value:30,label:"30 վ"}]} />
         </div>
       )}
 
@@ -308,8 +308,8 @@ function QuestionForm({ initial, onSave, onCancel }) {
       {hasOptions && (
         <div>
           <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
-            Պատասխանի տարբերակներ
-            <span style={{ marginLeft:8, color:C.gold, fontSize:10 }}>· կանաչ = ճիշտ</span>
+            Answer options
+            <span style={{ marginLeft:8, color:C.gold, fontSize:10 }}>· green = correct</span>
           </label>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {(q.options||[]).map((opt,i)=>(
@@ -326,14 +326,14 @@ function QuestionForm({ initial, onSave, onCancel }) {
               </div>
             ))}
             <button onClick={()=>set("options",[...q.options,""])} style={{ background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:10, padding:"9px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", marginTop:4 }}>
-              + Ավելացնել տարբերակ
+              + Add option
             </button>
           </div>
         </div>
       )}
 
       {/* Fill blank */}
-      {hasBlank && <Input label="Ճիշտ պատասխան" value={q.answer||""} onChange={v=>set("answer",v)} placeholder="Ճիշտ բառը..." />}
+      {hasBlank && <Input label="Correct answer" value={q.answer||""} onChange={v=>set("answer",v)} placeholder="Type correct word..." />}
 
       {/* Fill Word Bank editor */}
       {hasWordBank && (
@@ -343,8 +343,8 @@ function QuestionForm({ initial, onSave, onCancel }) {
       {/* Writing */}
       {hasWriting && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          <Input label="Նվազ. բառ" value={q.minWords||150} onChange={v=>set("minWords",+v)} type="number" />
-          <Input label="Առավ. բառ" value={q.maxWords||200} onChange={v=>set("maxWords",+v)} type="number" />
+          <Input label="Min words" value={q.minWords||150} onChange={v=>set("minWords",+v)} type="number" />
+          <Input label="Max words" value={q.maxWords||200} onChange={v=>set("maxWords",+v)} type="number" />
         </div>
       )}
 
@@ -359,9 +359,9 @@ function QuestionForm({ initial, onSave, onCancel }) {
 
       {/* Actions */}
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
-        <button onClick={onCancel} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Չեղարկել</button>
+        <button onClick={onCancel} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Cancel</button>
         <button onClick={()=>onSave(q)} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 28px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 16px ${C.gold}44` }}>
-          {isEdit ? "✓ Պահպանել" : "✓ Ստեղծել"}
+          {isEdit ? "✓ Save" : "✓ Create"}
         </button>
       </div>
     </div>
@@ -409,7 +409,7 @@ function StatsBar({ questions }) {
   return (
     <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
       {[
-        { label:"Ընդամենը", value:total, color:C.gold },
+        { label:"Total", value:total, color:C.gold },
         { label:"Published", value:pub, color:C.success },
         { label:"Draft", value:total-pub, color:"#f59e0b" },
       ].map(s=>(
@@ -452,7 +452,7 @@ const NAV = [
   { id:"exams",     icon:"🎓", label:"Քննություններ" },
   { id:"students",  icon:"👤", label:"Ուսանողներ" },
   { id:"results",   icon:"📊", label:"Արդյունքներ" },
-  { id:"media",     icon:"📁", label:"Ֆայլեր" },
+  { id:"media",     icon:"📁", label:"Files" },
   { id:"settings",  icon:"⚙️",  label:"Կարգավ." },
 ];
 
@@ -711,7 +711,7 @@ function QuestionsPage() {
       {/* Header */}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
         <div>
-          <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:C.text, margin:"0 0 4px", fontWeight:600 }}>Հարցերի կառ.</h1>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:C.text, margin:"0 0 4px", fontWeight:600 }}>Question Management</h1>
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:0 }}>Question Management</p>
         </div>
         <div style={{ display:"flex", gap:10 }}>
@@ -719,7 +719,7 @@ function QuestionsPage() {
             ↑ Import JSON
           </button>
           <button onClick={()=>{setEditing(null);setModal("create")}} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 22px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 16px ${C.gold}44`, display:"flex", alignItems:"center", gap:7 }}>
-            + Նոր հարց
+            + New Question
           </button>
         </div>
       </div>
@@ -729,7 +729,7 @@ function QuestionsPage() {
 
       {/* Filters */}
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 20px", marginBottom:20, display:"flex", gap:16, flexWrap:"wrap", alignItems:"center" }}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Որոնել հարցեր..." style={{ flex:"1 1 200px", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search questions..." style={{ flex:"1 1 200px", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
           <Pill label="Բոլոր" active={filterType==="all"} onClick={()=>setFilterType("all")} />
           {QTYPES.map(t=><Pill key={t.id} label={t.icon+" "+t.label} active={filterType===t.id} onClick={()=>setFilterType(t.id)} color={t.color} />)}
@@ -755,7 +755,7 @@ function QuestionsPage() {
         </div>
         {filtered.length === 0 ? (
           <div style={{ padding:"48px", textAlign:"center", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
-            Հարցեր չկան · No questions found
+            No questions found
           </div>
         ) : filtered.map(q=>(
           <QRow key={q.id} q={q}
@@ -767,12 +767,12 @@ function QuestionsPage() {
         ))}
       </div>
       <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginTop:12, textAlign:"right" }}>
-        {filtered.length} / {questions.length} հարց
+        {filtered.length} / {questions.length} questions
       </div>
 
       {/* Create/Edit Modal */}
       {(modal==="create"||modal==="edit") && (
-        <Modal title={modal==="edit"?"Խմբ. հարց · Edit Question":"Նոր հարց · New Question"} onClose={()=>{setModal(null);setEditing(null)}}>
+        <Modal title={modal==="edit"?"Edit Question":"New Question"} onClose={()=>{setModal(null);setEditing(null)}}>
           <QuestionForm initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} />
         </Modal>
       )}
@@ -786,11 +786,11 @@ function QuestionsPage() {
 
       {/* Delete confirm */}
       {deleteConfirm && (
-        <Modal title="Ջնջե՞լ հարցը" onClose={()=>setDeleteConfirm(null)}>
-          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted, marginBottom:24 }}>Այս գործողությունն անհնար է չեղարկել։ Delete question #{deleteConfirm}?</p>
+        <Modal title="Delete question?" onClose={()=>setDeleteConfirm(null)}>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted, marginBottom:24 }}>Delete question #{deleteConfirm}? This cannot be undone.</p>
           <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
-            <button onClick={()=>setDeleteConfirm(null)} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Չեղ.</button>
-            <button onClick={()=>handleDelete(deleteConfirm)} style={{ background:"#f8717122", border:"1px solid #f8717144", borderRadius:10, padding:"10px 22px", color:"#f87171", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer" }}>✕ Ջնջել</button>
+            <button onClick={()=>setDeleteConfirm(null)} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Cancel</button>
+            <button onClick={()=>handleDelete(deleteConfirm)} style={{ background:"#f8717122", border:"1px solid #f8717144", borderRadius:10, padding:"10px 22px", color:"#f87171", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer" }}>✕ Delete</button>
           </div>
         </Modal>
       )}
@@ -804,7 +804,7 @@ function PlaceholderPage({ title, icon }) {
     <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:12, color:C.muted }}>
       <div style={{ fontSize:48 }}>{icon}</div>
       <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, color:C.text }}>{title}</div>
-      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>Շուտով · Coming soon</div>
+      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>Coming soon</div>
     </div>
   );
 }
