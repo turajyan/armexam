@@ -78,92 +78,117 @@ function Timer({ seconds, onExpire }) {
 
 // ── Audio Player ─────────────────────────────────────────────────────────────
 function AudioQuestion({ question, value, onChange }) {
-  const [plays, setPlays] = useState(0);
-  const [playing, setPlaying] = useState(false);
+  const [plays, setPlays]         = useState(0);
+  const [playing, setPlaying]     = useState(false);
   const [pauseActive, setPauseActive] = useState(false);
   const [pauseLeft, setPauseLeft] = useState(0);
-  const pauseRef = useRef(null);
-
-  const handlePlay = () => {
-    if (plays >= question.maxPlays || playing || pauseActive) return;
-    setPlaying(true);
-    // Simulate audio 4s
-    setTimeout(() => {
-      setPlaying(false);
-      const newPlays = plays + 1;
-      setPlays(newPlays);
-      if (newPlays < question.maxPlays) {
-        setPauseActive(true);
-        setPauseLeft(question.pauseSeconds);
-        pauseRef.current = setInterval(() => {
-          setPauseLeft(p => {
-            if (p <= 1) { clearInterval(pauseRef.current); setPauseActive(false); return 0; }
-            return p - 1;
-          });
-        }, 1000);
-      }
-    }, 4000);
-  };
+  const [progress, setProgress]   = useState(0);
+  const [duration, setDuration]   = useState(0);
+  const audioRef  = useRef(null);
+  const pauseRef  = useRef(null);
 
   const remaining = question.maxPlays - plays;
+  const disabled  = plays >= question.maxPlays || playing || pauseActive;
+
+  const handlePlay = () => {
+    if (disabled) return;
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = 0;
+    audioRef.current.play();
+    setPlaying(true);
+  };
+
+  const handleEnded = () => {
+    setPlaying(false);
+    setProgress(0);
+    const newPlays = plays + 1;
+    setPlays(newPlays);
+    if (newPlays < question.maxPlays && question.pauseSeconds > 0) {
+      setPauseActive(true);
+      setPauseLeft(question.pauseSeconds);
+      pauseRef.current = setInterval(() => {
+        setPauseLeft(p => {
+          if (p <= 1) { clearInterval(pauseRef.current); setPauseActive(false); return 0; }
+          return p - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (!audioRef.current) return;
+    const d = audioRef.current.duration || 0;
+    const t = audioRef.current.currentTime || 0;
+    setProgress(d > 0 ? t / d : 0);
+    setDuration(d);
+  };
+
+  const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 
   return (
     <div>
+      {/* Hidden audio element */}
+      {question.audioSrc && (
+        <audio ref={audioRef} src={question.audioSrc}
+          onEnded={handleEnded}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleTimeUpdate}
+          crossOrigin="anonymous"
+          preload="metadata"
+        />
+      )}
       <div style={{
-        background: C.panel,
-        border: "1px solid #1e3a5f",
-        borderRadius: 16,
-        padding: "20px 24px",
-        marginBottom: 20,
-        display: "flex",
-        alignItems: "center",
-        gap: 20,
-        boxShadow: "0 4px 24px #0008",
+        background: C.panel, border: `1px solid ${playing ? C.gold+"55" : C.border}`,
+        borderRadius: 16, padding: "20px 24px", marginBottom: 20,
+        transition: "border-color .3s",
       }}>
-        {/* Waveform visual */}
-        <div style={{ display: "flex", alignItems: "center", gap: 3, flex: 1 }}>
-          {Array.from({ length: 32 }).map((_, i) => (
+        {/* Waveform bars */}
+        <div style={{ display:"flex", alignItems:"center", gap:3, marginBottom:14, height:40 }}>
+          {Array.from({ length: 36 }).map((_, i) => (
             <div key={i} style={{
-              width: 3,
-              height: playing ? `${8 + Math.sin(i * 0.8 + Date.now() * 0.01) * 14 + 10}px` : `${4 + Math.abs(Math.sin(i * 1.2)) * 20}px`,
-              background: playing ? C.gold : C.dim,
-              borderRadius: 2,
-              transition: "height 0.15s, background 0.3s",
+              width: 3, borderRadius: 2,
+              background: i / 36 <= progress ? C.gold : C.dim,
+              height: `${20 + Math.abs(Math.sin(i * 0.9)) * 60}%`,
+              transition: "background .1s",
+              animation: playing ? `voiceWave ${0.4+(i%5)*0.08}s ease-in-out ${i*0.02}s infinite alternate` : "none",
             }} />
           ))}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          <button
-            onClick={handlePlay}
-            disabled={plays >= question.maxPlays || playing || pauseActive}
-            style={{
-              width: 52, height: 52, borderRadius: "50%",
-              background: plays >= question.maxPlays ? C.dim : "linear-gradient(135deg, #c8a96e, #a07840)",
-              border: "none", cursor: plays >= question.maxPlays ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: plays < question.maxPlays ? "0 0 20px #c8a96e44" : "none",
-              transition: "all 0.2s",
-              opacity: (pauseActive) ? 0.5 : 1,
-            }}
-          >
-            {playing ? (
-              <svg width={18} height={18} viewBox="0 0 24 24" fill="white">
-                <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
-              </svg>
-            ) : (
-              <svg width={18} height={18} viewBox="0 0 24 24" fill="white">
-                <polygon points="5,3 19,12 5,21"/>
-              </svg>
-            )}
-          </button>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.muted, textAlign: "center" }}>
-            {pauseActive ? (
-              <span style={{ color: C.warning }}>Սպասե՛ք {pauseLeft}վ</span>
-            ) : (
-              <span style={{ color: plays >= question.maxPlays ? C.muted : C.textSub }}>
-                {remaining > 0 ? `${remaining} անգամ` : "Ավարտված"}
-              </span>
-            )}
+
+        {/* Progress bar */}
+        <div style={{ height:3, background:C.dim, borderRadius:2, marginBottom:14, overflow:"hidden" }}>
+          <div style={{ width:`${progress*100}%`, height:"100%", background:C.gold, transition:"width .2s" }} />
+        </div>
+
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          {/* Play button + time */}
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <button onClick={handlePlay} disabled={disabled} style={{
+              width:48, height:48, borderRadius:"50%",
+              background: disabled ? C.dim : `linear-gradient(135deg,${C.gold},${C.goldDim})`,
+              border:"none", cursor: disabled ? "not-allowed" : "pointer",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              boxShadow: disabled ? "none" : `0 0 16px ${C.gold}44`,
+              transition:"all .2s", opacity: pauseActive ? 0.5 : 1,
+            }}>
+              {playing
+                ? <svg width={16} height={16} viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                : <svg width={16} height={16} viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+              }
+            </button>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>
+              {duration > 0 ? fmtTime(audioRef.current?.currentTime||0) + " / " + fmtTime(duration) : "--:-- / --:--"}
+            </span>
+          </div>
+
+          {/* Plays counter */}
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, textAlign:"right" }}>
+            {pauseActive
+              ? <span style={{ color:C.warning }}>⏳ Սպасе՛қt {pauseLeft}с...</span>
+              : plays >= question.maxPlays
+                ? <span style={{ color:C.muted }}>✓ Ավарт ват</span>
+                : <span style={{ color:C.textSub }}>{remaining} անгам мнац</span>
+            }
           </div>
         </div>
       </div>
@@ -173,76 +198,60 @@ function AudioQuestion({ question, value, onChange }) {
 }
 
 // ── Video Question ────────────────────────────────────────────────────────────
+// ── Video Question ────────────────────────────────────────────────────────────
 function VideoQuestion({ question, value, onChange }) {
   const [plays, setPlays] = useState(0);
-  const [playing, setPlaying] = useState(false);
+  const videoRef = useRef(null);
+  const exhausted = plays >= question.maxPlays;
 
-  const handlePlay = () => {
-    if (plays >= question.maxPlays || playing) return;
-    setPlaying(true);
-    setTimeout(() => { setPlaying(false); setPlays(p => p + 1); }, 5000);
-  };
+  useEffect(() => {
+    if (exhausted && videoRef.current) videoRef.current.pause();
+  }, [exhausted]);
 
   return (
     <div>
       <div style={{
-        background: C.panel,
-        border: "1px solid #1e3a5f",
-        borderRadius: 16,
-        aspectRatio: "16/9",
-        marginBottom: 20,
-        overflow: "hidden",
-        position: "relative",
-        cursor: plays < question.maxPlays && !playing ? "pointer" : "default",
-      }} onClick={handlePlay}>
-        {/* Fake video frame */}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: C.panel,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexDirection: "column", gap: 12,
-        }}>
-          {playing ? (
-            <>
-              <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#c8a96e22", border: "2px solid #c8a96e44", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width={24} height={24} viewBox="0 0 24 24" fill={C.gold}>
-                  <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
-                </svg>
-              </div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.gold }}>Նվագում է...</div>
-            </>
-          ) : (
-            <>
-              <div style={{
-                width: 64, height: 64, borderRadius: "50%",
-                background: plays >= question.maxPlays ? C.dim : "linear-gradient(135deg, #c8a96e, #a07840)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: plays < question.maxPlays ? "0 0 30px #c8a96e55" : "none",
-              }}>
-                <svg width={24} height={24} viewBox="0 0 24 24" fill="white">
-                  <polygon points="5,3 19,12 5,21"/>
-                </svg>
-              </div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: plays >= question.maxPlays ? C.muted : C.textSub }}>
-                {plays >= question.maxPlays ? "Դիտումն ավարտված է" : `${question.maxPlays - plays} անգամ մնաց`}
-              </div>
-            </>
-          )}
-        </div>
-        {/* Progress bar when playing */}
-        {playing && (
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: C.dim }}>
-            <div style={{
-              height: "100%", background: C.gold,
-              animation: "videoProgress 5s linear forwards",
-            }} />
+        background:"#000", borderRadius:14, overflow:"hidden", marginBottom:14,
+        position:"relative",
+        border:`1.5px solid ${exhausted ? C.border : C.gold+"33"}`,
+        transition:"border-color .3s",
+      }}>
+        {question.videoSrc
+          ? <video
+              ref={videoRef}
+              src={question.videoSrc}
+              controls={!exhausted}
+              controlsList="nodownload"
+              style={{ width:"100%", display:"block", maxHeight:340 }}
+              onEnded={() => setPlays(p => p + 1)}
+              preload="metadata"
+            />
+          : <div style={{ aspectRatio:"16/9", display:"flex", alignItems:"center", justifyContent:"center", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>
+              Видео не указано
+            </div>
+        }
+        {exhausted && (
+          <div style={{
+            position:"absolute", inset:0, background:"#000000aa",
+            display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10,
+          }}>
+            <div style={{ fontSize:40 }}>🔒</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:"white", fontWeight:600 }}>
+              Դիтумн авартвад э
+            </div>
           </div>
         )}
+      </div>
+      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:exhausted ? C.muted : C.textSub, marginBottom:16 }}>
+        {exhausted
+          ? `✓ Дител ek ${question.maxPlays}/${question.maxPlays} անгам`
+          : `▶ Karogh ек дител ${question.maxPlays - plays} անгам евс`}
       </div>
       <SingleChoiceOptions options={question.options} value={value} onChange={onChange} />
     </div>
   );
 }
+
 
 // ── Choice Components ─────────────────────────────────────────────────────────
 function SingleChoiceOptions({ options, value, onChange }) {
