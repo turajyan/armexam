@@ -1311,25 +1311,6 @@ function StartScreen({ onStart }) {
         </p>
       </div>
 
-      <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, color: "#e2e8f0", margin: "0 0 8px", lineHeight: 1.2 }}>
-        {t.title}
-      </h1>
-      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#475569", marginBottom: 36 }}>{t.sub}</p>
-
-      {/* Language selector */}
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 28 }}>
-        {[["hy", "ՀԱՅ"], ["ru", "РУС"], ["en", "ENG"]].map(([l, label]) => (
-          <button key={l} onClick={() => setLang(l)} style={{
-            padding: "8px 20px", borderRadius: 8,
-            background: lang === l ? "#c8a96e22" : "#0f172a",
-            border: `1.5px solid ${lang === l ? "#c8a96e" : "#1e293b"}`,
-            color: lang === l ? "#c8a96e" : "#475569",
-            fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 600,
-            cursor: "pointer", transition: "all 0.2s",
-          }}>{label}</button>
-        ))}
-      </div>
-
       {/* Exam list */}
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
         {activeExams.length === 0 && (
