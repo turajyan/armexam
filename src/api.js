@@ -1,28 +1,48 @@
 const BASE = '/api';
 
+function getToken() {
+  try { return localStorage.getItem('armexam_token') || ''; } catch { return ''; }
+}
+
 async function req(url, opts = {}) {
-  const res = await fetch(BASE + url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(BASE + url, { headers, ...opts });
   if (res.status === 204) return null;
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
 }
 
 export const api = {
+  // Auth
+  register: (data) => req('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  login:    (data) => req('/auth/login',    { method: 'POST', body: JSON.stringify(data) }),
+  me:       ()     => req('/auth/me'),
+  logout:   ()     => req('/auth/logout',   { method: 'POST' }),
+
+  // Cities & Centers (public)
+  getCities:       ()    => req('/cities'),
+  getCenters:      (cityId) => req(`/cities/${cityId}/centers`),
+  getCenterExams:  (centerId) => req(`/centers/${centerId}/exams`),
+
+  // User exam registration (authenticated)
+  registerForExam: (examId) => req('/user/register-exam', { method: 'POST', body: JSON.stringify({ examId }) }),
+
   // Questions
   getQuestions:   (p = {}) => req('/questions?' + new URLSearchParams(p)),
   createQuestion: (data)   => req('/questions', { method: 'POST', body: JSON.stringify(data) }),
   updateQuestion: (id, data) => req(`/questions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteQuestion: (id)     => req(`/questions/${id}`, { method: 'DELETE' }),
 
-  // Students
+  // Students (admin)
   getStudents:   (p = {}) => req('/students?' + new URLSearchParams(p)),
   createStudent: (data)   => req('/students', { method: 'POST', body: JSON.stringify(data) }),
   updateStudent: (id, data) => req(`/students/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteStudent: (id)     => req(`/students/${id}`, { method: 'DELETE' }),
 
-  // Exams
+  // Exams (admin)
   getExams:          (p = {}) => req('/exams?' + new URLSearchParams(p)),
   createExam:        (data)   => req('/exams', { method: 'POST', body: JSON.stringify(data) }),
   updateExam:        (id, data) => req(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -36,8 +56,6 @@ export const api = {
   // Analytics
   getSummary: () => req('/analytics/summary'),
 
-  // Registration (public)
-  getRegisterExams: ()     => req('/register/exams'),
-  register:         (data) => req('/register', { method: 'POST', body: JSON.stringify(data) }),
-  getByPin:         (pin)  => req(`/register/pin/${pin}`),
+  // PIN lookup (kiosk)
+  getByPin: (pin) => req(`/register/pin/${pin}`),
 };

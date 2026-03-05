@@ -47,20 +47,36 @@ model Question {
 }
 
 model Student {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  phone     String?
-  group     String?
-  level     String?  // detected level
-  status    String   @default("active")
-  avatar    String?
-  joinedAt  DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  name           String
+  email          String   @unique
+  passwordHash   String   @default("")
+  phone          String?
+  country        String   @default("")
+  documentType   String   @default("passport")  // passport | id_card
+  documentNumber String   @default("")
+  level          String?  // detected level
+  status         String   @default("active")
+  sessionToken   String?  @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   exams   ExamAssignment[]
   results Result[]
+}
+
+model City {
+  id      Int          @id @default(autoincrement())
+  name    String       @unique
+  centers ExamCenter[]
+}
+
+model ExamCenter {
+  id     Int    @id @default(autoincrement())
+  name   String
+  cityId Int
+  city   City   @relation(fields: [cityId], references: [id])
+  exams  Exam[]
 }
 
 model Exam {
@@ -82,6 +98,11 @@ model Exam {
   placementTemplate     Json?    // [{ level, pointsEach, subpools: [{ section, count }] }]
   placementThresholds   Json?    // { A1: 60, A2: 60, ... }
   showPlacementThreshold Boolean @default(false)
+
+  // Exam center & open registration
+  examCenterId Int?
+  examCenter   ExamCenter? @relation(fields: [examCenterId], references: [id])
+  isOpen       Boolean     @default(false) // students can self-register
 
   status    String   @default("active")  // active | draft | archived
   startDate DateTime?

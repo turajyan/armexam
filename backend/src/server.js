@@ -3,10 +3,12 @@ import cors from "@fastify/cors";
 import { PrismaClient } from "@prisma/client";
 
 import questionsRoutes from "./routes/questions.js";
-import studentsRoutes from "./routes/students.js";
-import examsRoutes from "./routes/exams.js";
-import resultsRoutes from "./routes/results.js";
-import registerRoutes from "./routes/register.js";
+import studentsRoutes  from "./routes/students.js";
+import examsRoutes     from "./routes/exams.js";
+import resultsRoutes   from "./routes/results.js";
+import registerRoutes  from "./routes/register.js";
+import authRoutes      from "./routes/auth.js";
+import citiesRoutes    from "./routes/cities.js";
 
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -26,6 +28,8 @@ await fastify.register(studentsRoutes);
 await fastify.register(examsRoutes);
 await fastify.register(resultsRoutes);
 await fastify.register(registerRoutes);
+await fastify.register(authRoutes);
+await fastify.register(citiesRoutes);
 
 // Health check
 fastify.get("/health", async () => ({ ok: true }));

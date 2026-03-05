@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -67,15 +68,20 @@ const QUESTIONS = [
   { type:"fill_blank",    level:"C2", section:"Grammar",    points:5, text:"Լրացրո՛ւ. «Եթե ավելի շատ կարդայի, ___ ավելի շատ բան» (իմանալ — անցյալ կատարյալ)", answer:"կիմանայի" },
 ];
 
+// sha256(password + email) — password for all demo users is "demo1234"
+function hashPassword(password, email) {
+  return crypto.createHash("sha256").update(password + email.toLowerCase()).digest("hex");
+}
+
 const STUDENTS = [
-  { name:"Անի Հակոբյան",   email:"ani@example.am",    group:"Խ-101", level:"B1", status:"active" },
-  { name:"Արամ Պետրոսյան", email:"aram@example.am",   group:"Խ-101", level:"A2", status:"active" },
-  { name:"Մարինե Գ.",      email:"marine@example.am", group:"Խ-102", level:"B2", status:"active" },
-  { name:"Դավիթ Ս.",       email:"davit@example.am",  group:"Խ-102", level:"C1", status:"active" },
-  { name:"Նարեկ Ավ.",      email:"narek@example.am",  group:"Խ-103", level:"A1", status:"inactive" },
-  { name:"Լուսինե Կ.",     email:"lusine@example.am", group:"Խ-103", level:"B1", status:"active" },
-  { name:"Վահե Մ.",        email:"vahe@example.am",   group:"Խ-101", level:"A2", status:"active" },
-  { name:"Հայկ Ա.",        email:"hayk@example.am",   group:"Խ-102", level:"B2", status:"active" },
+  { name:"Անի Հակոբյան",   email:"ani@example.am",    country:"Armenia", documentType:"passport", documentNumber:"AA123456", level:"B1", status:"active" },
+  { name:"Արամ Պետրոսյան", email:"aram@example.am",   country:"Armenia", documentType:"id_card",  documentNumber:"ID789012", level:"A2", status:"active" },
+  { name:"Մարինե Գ.",      email:"marine@example.am", country:"Armenia", documentType:"passport", documentNumber:"AA345678", level:"B2", status:"active" },
+  { name:"Դավիթ Ս.",       email:"davit@example.am",  country:"Georgia", documentType:"passport", documentNumber:"GE001234", level:"C1", status:"active" },
+  { name:"Նարեկ Ավ.",      email:"narek@example.am",  country:"Armenia", documentType:"id_card",  documentNumber:"ID555000", level:"A1", status:"inactive" },
+  { name:"Լուսինե Կ.",     email:"lusine@example.am", country:"Russia",  documentType:"passport", documentNumber:"RU998877", level:"B1", status:"active" },
+  { name:"Վահե Մ.",        email:"vahe@example.am",   country:"Armenia", documentType:"passport", documentNumber:"AA111222", level:"A2", status:"active" },
+  { name:"Հայկ Ա.",        email:"hayk@example.am",   country:"Armenia", documentType:"id_card",  documentNumber:"ID333444", level:"B2", status:"active" },
 ];
 
 async function main() {
@@ -86,6 +92,8 @@ async function main() {
   await prisma.exam.deleteMany();
   await prisma.student.deleteMany();
   await prisma.question.deleteMany();
+  await prisma.examCenter.deleteMany();
+  await prisma.city.deleteMany();
 
   // Questions
   for (const q of QUESTIONS) {
@@ -93,13 +101,46 @@ async function main() {
   }
   console.log(`Created ${QUESTIONS.length} questions`);
 
-  // Students
+  // Students (password for all: "demo1234")
   const students = [];
   for (const s of STUDENTS) {
-    const student = await prisma.student.create({ data: s });
+    const student = await prisma.student.create({
+      data: { ...s, passwordHash: hashPassword("demo1234", s.email) },
+    });
     students.push(student);
   }
   console.log(`Created ${students.length} students`);
+
+  // Cities & Centers
+  const citiesData = [
+    {
+      name: "Երևան",
+      centers: ["ArmExam Կենտրոն Երևան", "Երևան Հյուսիս", "Երևան Հարավ"],
+    },
+    {
+      name: "Գյումրի",
+      centers: ["ArmExam Կենտրոն Գյումրի"],
+    },
+    {
+      name: "Վանաձոր",
+      centers: ["ArmExam Կենտրոն Վանաձոր"],
+    },
+  ];
+
+  const cities = [];
+  for (const { name, centers } of citiesData) {
+    const city = await prisma.city.create({
+      data: {
+        name,
+        centers: { create: centers.map(n => ({ name: n })) },
+      },
+      include: { centers: true },
+    });
+    cities.push(city);
+  }
+  console.log(`Created ${cities.length} cities`);
+
+  const allCenters = cities.flatMap(c => c.centers);
 
   // Exams
   const exams = [
@@ -115,9 +156,11 @@ async function main() {
       showQuestionPoints: true,
       subpools: [{ section:"Reading", count:3 },{ section:"Grammar", count:2 },{ section:"Vocabulary", count:2 }],
       status: "active",
-      startDate: new Date("2025-06-01"),
-      endDate: new Date("2025-09-30"),
-      assignedTo: [0,1,6], // indices in students array
+      isOpen: true,
+      examCenterId: allCenters[0].id,
+      startDate: new Date("2026-06-01"),
+      endDate: new Date("2026-09-30"),
+      assignedTo: [0,1,6],
     },
     {
       title: "A2 Entrance Test",
@@ -131,8 +174,10 @@ async function main() {
       showQuestionPoints: true,
       subpools: [{ section:"Reading", count:3 },{ section:"Grammar", count:2 }],
       status: "active",
-      startDate: new Date("2025-07-01"),
-      endDate: new Date("2025-09-30"),
+      isOpen: true,
+      examCenterId: allCenters[1].id,
+      startDate: new Date("2026-07-01"),
+      endDate: new Date("2026-09-30"),
       assignedTo: [1,6],
     },
     {
@@ -147,8 +192,10 @@ async function main() {
       showQuestionPoints: true,
       subpools: [{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }],
       status: "active",
-      startDate: new Date("2025-04-10"),
-      endDate: new Date("2025-12-31"),
+      isOpen: false,
+      examCenterId: allCenters[2].id,
+      startDate: new Date("2026-04-10"),
+      endDate: new Date("2026-12-31"),
       assignedTo: [2,3,7],
     },
     {
@@ -162,8 +209,10 @@ async function main() {
       showQuestionLevel: true,
       showQuestionPoints: true,
       status: "active",
-      startDate: new Date("2025-09-01"),
-      endDate: new Date("2025-12-31"),
+      isOpen: true,
+      examCenterId: allCenters[3].id,
+      startDate: new Date("2026-09-01"),
+      endDate: new Date("2026-12-31"),
       placementTemplate: [
         { level:"A1", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }] },
         { level:"A2", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Vocabulary", count:2 }] },
@@ -183,7 +232,10 @@ async function main() {
       data: {
         ...examData,
         assignedStudents: {
-          create: assignedTo.map((i) => ({ studentId: students[i].id })),
+          create: assignedTo.map((i) => ({
+            studentId: students[i].id,
+            pin: String(Math.floor(100000 + Math.random() * 900000)),
+          })),
         },
       },
     });

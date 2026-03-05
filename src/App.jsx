@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
-import ExamPage        from "./pages/ExamPage";
-import AdminQuestions  from "./pages/AdminQuestions";
-import AdminExams      from "./pages/AdminExams";
-import AdminStudents   from "./pages/AdminStudents";
-import AdminAnalytics  from "./pages/AdminAnalytics";
-import AdminMedia      from "./pages/AdminMedia";
-import AdminSettings   from "./pages/AdminSettings";
-import RegisterPage    from "./pages/RegisterPage";
+import ExamPage              from "./pages/ExamPage";
+import AdminQuestions        from "./pages/AdminQuestions";
+import AdminExams            from "./pages/AdminExams";
+import AdminStudents         from "./pages/AdminStudents";
+import AdminAnalytics        from "./pages/AdminAnalytics";
+import AdminMedia            from "./pages/AdminMedia";
+import AdminSettings         from "./pages/AdminSettings";
+import RegisterPage          from "./pages/RegisterPage";
+import LoginPage             from "./pages/LoginPage";
+import UserDashboard         from "./pages/UserDashboard";
+import ExamRegistrationPage  from "./pages/ExamRegistrationPage";
 import { THEMES, DEFAULT_THEME, THEME_KEY } from "./theme.js";
+import { api } from "./api.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -44,38 +48,129 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
+  // Auth state
+  const [user, setUser]           = useState(null);
+  const [authChecked, setChecked] = useState(false);
+  const [userPage, setUserPage]   = useState("dashboard"); // dashboard | register-exam
+
+  useEffect(() => {
+    const token = localStorage.getItem("armexam_token");
+    if (token) {
+      api.me()
+        .then(data => setUser(data))
+        .catch(() => localStorage.removeItem("armexam_token"))
+        .finally(() => setChecked(true));
+    } else {
+      setChecked(true);
+    }
+  }, []);
+
   const T = THEMES[themeId] || THEMES[DEFAULT_THEME];
 
-  // Public registration page — accessible via URL hash #register
-  if (hash === "#register") {
-    return (
-      <>
-        <style>{FONTS}{`*{box-sizing:border-box;margin:0;padding:0}body{background:${T.bg};color:${T.text}}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}::-webkit-scrollbar-track{background:transparent}`}</style>
-        <RegisterPage theme={T} onBack={() => { window.location.hash = ""; setHash(""); }} />
-      </>
-    );
-  }
-  const current = NAV.find(n => n.id === page);
-  const CurrentPage = PAGE_MAP[page];
+  const globalStyle = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:${T.bg};color:${T.text}}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}
+    ::-webkit-scrollbar-track{background:transparent}
+    @keyframes fadeSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    button:active{transform:scale(.97)}
+    select option{background:${T.panel};color:${T.text}}
+    input[type=date],input[type=time],input[type=color]{color-scheme:${themeId==="light"?"light":"dark"}}
+  `;
 
   const handleThemeChange = (id) => {
     setThemeId(id);
     try { localStorage.setItem(THEME_KEY, id); } catch {}
   };
 
+  // ── Public user-facing pages via hash ─────────────────────────────────────
+
+  // #register — new user registration
+  if (hash === "#register") {
+    return (
+      <>
+        <style>{FONTS}{globalStyle}</style>
+        <RegisterPage
+          theme={T}
+          onSuccess={(u) => {
+            setUser(u);
+            setUserPage("dashboard");
+            window.location.hash = "#dashboard";
+          }}
+        />
+        <div style={{ position:"fixed", bottom:16, right:16, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>
+          <a href="#login" style={{ color:T.gold, textDecoration:"none" }}>Уже есть аккаунт? Войти</a>
+        </div>
+      </>
+    );
+  }
+
+  // #login — login page
+  if (hash === "#login") {
+    if (!authChecked) return null;
+    if (user) { window.location.hash = "#dashboard"; return null; }
+    return (
+      <>
+        <style>{FONTS}{globalStyle}</style>
+        <LoginPage
+          theme={T}
+          onSuccess={(u) => {
+            setUser(u);
+            setUserPage("dashboard");
+            window.location.hash = "#dashboard";
+          }}
+          onRegister={() => { window.location.hash = "#register"; }}
+        />
+      </>
+    );
+  }
+
+  // #dashboard — user dashboard (protected)
+  if (hash === "#dashboard") {
+    if (!authChecked) return null;
+    if (!user) { window.location.hash = "#login"; return null; }
+
+    if (userPage === "register-exam") {
+      return (
+        <>
+          <style>{FONTS}{globalStyle}</style>
+          <ExamRegistrationPage
+            theme={T}
+            onBack={() => setUserPage("dashboard")}
+            onDone={() => {
+              setUserPage("dashboard");
+              api.me().then(setUser).catch(() => {});
+            }}
+          />
+        </>
+      );
+    }
+
+    return (
+      <>
+        <style>{FONTS}{globalStyle}</style>
+        <UserDashboard
+          theme={T}
+          user={user}
+          onRegisterExam={() => setUserPage("register-exam")}
+          onLogout={() => {
+            setUser(null);
+            window.location.hash = "#login";
+          }}
+        />
+      </>
+    );
+  }
+
+  // ── Admin shell ────────────────────────────────────────────────────────────
+
+  const current = NAV.find(n => n.id === page);
+  const CurrentPage = PAGE_MAP[page];
+
   return (
     <>
-      <style>{FONTS}{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:${T.bg};color:${T.text}}
-        ::-webkit-scrollbar{width:5px;height:5px}
-        ::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}
-        ::-webkit-scrollbar-track{background:transparent}
-        @keyframes fadeSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        button:active{transform:scale(.97)}
-        select option{background:${T.panel};color:${T.text}}
-        input[type=date],input[type=time],input[type=color]{color-scheme:${themeId==="light"?"light":"dark"}}
-      `}</style>
+      <style>{FONTS}{globalStyle}</style>
 
       <div style={{ display:"flex", height:"100vh", overflow:"hidden", background:T.bg }}>
 
@@ -93,11 +188,11 @@ export default function App() {
 
           <div style={{ flex:1 }} />
 
-          {/* Registration link */}
-          <a href="#register" target="_blank" rel="noreferrer" title="Страница регистрации студентов"
+          {/* User portal link */}
+          <a href="#login" title="Портал для студентов"
             style={{ width:50, height:50, borderRadius:12, background:"transparent", border:`1px solid ${T.border}`, cursor:"pointer", fontSize:19, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, textDecoration:"none", marginBottom:4 }}>
-            📝
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:T.muted, letterSpacing:.2 }}>Reg</span>
+            🧑‍🎓
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:T.muted, letterSpacing:.2 }}>Portal</span>
           </a>
 
           {/* Theme switcher */}

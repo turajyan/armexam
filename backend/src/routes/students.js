@@ -1,14 +1,22 @@
 export default async function studentsRoutes(fastify) {
   const { prisma } = fastify;
 
-  // GET /api/students?group=Խ-101&level=B1&status=active
+  // GET /api/students?level=B1&status=active&country=Armenia
   fastify.get("/api/students", async (req) => {
-    const { group, level, status } = req.query;
+    const { level, status, country } = req.query;
     const where = {};
-    if (group)  where.group  = group;
-    if (level)  where.level  = level;
-    if (status) where.status = status;
-    return prisma.student.findMany({ where, orderBy: { id: "asc" } });
+    if (level)   where.level   = level;
+    if (status)  where.status  = status;
+    if (country) where.country = country;
+    return prisma.student.findMany({
+      where,
+      orderBy: { id: "asc" },
+      select: {
+        id: true, name: true, email: true, phone: true,
+        country: true, documentType: true, documentNumber: true,
+        level: true, status: true, createdAt: true,
+      },
+    });
   });
 
   // GET /api/students/:id
@@ -48,7 +56,7 @@ export default async function studentsRoutes(fastify) {
 }
 
 function sanitize(body) {
-  const allowed = ["name","email","phone","group","level","status","avatar"];
+  const allowed = ["name","email","phone","country","documentType","documentNumber","level","status"];
   return Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   );
