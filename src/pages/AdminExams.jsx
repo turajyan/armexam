@@ -29,7 +29,7 @@ const QTYPE_ICON = { single_choice:"◉", multi_choice:"☑", multi_select:"⊞"
 const QTYPE_COLOR = { single_choice:"#60a5fa", multi_choice:"#a78bfa", multi_select:"#34d399", audio:"#f59e0b", video:"#f87171", fill_blank:"#e879f9", writing:"#94a3b8" };
 
 function totalPoints(qIds) {
-  return qIds.reduce((s,id)=>{ const q=SEED_QUESTIONS.find(q=>q.id===id); return s+(q?.points||0); },0);
+  return (qIds||[]).reduce((s,id)=>{ const q=SEED_QUESTIONS.find(q=>q.id===id); return s+(q?.points||0); },0);
 }
 
 // ── UI Atoms ──────────────────────────────────────────────────────────────────
