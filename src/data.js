@@ -174,9 +174,22 @@ export function buildExamQuestions(exam) {
   if (exam.examType === "placement") {
     const result = [];
     for (const row of exam.placementTemplate || []) {
-      const pool = QUESTIONS.filter(q => q.level === row.level);
-      const shuffled = [...pool].sort(() => Math.random() - 0.5);
-      result.push(...shuffled.slice(0, row.count));
+      for (const sp of row.subpools || []) {
+        const pool = QUESTIONS.filter(q =>
+          q.level === row.level &&
+          q.section === sp.section &&
+          q.type === sp.type
+        );
+        if (pool.length < sp.count) {
+          throw new Error(
+            `Not enough questions for ${row.level} / ${sp.section} / ${sp.type}: ` +
+            `need ${sp.count}, only ${pool.length} available`
+          );
+        }
+        const shuffled = [...pool].sort(() => Math.random() - 0.5);
+        const picked = shuffled.slice(0, sp.count).map(q => ({...q, points: row.pointsEach}));
+        result.push(...picked);
+      }
     }
     return result;
   }

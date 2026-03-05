@@ -1510,12 +1510,16 @@ export default function ArmExam({ theme }) {
   const [answers, setAnswers] = useState({});
 
   const handleStart = (exam) => {
-    const qs = buildExamQuestions(exam);
-    setActiveExam(exam);
-    setExamQuestions(qs);
-    setCurrent(0);
-    setAnswers({});
-    setScreen("exam");
+    try {
+      const qs = buildExamQuestions(exam);
+      setActiveExam(exam);
+      setExamQuestions(qs);
+      setCurrent(0);
+      setAnswers({});
+      setScreen("exam");
+    } catch (err) {
+      alert("Cannot start exam:\n" + err.message);
+    }
   };
 
   const handleAnswer = (val) => {

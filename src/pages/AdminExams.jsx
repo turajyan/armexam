@@ -7,7 +7,18 @@ let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"
 
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const SECTIONS = ["Reading","Writing","Listening","Grammar","Vocabulary","Listening / Տեսնել","Free Writing"];
+const SECTIONS = ["Reading","Writing","Listening","Grammar","Vocabulary","Listening / Watching","Speaking","Free Writing"];
+const QTYPES_LIST = [
+  { id:"single_choice", label:"Single Choice", icon:"◉" },
+  { id:"multi_choice",  label:"Multi Choice",  icon:"☑" },
+  { id:"multi_select",  label:"Multi Select",  icon:"⊞" },
+  { id:"fill_blank",    label:"Fill Blank",    icon:"✎" },
+  { id:"fill_wordbank", label:"Word Bank",     icon:"🧩" },
+  { id:"writing",       label:"Writing",       icon:"✍" },
+  { id:"audio",         label:"Audio",         icon:"🎧" },
+  { id:"video",         label:"Video",         icon:"🎬" },
+  { id:"voice",         label:"Voice",         icon:"🎤" },
+];
 
 // ── Seed ─────────────────────────────────────────────────────────────────────
 const SEED_QUESTIONS = DATA_QUESTIONS;
@@ -133,12 +144,12 @@ function ExamWizard({ initial, onSave, onCancel }) {
     startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"",
     questionIds:[], assignedTo:[],
     placementTemplate:[
-      { level:"A1", count:5, pointsEach:1 },
-      { level:"A2", count:5, pointsEach:1 },
-      { level:"B1", count:5, pointsEach:2 },
-      { level:"B2", count:5, pointsEach:2 },
-      { level:"C1", count:5, pointsEach:3 },
-      { level:"C2", count:5, pointsEach:3 },
+      { level:"A1", pointsEach:1, subpools:[{ section:"Reading", type:"single_choice", count:3 },{ section:"Grammar", type:"single_choice", count:2 }] },
+      { level:"A2", pointsEach:1, subpools:[{ section:"Reading", type:"single_choice", count:3 },{ section:"Vocabulary", type:"multi_choice", count:2 }] },
+      { level:"B1", pointsEach:2, subpools:[{ section:"Reading", type:"single_choice", count:2 },{ section:"Listening", type:"audio", count:2 },{ section:"Grammar", type:"fill_blank", count:1 }] },
+      { level:"B2", pointsEach:2, subpools:[{ section:"Reading", type:"single_choice", count:2 },{ section:"Listening", type:"audio", count:2 },{ section:"Writing", type:"writing", count:1 }] },
+      { level:"C1", pointsEach:3, subpools:[{ section:"Reading", type:"multi_select", count:2 },{ section:"Listening", type:"audio", count:2 },{ section:"Writing", type:"writing", count:1 }] },
+      { level:"C2", pointsEach:3, subpools:[{ section:"Reading", type:"multi_select", count:2 },{ section:"Grammar", type:"fill_blank", count:2 },{ section:"Writing", type:"writing", count:1 }] },
     ],
     placementThresholds:{ A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 },
   };
@@ -154,16 +165,31 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const pts = totalPoints(form.questionIds);
 
   // Step 0 — Exam type + General info
-  const updateTemplate = (level, field, val) => {
-    const tpl = (form.placementTemplate||[]).map(r => r.level===level ? {...r,[field]:+val} : r);
-    set("placementTemplate", tpl);
+  const rowTotal = (row) => (row.subpools||[]).reduce((s,sp)=>s+sp.count,0);
+  const updatePtsEach = (level, val) => {
+    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level?{...r,pointsEach:+val}:r));
+  };
+  const addSubpool = (level) => {
+    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
+      ? {...r, subpools:[...(r.subpools||[]), {section:"Reading", type:"single_choice", count:2}]}
+      : r));
+  };
+  const removeSubpool = (level, idx) => {
+    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
+      ? {...r, subpools:(r.subpools||[]).filter((_,i)=>i!==idx)}
+      : r));
+  };
+  const updateSubpool = (level, idx, field, val) => {
+    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
+      ? {...r, subpools:(r.subpools||[]).map((sp,i)=>i===idx?{...sp,[field]:field==="count"?+val:val}:sp)}
+      : r));
   };
   const updateThreshold = (level, val) => {
     set("placementThresholds", {...(form.placementThresholds||{}), [level]:+val});
   };
 
-  const placementTotalQ = (form.placementTemplate||[]).reduce((s,r)=>s+r.count,0);
-  const placementTotalPts = (form.placementTemplate||[]).reduce((s,r)=>s+r.count*r.pointsEach,0);
+  const placementTotalQ = (form.placementTemplate||[]).reduce((s,r)=>s+rowTotal(r),0);
+  const placementTotalPts = (form.placementTemplate||[]).reduce((s,r)=>s+rowTotal(r)*r.pointsEach,0);
 
   const step0 = (
     <div style={{ display:"flex",flexDirection:"column",gap:22 }}>
@@ -218,33 +244,63 @@ function ExamWizard({ initial, onSave, onCancel }) {
       {form.examType==="placement" && (
         <div style={{ display:"flex",flexDirection:"column",gap:20 }}>
 
-          {/* Question template per level */}
+          {/* Question template per level with subpools */}
           <div>
             <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
-              <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>Questions per Level</label>
+              <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>Questions per Level · Subpools</label>
               <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold }}>
                 Total: {placementTotalQ} questions · {placementTotalPts} pts
               </span>
             </div>
-            <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
-              {/* Header */}
-              <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 1fr 1fr",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,background:C.dim }}>
-                {["Level","Questions","Pts each","Subtotal"].map(h=>(
-                  <span key={h} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,fontWeight:700,letterSpacing:.6,textTransform:"uppercase" }}>{h}</span>
-                ))}
-              </div>
+            <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
               {(form.placementTemplate||[]).map(row=>{
                 const lc = LEVEL_COLORS[row.level]||"#94a3b8";
+                const total = rowTotal(row);
                 return (
-                  <div key={row.level} style={{ display:"grid",gridTemplateColumns:"60px 1fr 1fr 1fr",gap:12,padding:"12px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center" }}>
-                    <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",textAlign:"center" }}>{row.level}</span>
-                    <input type="number" min={0} max={30} value={row.count}
-                      onChange={e=>updateTemplate(row.level,"count",e.target.value)}
-                      style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:8,padding:"7px 12px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",width:80 }} />
-                    <input type="number" min={1} max={10} value={row.pointsEach}
-                      onChange={e=>updateTemplate(row.level,"pointsEach",e.target.value)}
-                      style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:8,padding:"7px 12px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",width:80 }} />
-                    <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:C.gold,fontWeight:700 }}>{row.count*row.pointsEach} pt</span>
+                  <div key={row.level} style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
+                    {/* Level header */}
+                    <div style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 16px",background:C.dim,borderBottom:`1px solid ${C.border}` }}>
+                      <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{row.level}</span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>
+                        {total} questions ·
+                      </span>
+                      <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                        <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>pts each:</span>
+                        <input type="number" min={1} max={10} value={row.pointsEach}
+                          onChange={e=>updatePtsEach(row.level,e.target.value)}
+                          style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"3px 8px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:700,outline:"none",width:48,textAlign:"center" }} />
+                      </div>
+                      <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:C.gold,fontWeight:700,marginLeft:"auto" }}>{total*row.pointsEach} pt subtotal</span>
+                      <button onClick={()=>addSubpool(row.level)} style={{ background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 10px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600 }}>+ Add subpool</button>
+                    </div>
+                    {/* Subpools */}
+                    {(row.subpools||[]).length === 0 && (
+                      <div style={{ padding:"12px 16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic" }}>No subpools — click "+ Add subpool" to define pools</div>
+                    )}
+                    {(row.subpools||[]).map((sp,idx)=>{
+                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section&&q.type===sp.type).length;
+                      const ok = poolCount >= sp.count;
+                      return (
+                        <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 16px",borderBottom:`1px solid ${C.border}` }}>
+                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,width:20,textAlign:"center" }}>┗</span>
+                          <select value={sp.section} onChange={e=>updateSubpool(row.level,idx,"section",e.target.value)}
+                            style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",flex:"0 0 140px" }}>
+                            {SECTIONS.map(s=><option key={s} value={s}>{s}</option>)}
+                          </select>
+                          <select value={sp.type} onChange={e=>updateSubpool(row.level,idx,"type",e.target.value)}
+                            style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",flex:"0 0 140px" }}>
+                            {QTYPES_LIST.map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+                          </select>
+                          <input type="number" min={1} max={20} value={sp.count}
+                            onChange={e=>updateSubpool(row.level,idx,"count",e.target.value)}
+                            style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",width:56,textAlign:"center" }} />
+                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:ok?C.success:"#f87171",minWidth:90 }}>
+                            {ok ? `✓ ${poolCount} available` : `✗ only ${poolCount} (need ${sp.count})`}
+                          </span>
+                          <button onClick={()=>removeSubpool(row.level,idx)} style={{ background:"transparent",border:"none",color:"#f87171",cursor:"pointer",fontSize:15,padding:"0 4px",marginLeft:"auto" }}>✕</button>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -315,31 +371,41 @@ function ExamWizard({ initial, onSave, onCancel }) {
               <span style={{ color:C.gold }}>Review the question pool availability below.</span>
             </div>
             <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
-              <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 70px 80px 80px",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,background:C.dim }}>
-                {["Level","Pool available","Needed","Threshold","Status","Pts each"].map(h=>(
+              <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 70px 70px",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,background:C.dim }}>
+                {["Level","Subpools","Total Q","Threshold","Status"].map(h=>(
                   <span key={h} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,fontWeight:700,letterSpacing:.6,textTransform:"uppercase" }}>{h}</span>
                 ))}
               </div>
               {(form.placementTemplate||[]).map(row=>{
                 const lc = LEVEL_COLORS[row.level]||"#94a3b8";
-                const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level).length;
-                const ok = poolCount >= row.count;
-                const thresh = (form.placementThresholds||{})[row.level]??60;
+                const total = rowTotal(row);
+                const allOk = (row.subpools||[]).every(sp=>
+                  SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section&&q.type===sp.type).length >= sp.count
+                );
                 return (
-                  <div key={row.level} style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 70px 80px 80px",gap:12,padding:"13px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center" }}>
-                    <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",textAlign:"center" }}>{row.level}</span>
-                    <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                      <div style={{ flex:1,height:4,background:C.dim,borderRadius:2 }}>
-                        <div style={{ width:`${Math.min(100,(poolCount/Math.max(row.count,1))*100)}%`,height:"100%",background:ok?C.success:C.warning,borderRadius:2 }}/>
-                      </div>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:C.warning,minWidth:20 }}>{poolCount}</span>
+                  <div key={row.level}>
+                    <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 70px 70px",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center",background:allOk?"transparent":"#f8717108" }}>
+                      <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",textAlign:"center" }}>{row.level}</span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>{total} q across {(row.subpools||[]).length} subpool{(row.subpools||[]).length!==1?"s":""}</span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,textAlign:"center" }}>{total}</span>
+                      <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:lc,fontWeight:700,textAlign:"center" }}>≥{(form.placementThresholds||{})[row.level]??60}%</span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:allOk?C.success:"#f87171" }}>{allOk?"✓ OK":"✗ Error"}</span>
                     </div>
-                    <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,textAlign:"center" }}>{row.count}</span>
-                    <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:lc,fontWeight:700,textAlign:"center" }}>≥{thresh}%</span>
-                    <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:ok?C.success:C.warning }}>
-                      {ok ? "✓ OK" : `⚠ Need ${row.count-poolCount} more`}
-                    </span>
-                    <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold,textAlign:"center" }}>{row.pointsEach}pt</span>
+                    {(row.subpools||[]).map((sp,idx)=>{
+                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section&&q.type===sp.type).length;
+                      const ok = poolCount >= sp.count;
+                      const qt = QTYPES_LIST.find(t=>t.id===sp.type);
+                      return (
+                        <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"7px 18px 7px 32px",borderBottom:`1px solid ${C.border}`,background:ok?"transparent":"#f8717106" }}>
+                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>┗</span>
+                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,flex:1 }}>{sp.section} · {qt?.icon} {qt?.label}</span>
+                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>need {sp.count}</span>
+                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:"#f87171",fontWeight:600,minWidth:80,textAlign:"right" }}>
+                            {ok ? `✓ ${poolCount} in pool` : `✗ only ${poolCount}`}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -556,7 +622,7 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
       {/* Stats row */}
       <div style={{ display:"flex",gap:12 }}>
         {(exam.examType==="placement" ? [
-          { icon:"📊",val:(exam.placementTemplate||[]).reduce((s,r)=>s+r.count,0)+" q",tip:"Total Questions" },
+          { icon:"📊",val:(exam.placementTemplate||[]).reduce((s,r)=>s+(r.subpools||[]).reduce((ss,sp)=>ss+sp.count,0),0)+" q",tip:"Total Questions" },
           { icon:"🎚",val:"A1→C2",tip:"All Levels" },
           { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
           { icon:"🎯",val:`${Math.min(...Object.values(exam.placementThresholds||{A1:60}))}%/lvl`,tip:"Per-level threshold" },
