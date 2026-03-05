@@ -289,8 +289,8 @@ function QuestionForm({ initial, onSave, onCancel }) {
           />
         </div>
       )}
-      {!hasMedia && !hasBlank && !hasWordBank && !hasWriting && !hasVoice && (
-        <UploadZone label="Нкар (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
+      {!hasMedia && (
+        <UploadZone label="Image (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
           fileName={q.imageSrc ? (q.imageSrc.split("/").pop().split("?")[0] || "image") : null}
           onFile={f => { const url = URL.createObjectURL(f); set("imageSrc", url); }}
         />
