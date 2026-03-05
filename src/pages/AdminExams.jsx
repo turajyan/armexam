@@ -398,7 +398,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
     return (
       <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
         <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.assignedTo.length}</span> ուս.</span>
+          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.assignedTo.length}</span> students</span>
           <div style={{ display:"flex",gap:8 }}>
             <Btn small onClick={()=>set("assignedTo",SEED_STUDENTS.map(s=>s.id))}>Select All</Btn>
             <Btn small onClick={()=>set("assignedTo",[])}>Clear</Btn>
@@ -460,7 +460,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
       </div>
       {/* Summary card */}
       <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px" }}>
-        <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:14 }}>Ամփ. · Summary</div>
+        <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:14 }}>Summary</div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12 }}>
           {[
             { label:"Questions", value: form.questionIds.length, color:C.gold },
@@ -495,9 +495,9 @@ function ExamWizard({ initial, onSave, onCancel }) {
           {step===0 ? "Cancel" : "← Back"}
         </Btn>
         <div style={{ display:"flex",gap:10 }}>
-          {step<3 && <Btn variant="ghost" onClick={()=>set("status","draft")}>Draft-ա.</Btn>}
+          {step<3 && <Btn variant="ghost" onClick={()=>set("status","draft")}>Save Draft</Btn>}
           {step < 3
-            ? <Btn variant="primary" disabled={!canProceed[step]} onClick={()=>setStep(s=>s+1)}>Հ. →</Btn>
+            ? <Btn variant="primary" disabled={!canProceed[step]} onClick={()=>setStep(s=>s+1)}>Next →</Btn>
             : <Btn variant="primary" onClick={()=>onSave(form)}>{isEdit?"✓ Save":"✓ Create"}</Btn>
           }
         </div>
@@ -584,11 +584,11 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
       <div style={{ display:"flex",gap:8,paddingTop:4 }}>
         <Btn small onClick={()=>onEdit(exam)} style={{ flex:1 }}>✎ Edit</Btn>
         <Btn small onClick={()=>onAssign(exam)} style={{ flex:1 }} variant="solid" color={C.info+"22"}>
-          <span style={{ color:C.info }}>+ Նշ.</span>
+          <span style={{ color:C.info }}>+ Assign</span>
         </Btn>
         {exam.status==="completed" && (
           <Btn small onClick={()=>onViewResults(exam)} style={{ flex:1 }} variant="solid" color={C.success+"22"}>
-            <span style={{ color:C.success }}>📊 Ար.</span>
+            <span style={{ color:C.success }}>📊 Results</span>
           </Btn>
         )}
         <Btn small variant="danger" onClick={()=>onDelete(exam.id)}>✕</Btn>
@@ -640,8 +640,8 @@ function AssignModal({ exam, onClose, onSave }) {
         })}
       </div>
       <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
-        <Btn onClick={onClose}>Չ.</Btn>
-        <Btn variant="primary" onClick={()=>onSave(assigned)}>✓ Պ. · Save</Btn>
+        <Btn onClick={onClose}>Cancel</Btn>
+        <Btn variant="primary" onClick={()=>onSave(assigned)}>✓ Save</Btn>
       </div>
     </Modal>
   );
@@ -670,7 +670,7 @@ function ResultsModal({ exam, onClose }) {
               </div>
               <div style={{ textAlign:"right" }}>
                 <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color: pass?C.success:C.danger,fontWeight:700 }}>{sc}/{pts}</div>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color: pass?C.success:C.danger }}>{pct}% · {pass?"✓ Ան.":"✕ Ձ."}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color: pass?C.success:C.danger }}>{pct}% · {pass?"✓ Pass":"✕ Fail"}</div>
               </div>
             </div>
           );
@@ -728,10 +728,10 @@ function ExamsPage() {
       {/* Header */}
       <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:24 }}>
         <div>
-          <h1 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:32,color:C.text,margin:"0 0 4px",fontWeight:600 }}>Քննությունների կ.</h1>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:32,color:C.text,margin:"0 0 4px",fontWeight:600 }}>Exam Management</h1>
           <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,margin:0 }}>Exam Management · Create & Assign</p>
         </div>
-        <Btn variant="primary" onClick={()=>{setEditing(null);setModal("create")}}>+ Նոր քննություն</Btn>
+        <Btn variant="primary" onClick={()=>{setEditing(null);setModal("create")}}}>+ New Exam</Btn>
       </div>
 
       {/* Status cards */}
@@ -789,10 +789,10 @@ function ExamsPage() {
       {/* Delete Confirm */}
       {deleteId && (
         <Modal title="Delete Exam?" onClose={()=>setDeleteId(null)}>
-          <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted,marginBottom:24 }}>Այս գ. ա. չ. · #{deleteId}</p>
+          <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted,marginBottom:24 }}>This action cannot be undone. Exam #{deleteId} will be permanently deleted.</p>
           <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
-            <Btn onClick={()=>setDeleteId(null)}>Չ.</Btn>
-            <Btn variant="danger" onClick={()=>handleDelete(deleteId)}>✕ Ջ.</Btn>
+            <Btn onClick={()=>setDeleteId(null)}>Cancel</Btn>
+            <Btn variant="danger" onClick={()=>handleDelete(deleteId)}>✕ Delete</Btn>
           </div>
         </Modal>
       )}
