@@ -254,12 +254,37 @@ function QuestionForm({ initial, onSave, onCancel }) {
       {/* Question text */}
       <Textarea label="Հարցի տեքստ" value={q.text} onChange={v=>set("text",v)} placeholder="Գրի՛ր հարցը հայերեն..." rows={3} />
 
-      {/* Media upload */}
+      {/* Media URL */}
       {hasMedia && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          {q.type==="audio" && <UploadZone label="Ձայնագրություն" accept="audio/*" icon="🎧" hint="MP3, WAV, OGG · max 50MB" />}
-          {q.type==="video" && <UploadZone label="Տեսանյութ" accept="video/*" icon="🎬" hint="MP4, WebM · max 500MB" />}
-          <UploadZone label="Նկար (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB" />
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {q.type==="audio" && (
+            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+              <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>🎧 Audio URL (MP3 / OGG / WAV)</label>
+              <input
+                value={q.audioSrc||""}
+                onChange={e=>set("audioSrc",e.target.value)}
+                placeholder="https://example.com/audio.mp3"
+                style={{ background:C.panel, border:`1.5px solid ${q.audioSrc?C.gold+"66":C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", transition:"border .2s" }}
+              />
+              {q.audioSrc && (
+                <audio controls src={q.audioSrc} style={{ width:"100%", marginTop:4, accentColor:C.gold }} preload="metadata" />
+              )}
+            </div>
+          )}
+          {q.type==="video" && (
+            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+              <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>🎬 Video URL (MP4 / WebM)</label>
+              <input
+                value={q.videoSrc||""}
+                onChange={e=>set("videoSrc",e.target.value)}
+                placeholder="https://example.com/video.mp4"
+                style={{ background:C.panel, border:`1.5px solid ${q.videoSrc?C.gold+"66":C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", transition:"border .2s" }}
+              />
+              {q.videoSrc && (
+                <video controls src={q.videoSrc} style={{ width:"100%", borderRadius:8, maxHeight:240, marginTop:4 }} preload="metadata" />
+              )}
+            </div>
+          )}
         </div>
       )}
       {!hasMedia && !hasBlank && !hasWordBank && !hasWriting && !hasVoice && (
