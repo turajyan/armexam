@@ -1401,8 +1401,8 @@ function StartScreen({ onStart }) {
           const lc = LEVEL_COLORS[exam.level] || C.purple;
           const isPlacement = exam.examType === "placement";
           const qCount = isPlacement
-            ? (exam.placementTemplate||[]).reduce((s,r)=>s+r.count,0)
-            : exam.questionIds.length;
+            ? (exam.placementTemplate||[]).reduce((s,r)=>s+(r.subpools||[]).reduce((ss,sp)=>ss+sp.count,0),0)
+            : (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
           return (
             <div key={exam.id} onClick={() => setSelected(exam)}
               style={{ background: sel?C.card:C.panel,
@@ -1468,7 +1468,7 @@ function StartScreen({ onStart }) {
                         borderRadius:5,padding:"2px 8px",fontSize:11,fontWeight:700,
                         fontFamily:"'DM Sans',sans-serif",minWidth:34,textAlign:"center" }}>{r.level}</span>
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,flex:1 }}>
-                        {r.count} questions · {r.pointsEach}pt each
+                        {(r.subpools||[]).reduce((s,sp)=>s+sp.count,0)} questions · {r.pointsEach}pt each
                       </span>
                       {(selected.showPlacementThreshold ?? true) && (
                         <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:lc,fontWeight:600 }}>
@@ -1482,7 +1482,7 @@ function StartScreen({ onStart }) {
             </div>
           ) : (
             <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:"0 0 20px", lineHeight:1.6 }}>
-              Level <strong style={{color:LEVEL_COLORS[selected.level]||C.textSub}}>{selected.level}</strong> · {selected.questionIds.length} questions · {selected.duration} minutes · Pass score: {selected.passingScore}%
+              Level <strong style={{color:LEVEL_COLORS[selected.level]||C.textSub}}>{selected.level}</strong> · {(selected.subpools||[]).reduce((s,sp)=>s+sp.count,0)} questions · {selected.duration} minutes · Pass score: {selected.passingScore}%
             </p>
           )}
           <button onClick={() => onStart(selected)} style={{
