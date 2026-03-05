@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { EXAMS, QUESTIONS, STUDENTS, LEVELS, LEVEL_COLORS, buildExamQuestions, computePlacementLevel } from "../data.js";
+import { LEVELS, LEVEL_COLORS, computePlacementLevel } from "../data.js";
 import { SETTINGS_KEY } from "../theme.js";
+import { api } from "../api.js";
 
 function loadExamSettings() {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch { return {}; }
@@ -1140,8 +1141,9 @@ function scoreQuestion(q, a) {
   return 0;
 }
 
-function ResultsScreen({ answers, questions, exam, onRestart }) {
+function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
   const [showDetails, setShowDetails] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const isPlacement = exam?.examType === "placement";
 
@@ -1165,6 +1167,22 @@ function ResultsScreen({ answers, questions, exam, onRestart }) {
   // Fixed: pass/fail based on exam's passingScore
   const passingPct = exam?.passingScore ?? 60;
   const passed = isPlacement ? false : pct >= passingPct; // placement has no pass/fail
+
+  useEffect(() => {
+    if (submitted || !exam?.id) return;
+    setSubmitted(true);
+    api.createResult({
+      examId: exam.id,
+      studentId,
+      score,
+      totalPoints: maxScore,
+      pct,
+      passed,
+      answers,
+      detectedLevel,
+      levelStats: placement?.levelStats || null,
+    }).catch(() => {});
+  }, []);
   const GLD = C.gold;
   const typeLabels = { single_choice:"Choice", multi_choice:"Multi", multi_select:"Select", audio:"Audio", video:"Video", fill_blank:"Fill", fill_wordbank:"Word Bank", writing:"Writing", voice:"Voice" };
 
@@ -1370,8 +1388,13 @@ function ResultsScreen({ answers, questions, exam, onRestart }) {
 // ── Start Screen ──────────────────────────────────────────────────────────────
 function StartScreen({ onStart }) {
   const [selected, setSelected] = useState(null);
-  const activeExams = EXAMS.filter(e => e.status === "active");
+  const [activeExams, setActiveExams] = useState([]);
+  const [loadingExams, setLoadingExams] = useState(true);
   const STATUS_COLORS = { active:C.success, draft:C.warning, scheduled:C.info, completed:C.textSub };
+
+  useEffect(() => {
+    api.getExams({ status: "active" }).then(data => { setActiveExams(data); setLoadingExams(false); });
+  }, []);
 
   return (
     <div style={{
@@ -1391,7 +1414,11 @@ function StartScreen({ onStart }) {
 
       {/* Exam list */}
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-        {activeExams.length === 0 && (
+        {loadingExams ? (
+          <div style={{ textAlign:"center", padding:"48px 0", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
+            Loading exams…
+          </div>
+        ) : activeExams.length === 0 && (
           <div style={{ textAlign:"center", padding:"48px 0", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
             No active exams available
           </div>
@@ -1509,9 +1536,10 @@ export default function ArmExam({ theme }) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
 
-  const handleStart = (exam) => {
+  const handleStart = async (exam) => {
     try {
-      const qs = buildExamQuestions(exam);
+      const qs = await api.getExamQuestions(exam.id);
+      if (qs.error) throw new Error(qs.error);
       setActiveExam(exam);
       setExamQuestions(qs);
       setCurrent(0);

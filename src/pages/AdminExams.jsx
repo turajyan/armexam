@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { QUESTIONS as DATA_QUESTIONS, EXAMS as DATA_EXAMS, STUDENTS as DATA_STUDENTS } from "../data.js";
+import { useState, useEffect } from "react";
+import { QUESTIONS as DATA_QUESTIONS } from "../data.js";
+import { api } from "../api.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
@@ -21,11 +22,7 @@ const QTYPES_LIST = [
 ];
 
 // ── Seed ─────────────────────────────────────────────────────────────────────
-const SEED_QUESTIONS = DATA_QUESTIONS;
-
-const SEED_STUDENTS = DATA_STUDENTS;
-
-const SEED_EXAMS = DATA_EXAMS.map(e=>({...e}));
+const SEED_QUESTIONS = DATA_QUESTIONS; // used only for question-pool availability checks in wizard
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STATUS_META = {
@@ -137,7 +134,7 @@ function StepBar({ steps, current }) {
 // ── Exam Wizard ───────────────────────────────────────────────────────────────
 const WIZARD_STEPS = ["General","Questions","Students","Schedule"];
 
-function ExamWizard({ initial, onSave, onCancel }) {
+function ExamWizard({ initial, onSave, onCancel, students = [] }) {
   const isEdit = !!initial;
   const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true,
     subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }],
@@ -462,9 +459,9 @@ function ExamWizard({ initial, onSave, onCancel }) {
 
   // Step 2 — Students
   const step2 = (()=>{
-    const groups = [...new Set(SEED_STUDENTS.map(s=>s.group))];
+    const groups = [...new Set(students.map(s=>s.group))];
     const toggleGroup = (g) => {
-      const ids = SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
+      const ids = students.filter(s=>s.group===g).map(s=>s.id);
       const allSel = ids.every(id=>form.assignedTo.includes(id));
       set("assignedTo", allSel ? form.assignedTo.filter(id=>!ids.includes(id)) : [...new Set([...form.assignedTo,...ids])]);
     };
@@ -473,21 +470,21 @@ function ExamWizard({ initial, onSave, onCancel }) {
         <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.assignedTo.length}</span> students</span>
           <div style={{ display:"flex",gap:8 }}>
-            <Btn small onClick={()=>set("assignedTo",SEED_STUDENTS.map(s=>s.id))}>Select All</Btn>
+            <Btn small onClick={()=>set("assignedTo",students.map(s=>s.id))}>Select All</Btn>
             <Btn small onClick={()=>set("assignedTo",[])}>Clear</Btn>
           </div>
         </div>
         {/* Groups */}
         <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
           {groups.map(g=>{
-            const ids = SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
+            const ids = students.filter(s=>s.group===g).map(s=>s.id);
             const allSel = ids.every(id=>form.assignedTo.includes(id));
             return <button key={g} onClick={()=>toggleGroup(g)} style={{ background:allSel?C.info+"22":"transparent",border:`1px solid ${allSel?C.info:C.border2}`,borderRadius:8,padding:"6px 14px",color:allSel?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>{g} ({ids.length})</button>;
           })}
         </div>
         {/* Student list */}
         <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:340,overflowY:"auto" }}>
-          {SEED_STUDENTS.map(s=>{
+          {students.map(s=>{
             const sel = form.assignedTo.includes(s.id);
             const lc = LEVEL_COLORS[s.level]||"#94a3b8";
             return (
@@ -600,11 +597,11 @@ function ExamWizard({ initial, onSave, onCancel }) {
 }
 
 // ── Exam Card ─────────────────────────────────────────────────────────────────
-function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
+function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, allStudents = [] }) {
   const sm = STATUS_META[exam.status]||STATUS_META.draft;
   const lc = LEVEL_COLORS[exam.level]||"#94a3b8";
   const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
-  const assignedStudents = SEED_STUDENTS.filter(s=>exam.assignedTo.includes(s.id));
+  const assignedStudents = allStudents.filter(s=>exam.assignedTo.includes(s.id));
 
   return (
     <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"22px 24px",display:"flex",flexDirection:"column",gap:16,transition:"border .2s",cursor:"default" }}
@@ -691,12 +688,12 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
 }
 
 // ── Assign Modal ──────────────────────────────────────────────────────────────
-function AssignModal({ exam, onClose, onSave }) {
+function AssignModal({ exam, onClose, onSave, students = [] }) {
   const [assigned, setAssigned] = useState([...exam.assignedTo]);
   const toggle = (id) => setAssigned(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
-  const groups = [...new Set(SEED_STUDENTS.map(s=>s.group))];
+  const groups = [...new Set(students.map(s=>s.group))];
   const toggleGroup = (g) => {
-    const ids = SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
+    const ids = students.filter(s=>s.group===g).map(s=>s.id);
     const allSel = ids.every(id=>assigned.includes(id));
     setAssigned(a=>allSel?a.filter(id=>!ids.includes(id)):[...new Set([...a,...ids])]);
   };
@@ -706,14 +703,14 @@ function AssignModal({ exam, onClose, onSave }) {
         <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{assigned.length}</span></span>
         <div style={{ display:"flex",gap:8 }}>
           {groups.map(g=>{
-            const ids=SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
+            const ids=students.filter(s=>s.group===g).map(s=>s.id);
             const allSel=ids.every(id=>assigned.includes(id));
             return <button key={g} onClick={()=>toggleGroup(g)} style={{ background:allSel?C.info+"22":"transparent",border:`1px solid ${allSel?C.info:C.border2}`,borderRadius:8,padding:"5px 12px",color:allSel?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer" }}>{g}</button>;
           })}
         </div>
       </div>
       <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:360,overflowY:"auto",marginBottom:20 }}>
-        {SEED_STUDENTS.map(s=>{
+        {students.map(s=>{
           const sel=assigned.includes(s.id);
           const lc=LEVEL_COLORS[s.level]||"#94a3b8";
           return (
@@ -741,29 +738,33 @@ function AssignModal({ exam, onClose, onSave }) {
 }
 
 // ── Results Preview ───────────────────────────────────────────────────────────
-function ResultsModal({ exam, onClose }) {
-  const students = SEED_STUDENTS.filter(s=>exam.assignedTo.includes(s.id));
-  const fakeScore = (id) => Math.floor(50 + (id*17+exam.id*7) % 45);
-  const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
+function ResultsModal({ exam, onClose, allStudents = [] }) {
+  const [results, setResults] = useState([]);
+  useEffect(() => {
+    api.getResults({ examId: exam.id }).then(setResults);
+  }, [exam.id]);
+
   return (
     <Modal title="Results" subtitle={exam.title} onClose={onClose}>
       <div style={{ display:"flex",flexDirection:"column",gap:8,maxHeight:420,overflowY:"auto" }}>
-        {students.map(s=>{
-          const sc = fakeScore(s.id);
-          const pct = Math.round((sc/pts)*100);
-          const pass = pct >= exam.passingScore;
+        {results.length === 0 && (
+          <div style={{ padding:"32px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>No results yet</div>
+        )}
+        {results.map(r=>{
+          const s = allStudents.find(x=>x.id===r.studentId) || r.student;
+          const pass = r.passed;
           return (
-            <div key={s.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10 }}>
-              <div style={{ width:34,height:34,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14 }}>{s.name[0]}</div>
+            <div key={r.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10 }}>
+              <div style={{ width:34,height:34,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14 }}>{s?.name?.[0]||"?"}</div>
               <div style={{ flex:1 }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500 }}>{s.name}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500 }}>{s?.name||"Unknown"}</div>
                 <div style={{ height:5,background:C.dim,borderRadius:3,marginTop:6,overflow:"hidden" }}>
-                  <div style={{ width:`${pct}%`,height:"100%",background:pass?C.success:C.danger,borderRadius:3,transition:"width .6s" }} />
+                  <div style={{ width:`${r.pct}%`,height:"100%",background:pass?C.success:C.danger,borderRadius:3,transition:"width .6s" }} />
                 </div>
               </div>
               <div style={{ textAlign:"right" }}>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color: pass?C.success:C.danger,fontWeight:700 }}>{sc}/{pts}</div>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color: pass?C.success:C.danger }}>{pct}% · {pass?"✓ Pass":"✕ Fail"}</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:pass?C.success:C.danger,fontWeight:700 }}>{r.score}/{r.totalPoints}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:pass?C.success:C.danger }}>{r.pct}% · {pass?"✓ Pass":"✕ Fail"}</div>
               </div>
             </div>
           );
@@ -786,7 +787,9 @@ const NAV = [
 
 // ── Exams Page ────────────────────────────────────────────────────────────────
 function ExamsPage() {
-  const [exams, setExams] = useState(SEED_EXAMS);
+  const [exams, setExams] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [editing, setEditing] = useState(null);
   const [assigning, setAssigning] = useState(null);
@@ -796,6 +799,12 @@ function ExamsPage() {
   const [filterLevel, setFilterLevel] = useState("all");
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    Promise.all([api.getExams(), api.getStudents()]).then(([e, s]) => {
+      setExams(e); setStudents(s); setLoading(false);
+    });
+  }, []);
+
   const filtered = exams.filter(e=>{
     if (filterStatus!=="all" && e.status!==filterStatus) return false;
     if (filterLevel!=="all" && e.level!==filterLevel) return false;
@@ -803,14 +812,24 @@ function ExamsPage() {
     return true;
   });
 
-  const handleSave = (form) => {
-    if (modal==="edit") setExams(es=>es.map(e=>e.id===form.id?{...form}:e));
-    else setExams(es=>[{...form,id:Math.max(0,...es.map(x=>x.id))+1,createdAt:new Date().toISOString().slice(0,10)},...es]);
+  const handleSave = async (form) => {
+    if (modal==="edit") {
+      const updated = await api.updateExam(form.id, form);
+      setExams(es=>es.map(e=>e.id===updated.id?updated:e));
+    } else {
+      const created = await api.createExam(form);
+      setExams(es=>[created,...es]);
+    }
     setModal(null); setEditing(null);
   };
-  const handleDelete = (id) => { setExams(es=>es.filter(e=>e.id!==id)); setDeleteId(null); };
-  const handleAssignSave = (ids) => {
-    setExams(es=>es.map(e=>e.id===assigning.id?{...e,assignedTo:ids}:e));
+  const handleDelete = async (id) => {
+    await api.deleteExam(id);
+    setExams(es=>es.filter(e=>e.id!==id));
+    setDeleteId(null);
+  };
+  const handleAssignSave = async (ids) => {
+    const updated = await api.updateExam(assigning.id, { assignedTo: ids });
+    setExams(es=>es.map(e=>e.id===assigning.id?updated:e));
     setAssigning(null);
   };
 
@@ -851,12 +870,15 @@ function ExamsPage() {
       </div>
 
       {/* Grid */}
-      {filtered.length===0 ? (
+      {loading ? (
+        <div style={{ textAlign:"center",padding:"60px",color:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:14 }}>Loading…</div>
+      ) : filtered.length===0 ? (
         <div style={{ textAlign:"center",padding:"60px",color:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:14 }}>No exams found</div>
       ) : (
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:18 }}>
           {filtered.map(exam=>(
             <ExamCard key={exam.id} exam={exam}
+              allStudents={students}
               onEdit={e=>{setEditing(e);setModal("edit")}}
               onDelete={id=>setDeleteId(id)}
               onAssign={e=>setAssigning(e)}
@@ -869,15 +891,15 @@ function ExamsPage() {
       {/* Wizard Modal */}
       {(modal==="create"||modal==="edit") && (
         <Modal title={modal==="edit"?"Edit Exam":"New Exam"} subtitle="4-step wizard" onClose={()=>{setModal(null);setEditing(null)}} wide>
-          <ExamWizard initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} />
+          <ExamWizard initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} students={students} />
         </Modal>
       )}
 
       {/* Assign Modal */}
-      {assigning && <AssignModal exam={assigning} onClose={()=>setAssigning(null)} onSave={handleAssignSave} />}
+      {assigning && <AssignModal exam={assigning} onClose={()=>setAssigning(null)} onSave={handleAssignSave} students={students} />}
 
       {/* Results Modal */}
-      {viewingResults && <ResultsModal exam={viewingResults} onClose={()=>setViewingResults(null)} />}
+      {viewingResults && <ResultsModal exam={viewingResults} onClose={()=>setViewingResults(null)} allStudents={students} />}
 
       {/* Delete Confirm */}
       {deleteId && (

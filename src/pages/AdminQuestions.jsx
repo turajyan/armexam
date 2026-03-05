@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { QUESTIONS as DATA_QUESTIONS } from "../data.js";
+import { useState, useEffect, useRef } from "react";
+import { api } from "../api.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
@@ -18,8 +18,6 @@ const QTYPES = [
   { id:"writing",       label:"Writing",       icon:"✍", color:"#94a3b8" },
   { id:"voice",         label:"Voice",         icon:"🎤", color:"#fb923c" },
 ];
-
-const SEED = DATA_QUESTIONS.map(q => ({ ...q, status: q.status || "published", createdAt: q.createdAt || "2025-01-01" }));
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
@@ -699,7 +697,8 @@ function ViewQuestion({ q, onEdit, onClose }) {
 
 // ── Questions Page ─────────────────────────────────────────────────────────────
 function QuestionsPage() {
-  const [questions, setQuestions] = useState(SEED);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // null | "create" | "edit" | "view"
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
@@ -709,6 +708,10 @@ function QuestionsPage() {
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  useEffect(() => {
+    api.getQuestions().then(data => { setQuestions(data); setLoading(false); });
+  }, []);
+
   const filtered = questions.filter(q => {
     if (filterType!=="all" && q.type!==filterType) return false;
     if (filterLevel!=="all" && q.level!==filterLevel) return false;
@@ -717,18 +720,28 @@ function QuestionsPage() {
     return true;
   });
 
-  const handleSave = (q) => {
+  const handleSave = async (q) => {
     if (modal==="edit") {
-      setQuestions(qs=>qs.map(x=>x.id===q.id?q:x));
+      const updated = await api.updateQuestion(q.id, q);
+      setQuestions(qs=>qs.map(x=>x.id===updated.id?updated:x));
     } else {
-      const newQ = { ...q, id: Math.max(0, ...questions.map(x=>x.id)) + 1, createdAt: new Date().toISOString().slice(0,10) };
+      const newQ = await api.createQuestion(q);
       setQuestions(qs=>[newQ,...qs]);
     }
     setModal(null); setEditing(null);
   };
 
-  const handleDelete = (id) => { setQuestions(qs=>qs.filter(q=>q.id!==id)); setDeleteConfirm(null); };
-  const handleToggleStatus = (id) => setQuestions(qs=>qs.map(q=>q.id===id?{...q,status:q.status==="published"?"draft":"published"}:q));
+  const handleDelete = async (id) => {
+    await api.deleteQuestion(id);
+    setQuestions(qs=>qs.filter(q=>q.id!==id));
+    setDeleteConfirm(null);
+  };
+  const handleToggleStatus = async (id) => {
+    const q = questions.find(x=>x.id===id);
+    const newStatus = q.status==="published" ? "draft" : "published";
+    const updated = await api.updateQuestion(id, { status: newStatus });
+    setQuestions(qs=>qs.map(x=>x.id===id?{...x,status:updated.status}:x));
+  };
 
   return (
     <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box" }}>
@@ -777,7 +790,11 @@ function QuestionsPage() {
             <span key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:600, letterSpacing:.8, textTransform:"uppercase" }}>{h}</span>
           ))}
         </div>
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div style={{ padding:"48px", textAlign:"center", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
+            Loading…
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ padding:"48px", textAlign:"center", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
             No questions found
           </div>

@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../api.js";
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
@@ -7,32 +8,6 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+G
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LC = { A1:"#4ade80", A2:"#86efac", B1:"#60a5fa", B2:"#93c5fd", C1:"#f59e0b", C2:"#fbbf24" };
 
-const STUDENTS = [
-  { id:1,  name:"Անի Հակոբյան",   group:"Խ-101", level:"B1", status:"active" },
-  { id:2,  name:"Արամ Պետ.",      group:"Խ-101", level:"A2", status:"active" },
-  { id:3,  name:"Մարինե Գ.",      group:"Խ-102", level:"B2", status:"active" },
-  { id:4,  name:"Դավիթ Ս.",       group:"Խ-102", level:"C1", status:"active" },
-  { id:5,  name:"Նարեկ Ա.",       group:"Խ-103", level:"A1", status:"inactive" },
-  { id:6,  name:"Լուսինե Կ.",     group:"Խ-103", level:"B1", status:"active" },
-  { id:7,  name:"Վահե Մ.",        group:"Խ-101", level:"A2", status:"active" },
-  { id:8,  name:"Հայկ Ա.",        group:"Խ-102", level:"B2", status:"active" },
-  { id:9,  name:"Սոնա Բ.",        group:"Խ-103", level:"C2", status:"active" },
-  { id:10, name:"Տիգրան Ղ.",      group:"Խ-101", level:"B2", status:"active" },
-];
-const EXAMS_LIST = [
-  { id:1, title:"Summer B1 Exam",   level:"B1", maxScore:20, passingScore:70, date:"2024-10-15" },
-  { id:2, title:"A2 Entrance Test",   level:"A2", maxScore:10, passingScore:60, date:"2024-11-01" },
-  { id:3, title:"C1–C2 Final Exam", level:"C1", maxScore:30, passingScore:80, date:"2024-11-20" },
-  { id:4, title:"B2 Vocabulary Test",    level:"B2", maxScore:22, passingScore:75, date:"2024-12-05" },
-];
-function fakeResult(sId, eId) {
-  const seed  = (sId * 31 + eId * 17) % 100;
-  const exam  = EXAMS_LIST.find(e=>e.id===eId);
-  const score = Math.min(Math.round((seed / 100) * exam.maxScore), exam.maxScore);
-  const p     = Math.round((score / exam.maxScore) * 100);
-  return { studentId:sId, examId:eId, score, maxScore:exam.maxScore, pct:p, passed:p>=exam.passingScore, date:exam.date };
-}
-const ALL_RESULTS = STUDENTS.flatMap(s => EXAMS_LIST.slice(0, 2+(s.id%3)).map(e=>fakeResult(s.id,e.id)));
 const MONTHLY = [
   { month:"Sep", exams:4,  passed:3  },
   { month:"Oct", exams:7,  passed:5  },
@@ -282,19 +257,30 @@ function ExamPerfTable({ exams, results }) {
 export default function AdminAnalytics({ theme }) {
   if (theme) C = theme;
   const [period, setPeriod] = useState("all");
+  const [summary, setSummary] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [allResults, setAllResults] = useState([]);
+  const [exams, setExams] = useState([]);
 
-  const results = useMemo(()=>{
-    if (period==="all") return ALL_RESULTS;
-    const cutoff = period==="month" ? "2024-11-20" : "2024-11-01";
-    return ALL_RESULTS.filter(r=>r.date>=cutoff);
-  }, [period]);
+  useEffect(() => {
+    Promise.all([
+      api.getSummary(),
+      api.getStudents(),
+      api.getResults(),
+      api.getExams(),
+    ]).then(([s, st, r, e]) => {
+      setSummary(s); setStudents(st); setAllResults(r); setExams(e);
+    });
+  }, []);
 
-  const totalStudents  = STUDENTS.length;
-  const activeStudents = STUDENTS.filter(s=>s.status==="active").length;
-  const totalTaken     = results.length;
+  const results = allResults;
+
+  const totalStudents  = summary?.totalStudents ?? students.length;
+  const activeStudents = students.filter(s=>s.status==="active").length;
+  const totalTaken     = summary?.totalResults ?? results.length;
   const totalPassed    = results.filter(r=>r.passed).length;
-  const avgScore       = avg(results.map(r=>r.pct));
-  const passRate       = pct2(totalPassed, totalTaken);
+  const avgScore       = summary?.avgScore ?? avg(results.map(r=>r.pct));
+  const passRate       = summary?.passRate ?? pct2(totalPassed, totalTaken);
 
   return (
     <>
@@ -321,7 +307,7 @@ export default function AdminAnalytics({ theme }) {
         {/* KPI row */}
         <div style={{ display:"flex", gap:16, marginBottom:24, flexWrap:"wrap" }}>
           <StatCard icon="👤" label="Total Students"  value={totalStudents}  sub={`${activeStudents} active`}          color={C.info}    trend={8}  />
-          <StatCard icon="📝" label="Exams Taken"     value={totalTaken}    sub={`across ${EXAMS_LIST.length} exams`}  color={C.purple}  trend={12} />
+          <StatCard icon="📝" label="Exams Taken"     value={totalTaken}    sub={`across ${exams.length} exams`}  color={C.purple}  trend={12} />
           <StatCard icon="✅" label="Pass Rate"       value={`${passRate}%`} sub={`${totalPassed} passed`}             color={C.success} trend={3}  />
           <StatCard icon="⭐" label="Avg Score"       value={`${avgScore}%`} sub="across all exams"                    color={C.gold}    trend={-2} />
         </div>
@@ -343,7 +329,7 @@ export default function AdminAnalytics({ theme }) {
             <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 24px" }}>
               <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, color:C.text, fontWeight:600, marginBottom:14 }}>Groups</div>
               <DonutChart segments={["Խ-101","Խ-102","Խ-103"].map((g,i)=>({
-                label:g, value:STUDENTS.filter(s=>s.group===g).length,
+                label:g, value:students.filter(s=>s.group===g).length,
                 color:[C.info,C.purple,C.warning][i],
               }))}/>
             </div>
@@ -358,14 +344,14 @@ export default function AdminAnalytics({ theme }) {
           </div>
           <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
             <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600, marginBottom:16 }}>Student Levels</div>
-            <LevelDist students={STUDENTS}/>
+            <LevelDist students={students}/>
           </div>
         </div>
 
         {/* Tables */}
         <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-          <ExamPerfTable exams={EXAMS_LIST} results={results}/>
-          <TopStudentsTable students={STUDENTS} results={results}/>
+          <ExamPerfTable exams={exams} results={results}/>
+          <TopStudentsTable students={students} results={results}/>
         </div>
 
       </div>

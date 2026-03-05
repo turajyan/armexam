@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { api } from "../api.js";
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
@@ -7,46 +8,6 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+G
 
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LC = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-
-// ── Seed Data ─────────────────────────────────────────────────────────────────
-const STUDENTS = [
-  { id:1,  name:"Անի Հակոբյան",      email:"ani.hakobyan@mail.am",    phone:"+374 91 111 111", group:"Խ-101", level:"B1", joined:"2024-09-01", status:"active",   avatar:"Ա" },
-  { id:2,  name:"Արամ Պետրոսյան",    email:"aram.pet@mail.am",        phone:"+374 93 222 222", group:"Խ-101", level:"A2", joined:"2024-09-01", status:"active",   avatar:"Ա" },
-  { id:3,  name:"Մարինե Գրիգորյան", email:"marine.g@mail.am",        phone:"+374 94 333 333", group:"Խ-102", level:"B2", joined:"2024-09-03", status:"active",   avatar:"Մ" },
-  { id:4,  name:"Դավիթ Սահակյան",   email:"davit.s@mail.am",         phone:"+374 77 444 444", group:"Խ-102", level:"C1", joined:"2024-09-03", status:"active",   avatar:"Դ" },
-  { id:5,  name:"Նարեկ Ավագյան",    email:"narek.av@mail.am",        phone:"+374 99 555 555", group:"Խ-103", level:"A1", joined:"2024-09-05", status:"inactive", avatar:"Ն" },
-  { id:6,  name:"Լուսինե Կարապ.",   email:"lusine.k@mail.am",        phone:"+374 91 666 666", group:"Խ-103", level:"B1", joined:"2024-09-05", status:"active",   avatar:"Լ" },
-  { id:7,  name:"Վահե Մկրտչյան",    email:"vahe.mk@mail.am",         phone:"+374 93 777 777", group:"Խ-101", level:"A2", joined:"2024-09-02", status:"active",   avatar:"Վ" },
-  { id:8,  name:"Հայկ Ամիրյան",     email:"hayk.am@mail.am",         phone:"+374 77 888 888", group:"Խ-102", level:"B2", joined:"2024-09-04", status:"active",   avatar:"Հ" },
-  { id:9,  name:"Սոնա Բաղդ.",       email:"sona.b@mail.am",          phone:"+374 94 999 999", group:"Խ-103", level:"C2", joined:"2024-10-01", status:"active",   avatar:"Ս" },
-  { id:10, name:"Տիգրան Ղ.",        email:"tigran.gh@mail.am",       phone:"+374 99 101 010", group:"Խ-101", level:"B2", joined:"2024-10-05", status:"active",   avatar:"Տ" },
-];
-
-const EXAMS = [
-  { id:1, title:"Ամ. B1 Ք.",  level:"B1", maxScore:20, passingScore:70 },
-  { id:2, title:"A2 Ախ. Փ.", level:"A2", maxScore:10, passingScore:60 },
-  { id:3, title:"C1–C2 Բ. Մ.",level:"C1", maxScore:30, passingScore:80 },
-  { id:4, title:"B2 Պ. Ք.",  level:"B2", maxScore:22, passingScore:75 },
-];
-
-// Deterministic fake results
-function fakeResult(studentId, examId) {
-  const seed = (studentId * 31 + examId * 17) % 100;
-  const score = Math.round(5 + seed * 0.9);
-  const exam = EXAMS.find(e=>e.id===examId);
-  if (!exam) return null;
-  const capped = Math.min(score, exam.maxScore);
-  const pct = Math.round((capped/exam.maxScore)*100);
-  return {
-    examId, examTitle: exam.title, score: capped, maxScore: exam.maxScore,
-    pct, passed: pct >= exam.passingScore,
-    date: `2025-0${Math.min(9,2+examId)}-${String(10+studentId%15).padStart(2,"0")}`,
-    duration: 30 + (seed % 30),
-    answers: { correct: Math.round(capped*0.9), wrong: Math.round(capped*0.1)+1, skipped: Math.max(0,2-examId%2) },
-  };
-}
-
-const ALL_RESULTS = STUDENTS.flatMap(s => EXAMS.slice(0, 2 + (s.id % 3)).map(e => ({ studentId: s.id, ...fakeResult(s.id, e.id) })));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function avg(arr) { return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0; }
@@ -198,7 +159,8 @@ function StatTile({ icon, label, value, sub, color=C.gold, sparkData }) {
 
 // ── Student Profile Modal ─────────────────────────────────────────────────────
 function StudentProfile({ student, onClose, onEdit }) {
-  const results = ALL_RESULTS.filter(r=>r.studentId===student.id);
+  const [results, setResults] = useState([]);
+  useEffect(() => { api.getResults({ studentId: student.id }).then(setResults); }, [student.id]);
   const scores = results.map(r=>r.pct);
   const avgScore = avg(scores);
   const passed = results.filter(r=>r.passed).length;
@@ -309,18 +271,27 @@ function StudentForm({ initial, onSave, onCancel }) {
 
 // ── Analytics Dashboard ───────────────────────────────────────────────────────
 function AnalyticsDash() {
-  const totalStudents = STUDENTS.length;
-  const activeStudents = STUDENTS.filter(s=>s.status==="active").length;
-  const totalExams = ALL_RESULTS.length;
-  const passedExams = ALL_RESULTS.filter(r=>r.passed).length;
-  const avgPct = avg(ALL_RESULTS.map(r=>r.pct));
+  const [students, setStudents] = useState([]);
+  const [allResults, setAllResults] = useState([]);
+  const [exams, setExams] = useState([]);
+  useEffect(() => {
+    Promise.all([api.getStudents(), api.getResults(), api.getExams()]).then(([s,r,e]) => {
+      setStudents(s); setAllResults(r); setExams(e);
+    });
+  }, []);
 
-  const levelDist = LEVELS.map(l=>({ l, n:STUDENTS.filter(s=>s.level===l).length, color:LC[l] }));
-  const groupDist = ["Խ-101","Խ-102","Խ-103"].map(g=>({ g, n:STUDENTS.filter(s=>s.group===g).length }));
+  const totalStudents = students.length;
+  const activeStudents = students.filter(s=>s.status==="active").length;
+  const totalExams = allResults.length;
+  const passedExams = allResults.filter(r=>r.passed).length;
+  const avgPct = avg(allResults.map(r=>r.pct));
+
+  const levelDist = LEVELS.map(l=>({ l, n:students.filter(s=>s.level===l).length, color:LC[l] }));
+  const groupDist = ["Խ-101","Խ-102","Խ-103"].map(g=>({ g, n:students.filter(s=>s.group===g).length }));
 
   // Pass rate per exam
-  const examStats = EXAMS.map(e=>{
-    const rs = ALL_RESULTS.filter(r=>r.examId===e.id);
+  const examStats = exams.map(e=>{
+    const rs = allResults.filter(r=>r.examId===e.id);
     const passed = rs.filter(r=>r.passed).length;
     const avgS = avg(rs.map(r=>r.pct));
     return { ...e, attempts:rs.length, passed, passRate:rs.length?Math.round((passed/rs.length)*100):0, avgScore:avgS };
@@ -333,7 +304,7 @@ function AnalyticsDash() {
     { label:"61–80%", min:61, max:80,  color:C.info },
     { label:"81–100%",min:81, max:100, color:C.success },
   ];
-  const bucketCounts = buckets.map(b=>({ ...b, count:ALL_RESULTS.filter(r=>r.pct>=b.min&&r.pct<=b.max).length }));
+  const bucketCounts = buckets.map(b=>({ ...b, count:allResults.filter(r=>r.pct>=b.min&&r.pct<=b.max).length }));
   const maxBucket = Math.max(...bucketCounts.map(b=>b.count));
 
   // Monthly trend (fake)
@@ -422,8 +393,8 @@ function AnalyticsDash() {
       <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"22px 24px" }}>
         <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:16 }}>🏆 Լ. ու. · Top Performers</div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10 }}>
-          {STUDENTS.map(s=>{
-            const rs = ALL_RESULTS.filter(r=>r.studentId===s.id);
+          {students.map(s=>{
+            const rs = allResults.filter(r=>r.studentId===s.id);
             const a = avg(rs.map(r=>r.pct));
             return { ...s, avgScore:a, resultCount:rs.length };
           }).sort((a,b)=>b.avgScore-a.avgScore).slice(0,6).map((s,rank)=>(
@@ -445,7 +416,9 @@ function AnalyticsDash() {
 
 // ── Students Table ────────────────────────────────────────────────────────────
 function StudentsTable() {
-  const [students, setStudents] = useState(STUDENTS);
+  const [students, setStudents] = useState([]);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterGroup, setFilterGroup] = useState("all");
   const [filterLevel, setFilterLevel] = useState("all");
@@ -456,16 +429,24 @@ function StudentsTable() {
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  const groups = [...new Set(STUDENTS.map(s=>s.group))];
+  useEffect(() => {
+    Promise.all([api.getStudents(), api.getResults()]).then(([s, r]) => {
+      setStudents(s);
+      setResults(r);
+      setLoading(false);
+    });
+  }, []);
+
+  const groups = [...new Set(students.map(s=>s.group))];
 
   const enriched = useMemo(()=>students.map(s=>{
-    const rs = ALL_RESULTS.filter(r=>r.studentId===s.id);
+    const rs = results.filter(r=>r.studentId===s.id);
     return { ...s, resultCount:rs.length, avgScore:avg(rs.map(r=>r.pct)), passCount:rs.filter(r=>r.passed).length };
-  }), [students]);
+  }), [students, results]);
 
   const filtered = useMemo(()=>{
     let r = enriched;
-    if (search) r = r.filter(s=>s.name.toLowerCase().includes(search.toLowerCase())||s.email.toLowerCase().includes(search.toLowerCase()));
+    if (search) r = r.filter(s=>s.name.toLowerCase().includes(search.toLowerCase())||(s.email||"").toLowerCase().includes(search.toLowerCase()));
     if (filterGroup!=="all") r = r.filter(s=>s.group===filterGroup);
     if (filterLevel!=="all") r = r.filter(s=>s.level===filterLevel);
     if (filterStatus!=="all") r = r.filter(s=>s.status===filterStatus);
@@ -478,9 +459,14 @@ function StudentsTable() {
     return r;
   }, [enriched,search,filterGroup,filterLevel,filterStatus,sortBy]);
 
-  const handleSave = (f) => {
-    if (editing) setStudents(ss=>ss.map(s=>s.id===editing.id?{...s,...f}:s));
-    else setStudents(ss=>[{...f,id:Date.now(),joined:new Date().toISOString().slice(0,10),avatar:f.name[0]||"?"},...ss]);
+  const handleSave = async (f) => {
+    if (editing) {
+      const updated = await api.updateStudent(editing.id, f);
+      setStudents(ss=>ss.map(s=>s.id===editing.id?updated:s));
+    } else {
+      const newS = await api.createStudent({...f, avatar: f.name?.[0] || "?"});
+      setStudents(ss=>[newS,...ss]);
+    }
     setEditing(null); setCreating(false);
   };
 
@@ -526,7 +512,9 @@ function StudentsTable() {
         <div style={{ display:"grid",gridTemplateColumns:"36px 1fr 80px 60px 50px 70px 70px 80px 80px",gap:10,padding:"10px 18px",background:C.panel,borderBottom:`1px solid ${C.border}` }}>
           {COL.map((h,i)=><span key={i} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,fontWeight:600,letterSpacing:.8,textTransform:"uppercase" }}>{h}</span>)}
         </div>
-        {filtered.length===0 ? (
+        {loading ? (
+          <div style={{ padding:"48px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted }}>Loading…</div>
+        ) : filtered.length===0 ? (
           <div style={{ padding:"48px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted }}>No students found</div>
         ) : filtered.map(s=>(
           <div key={s.id} style={{ display:"grid",gridTemplateColumns:"36px 1fr 80px 60px 50px 70px 70px 80px 80px",gap:10,padding:"12px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center",cursor:"pointer",transition:"background .15s" }}
@@ -565,7 +553,7 @@ function StudentsTable() {
           <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted,marginBottom:20 }}>Delete student #{deleteId}?</p>
           <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
             <Btn onClick={()=>setDeleteId(null)}>Cancel</Btn>
-            <Btn variant="danger" onClick={()=>{setStudents(ss=>ss.filter(s=>s.id!==deleteId));setDeleteId(null)}}>✕ Ջ.</Btn>
+            <Btn variant="danger" onClick={async()=>{await api.deleteStudent(deleteId);setStudents(ss=>ss.filter(s=>s.id!==deleteId));setDeleteId(null)}}>✕ Ջ.</Btn>
           </div>
         </Modal>
       )}
