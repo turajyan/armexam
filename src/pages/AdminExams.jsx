@@ -130,6 +130,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const isEdit = !!initial;
   const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, questionIds:[], assignedTo:[], startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"" };
   const blankPlacement = { examType:"placement", title:"", level:null, duration:90, passingScore:null, shuffle:true, showResults:true, allowReview:false, questionIds:[], assignedTo:[],
+    showQuestionLevel:true, showPlacementThreshold:true,
     startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"",
     placementTemplate:[
       { level:"A1", count:5, pointsEach:1 },
@@ -452,6 +453,10 @@ function ExamWizard({ initial, onSave, onCancel }) {
       <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
         <Toggle label="Show results to student" hint="Show results to student after exam" value={form.showResults} onChange={v=>set("showResults",v)} />
         <Toggle label="Allow Answer Review" hint="Allow answer review after submission" value={form.allowReview} onChange={v=>set("allowReview",v)} />
+        {form.examType==="placement" && (<>
+          <Toggle label="Show question level (A1–C2) to student" hint="Students see the level badge on each question during the exam" value={form.showQuestionLevel??true} onChange={v=>set("showQuestionLevel",v)} />
+          <Toggle label="Show level thresholds to student" hint="On the exam start screen, show required % threshold per level" value={form.showPlacementThreshold??true} onChange={v=>set("showPlacementThreshold",v)} />
+        </>)}
       </div>
       {/* Summary card */}
       <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px" }}>

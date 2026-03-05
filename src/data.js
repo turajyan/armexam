@@ -123,6 +123,7 @@ export const EXAMS = [
       { level:"C2", count:3, pointsEach:3 },
     ],
     placementThresholds:{ A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 },
+    showQuestionLevel:true, showPlacementThreshold:true,
   },
 ];
 

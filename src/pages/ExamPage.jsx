@@ -914,8 +914,7 @@ function VoiceQuestion({ question, value, onChange }) {
 }
 
 // ── Question Card ─────────────────────────────────────────────────────────────
-function QuestionCard({ question, index, total, value, onChange, onNext, onPrev, isLast }) {
-  const cfg = loadExamSettings();
+function QuestionCard({ question, index, total, value, onChange, onNext, onPrev, isLast, showQuestionLevel=true }) {
   const renderBody = () => {
     switch (question.type) {
       case "single_choice":
@@ -967,7 +966,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {(cfg.showQuestionLevel ?? true) && <LevelBadge level={question.level} />}
+          {showQuestionLevel && <LevelBadge level={question.level} />}
           <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, letterSpacing: 0.5 }}>
             {question.section}
           </span>
@@ -1347,7 +1346,7 @@ function StartScreen({ onStart }) {
   const [selected, setSelected] = useState(null);
   const activeExams = EXAMS.filter(e => e.status === "active");
   const STATUS_COLORS = { active:C.success, draft:C.warning, scheduled:C.info, completed:C.textSub };
-  const cfg = loadExamSettings();
+
   return (
     <div style={{
       maxWidth: 780, width: "100%",
@@ -1445,7 +1444,7 @@ function StartScreen({ onStart }) {
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,flex:1 }}>
                         {r.count} questions · {r.pointsEach}pt each
                       </span>
-                      {(cfg.showPlacementThreshold ?? true) && (
+                      {(selected.showPlacementThreshold ?? true) && (
                         <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:lc,fontWeight:600 }}>
                           need ≥{thresh}%
                         </span>
@@ -1608,6 +1607,7 @@ export default function ArmExam({ theme }) {
                 onNext={handleNext}
                 onPrev={handlePrev}
                 isLast={current === examQuestions.length - 1}
+                showQuestionLevel={activeExam?.showQuestionLevel ?? true}
               />
             </div>
           )}
