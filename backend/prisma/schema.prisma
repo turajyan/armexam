@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Question {
+  id          Int      @id @default(autoincrement())
+  type        String   // single_choice | multi_choice | multi_select | fill_blank | fill_wordbank | writing | audio | video | voice
+  level       String   // A1 | A2 | B1 | B2 | C1 | C2
+  section     String
+  points      Int      @default(1)
+  text        String
+
+  // Choice questions
+  options     Json?    // String[]
+  correct     Json?    // Int | Int[]
+
+  // Fill blank
+  answer      String?
+
+  // Word bank
+  segments    Json?    // { type: "text"|"blank", content?: string, id?: number }[]
+  wordBank    Json?    // String[]
+
+  // Audio / Video
+  audioSrc    String?
+  videoSrc    String?
+  maxPlays    Int?
+  pauseSeconds Int?
+
+  // Voice
+  maxSeconds  Int?
+  minSeconds  Int?
+  maxAttempts Int?
+
+  // Writing
+  minWords    Int?
+  maxWords    Int?
+
+  status      String   @default("published")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Student {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  group     String?
+  level     String?  // detected level
+  status    String   @default("active")
+  avatar    String?
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exams   ExamAssignment[]
+  results Result[]
+}
+
+model Exam {
+  id                    Int      @id @default(autoincrement())
+  title                 String
+  examType              String   @default("fixed") // fixed | placement
+  level                 String?  // null for placement
+  duration              Int      @default(60)       // minutes
+  passingScore          Int?     // percent, null for placement
+  shuffle               Boolean  @default(false)
+  showResults           Boolean  @default(true)
+  showQuestionLevel     Boolean  @default(true)
+  showQuestionPoints    Boolean  @default(true)
+
+  // Fixed exam subpools: [{ section, count }]
+  subpools              Json?
+
+  // Placement exam
+  placementTemplate     Json?    // [{ level, pointsEach, subpools: [{ section, count }] }]
+  placementThresholds   Json?    // { A1: 60, A2: 60, ... }
+  showPlacementThreshold Boolean @default(false)
+
+  status    String   @default("active")  // active | draft | archived
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedStudents ExamAssignment[]
+  results          Result[]
+}
+
+model ExamAssignment {
+  examId    Int
+  studentId Int
+
+  exam    Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([examId, studentId])
+}
+
+model Result {
+  id             Int      @id @default(autoincrement())
+  examId         Int
+  studentId      Int
+  score          Int      // earned points
+  totalPoints    Int
+  pct            Int      // 0-100
+  passed         Boolean?
+  answers        Json?    // { questionId: answer }
+  detectedLevel  String?  // for placement exams
+  levelStats     Json?    // for placement: { A1: { earned, maxPts, pct }, ... }
+  submittedAt    DateTime @default(now())
+
+  exam    Exam    @relation(fields: [examId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+}

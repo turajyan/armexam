@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: armexam_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: armexam
+      POSTGRES_PASSWORD: armexam_pass
+      POSTGRES_DB: armexam
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
