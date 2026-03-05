@@ -79,13 +79,18 @@ function UploadZone({ label, accept, icon, hint, onFile, fileName, onClear }) {
   const [drag, setDrag] = useState(false);
   const ref = useRef();
   const handleFile = f => { if (f && onFile) onFile(f); };
+  const handleClear = (e) => {
+    e.stopPropagation();
+    if (ref.current) ref.current.value = "";
+    if (onClear) onClear();
+  };
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
       {label && (
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>
           {fileName && onClear && (
-            <button onClick={onClear} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 2px", lineHeight:1 }} title="Remove">✕</button>
+            <button onClick={handleClear} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 2px", lineHeight:1 }} title="Remove">✕</button>
           )}
         </div>
       )}
@@ -104,7 +109,9 @@ function UploadZone({ label, accept, icon, hint, onFile, fileName, onClear }) {
             <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.dim, marginTop:4 }}>{hint}</div>
           </>
         )}
-        <input ref={ref} type="file" accept={accept} style={{ display:"none" }} onChange={e=>handleFile(e.target.files[0])} />
+        <input ref={ref} type="file" accept={accept} style={{ display:"none" }}
+          onChange={e=>{ handleFile(e.target.files[0]); e.target.value=""; }}
+        />
       </div>
     </div>
   );
