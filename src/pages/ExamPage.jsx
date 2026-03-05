@@ -193,7 +193,7 @@ function VideoQuestion({ question, value, onChange }) {
         {/* Fake video frame */}
         <div style={{
           position: "absolute", inset: 0,
-          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+          background: C.panel,
           display: "flex", alignItems: "center", justifyContent: "center",
           flexDirection: "column", gap: 12,
         }}>
@@ -555,7 +555,7 @@ function FillWordBankQuestion({ question, value = {}, onChange }) {
               onDragStart={onDragStartWord(word, "bank")}
               onDragEnd={onDragEnd}
               style={{
-                background:`linear-gradient(135deg, #1e293b, #0f172a)`,
+                background:C.panel,
                 border:`1.5px solid #334155`,
                 borderRadius:9, padding:"8px 16px",
                 fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:500,
@@ -949,7 +949,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
 
   return (
     <div style={{
-      background: "linear-gradient(160deg, #0d1829 0%, #0a1120 100%)",
+      background: C.card,
       border: "1px solid #1e293b",
       borderRadius: 20,
       padding: "32px 36px",
@@ -1141,7 +1141,7 @@ function ResultsScreen({ answers, questions, exam, onRestart }) {
     <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:20, animation:"fadeSlideIn .4s ease" }}>
 
       {/* ── Score card ── */}
-      <div style={{ background:"linear-gradient(160deg,#0d1829 0%,#0a1120 100%)", border:`1px solid ${isPlacement?"#a78bfa33":passed?"#22c55e33":"#f8717133"}`, borderRadius:24, padding:"40px", textAlign:"center", boxShadow:"0 24px 64px #00000080", position:"relative", overflow:"hidden", maxWidth:800, alignSelf:"center", width:"100%" }}>
+      <div style={{ background:C.card, border:`1px solid ${isPlacement?C.purple+"33":passed?C.success+"33":C.danger+"33"}`, borderRadius:24, padding:"40px", textAlign:"center", boxShadow:"0 24px 64px #00000080", position:"relative", overflow:"hidden", maxWidth:800, alignSelf:"center", width:"100%" }}>
         <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at 50% 0%, ${isPlacement?C.purple:passed?C.success:C.danger}0a 0%, transparent 70%)`, pointerEvents:"none" }} />
 
         {/* Donut */}
@@ -1227,7 +1227,7 @@ function ResultsScreen({ answers, questions, exam, onRestart }) {
             const statusColor = !answered ? C.muted : !isAuto ? C.warning : isCorrect ? C.success : isPartial ? C.warning : C.danger;
             const statusIcon  = !answered ? "—" : !isAuto ? "✦" : isCorrect ? "✓" : isPartial ? "½" : "✗";
             return (
-              <div key={q.id} style={{ background:"linear-gradient(135deg,#0d1829,#0a1120)", border:`1.5px solid ${statusColor}33`, borderRadius:16, padding:"18px 22px", display:"flex", gap:16, alignItems:"flex-start" }}>
+              <div key={q.id} style={{ background:C.card, border:`1.5px solid ${statusColor}33`, borderRadius:16, padding:"18px 22px", display:"flex", gap:16, alignItems:"flex-start" }}>
                 {/* Status badge */}
                 <div style={{ width:36, height:36, borderRadius:"50%", background:statusColor+"18", border:`2px solid ${statusColor}55`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:700, color:statusColor }}>
                   {statusIcon}
@@ -1330,7 +1330,7 @@ function StartScreen({ onStart }) {
             : exam.questionIds.length;
           return (
             <div key={exam.id} onClick={() => setSelected(exam)}
-              style={{ background: sel?"linear-gradient(135deg,#0d1829,#0a1522)":C.card,
+              style={{ background: sel?C.card:C.panel,
                 border:`2px solid ${sel?C.gold:C.dim}`,
                 borderRadius:18, padding:"22px 26px", cursor:"pointer",
                 transition:"all .2s", boxShadow: sel?"0 0 0 1px #c8a96e33":"none",
@@ -1372,7 +1372,7 @@ function StartScreen({ onStart }) {
 
       {/* Selected exam detail + Start button */}
       {selected && (
-        <div style={{ background:"linear-gradient(135deg,#0a1520,#080f1a)", border:"1px solid #c8a96e33", borderRadius:18, padding:"24px 28px", animation:"fadeSlideIn .25s ease" }}>
+        <div style={{ background:C.card, border:`1px solid ${C.gold}33`, borderRadius:18, padding:"24px 28px", animation:"fadeSlideIn .25s ease" }}>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.text, fontWeight:600, marginBottom:16 }}>
             {selected.title}
           </div>
@@ -1464,7 +1464,7 @@ export default function ArmExam({ theme }) {
       <div style={{
         flex: 1, minWidth: 0,
         display: "flex", flexDirection: "column",
-        background: "radial-gradient(ellipse at 20% 50%, #0d1f3c 0%, #050c18 60%, #020709 100%)",
+        background: C.bg,
         fontFamily: "'DM Sans', sans-serif",
         overflow: "hidden",
       }}>
