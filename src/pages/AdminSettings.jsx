@@ -237,9 +237,9 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     fontBody:"DM Sans",
     borderRadius:"14",
     logoText:"Հ",
-    showLevelBadges: _saved.showLevelBadges ?? true,
-    showTimer: _saved.showTimer ?? true,
-    compactMode: _saved.compactMode ?? false,
+    showLevelBadges: true,
+    showTimer: true,
+    compactMode: false,
   });
 
   const [emailCfg, setEmailCfg] = useState({
