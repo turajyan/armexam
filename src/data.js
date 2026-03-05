@@ -96,6 +96,46 @@ export const QUESTIONS = [
     wordBank:["Երևան","լեռներ","ծով","Թբիլիսի"],
     correct:[1, 0],
   },
+  // ── Audio questions ──────────────────────────────────────────────────────────
+  { id:33, type:"audio", level:"A2", section:"Լสел", points:2,
+    text:"Լสи՛р ձaynagrut'yune ev yntri՛r jisht pataskhan. Vor ur e gnum khosole?",
+    audioUrl:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    maxPlays:2, pauseSeconds:10,
+    options:["Dprock","Khanut","Bjishk","Kayaran"], correct:0,
+    status:"published", createdAt:"2025-04-01" },
+
+  { id:34, type:"audio", level:"B1", section:"Լสел", points:3,
+    text:"Լสи՛р erkkhosut'yuny. Inch e uzum gnel Aramy?",
+    audioUrl:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    maxPlays:2, pauseSeconds:15,
+    options:["Girk","Hagust","Snund","Nver"], correct:2,
+    status:"published", createdAt:"2025-04-02" },
+
+  // ── Video questions ──────────────────────────────────────────────────────────
+  { id:35, type:"video", level:"B2", section:"Լสел / Tesnел", points:4,
+    text:"Diti՛r hatzvatze. Vor temayi masin e patmum banakhose?",
+    videoUrl:"https://www.w3schools.com/html/mov_bbb.mp4",
+    maxPlays:1,
+    options:["Bnapahpanutyun","Tntesut'yun","Krtutyun","Mshakuyt"], correct:0,
+    status:"published", createdAt:"2025-04-03" },
+
+  { id:36, type:"video", level:"C1", section:"Լสел / Tesnел", points:5,
+    text:"Diti՛r harcazruytze. Inch khndir e bardzracnum hyure?",
+    videoUrl:"https://www.w3schools.com/html/movie.mp4",
+    maxPlays:1,
+    options:["Lezvi pahpanum","Texnologia","Sport","Arvest"], correct:0,
+    status:"published", createdAt:"2025-04-04" },
+
+  // ── Voice (recording) questions ──────────────────────────────────────────────
+  { id:37, type:"voice", level:"B1", section:"Khosel", points:3,
+    text:"Dzaynagri՛r pataskhand. «Patmi՛r qo sirats toni masin» (30-60 vrkyan):",
+    maxDuration:60, minDuration:15,
+    status:"published", createdAt:"2025-04-05" },
+
+  { id:38, type:"voice", level:"C1", section:"Khosel", points:5,
+    text:"Dzaynagri՛r. «Inch kmnti zamanakakic hayereni zargacman masin» (45-90 vrkyan):",
+    maxDuration:90, minDuration:30,
+    status:"published", createdAt:"2025-04-06" },
 ];
 
 export const STUDENTS = [
