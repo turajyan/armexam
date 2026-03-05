@@ -6,6 +6,7 @@ import questionsRoutes from "./routes/questions.js";
 import studentsRoutes from "./routes/students.js";
 import examsRoutes from "./routes/exams.js";
 import resultsRoutes from "./routes/results.js";
+import registerRoutes from "./routes/register.js";
 
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -24,6 +25,7 @@ await fastify.register(questionsRoutes);
 await fastify.register(studentsRoutes);
 await fastify.register(examsRoutes);
 await fastify.register(resultsRoutes);
+await fastify.register(registerRoutes);
 
 // Health check
 fastify.get("/health", async () => ({ ok: true }));

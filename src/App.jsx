@@ -6,6 +6,7 @@ import AdminStudents   from "./pages/AdminStudents";
 import AdminAnalytics  from "./pages/AdminAnalytics";
 import AdminMedia      from "./pages/AdminMedia";
 import AdminSettings   from "./pages/AdminSettings";
+import RegisterPage    from "./pages/RegisterPage";
 import { THEMES, DEFAULT_THEME, THEME_KEY } from "./theme.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
@@ -37,6 +38,16 @@ export default function App() {
   );
 
   const T = THEMES[themeId] || THEMES[DEFAULT_THEME];
+
+  // Public registration page — accessible via URL hash #register
+  if (window.location.hash === "#register") {
+    return (
+      <>
+        <style>{FONTS}{`*{box-sizing:border-box;margin:0;padding:0}body{background:${T.bg};color:${T.text}}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}::-webkit-scrollbar-track{background:transparent}`}</style>
+        <RegisterPage theme={T} />
+      </>
+    );
+  }
   const current = NAV.find(n => n.id === page);
   const CurrentPage = PAGE_MAP[page];
 
@@ -74,6 +85,13 @@ export default function App() {
           ))}
 
           <div style={{ flex:1 }} />
+
+          {/* Registration link */}
+          <a href="#register" target="_blank" rel="noreferrer" title="Страница регистрации студентов"
+            style={{ width:50, height:50, borderRadius:12, background:"transparent", border:`1px solid ${T.border}`, cursor:"pointer", fontSize:19, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, textDecoration:"none", marginBottom:4 }}>
+            📝
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:T.muted, letterSpacing:.2 }}>Reg</span>
+          </a>
 
           {/* Theme switcher */}
           <div style={{ display:"flex", flexDirection:"column", gap:4, marginBottom:8, alignItems:"center" }}>
