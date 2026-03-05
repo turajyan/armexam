@@ -480,12 +480,31 @@ function ExamWizard({ initial, onSave, onCancel }) {
   );
 
   const STEP_CONTENT = [<Step0/>,<Step1/>,<Step2/>,<Step3/>];
+  const STEP_LABELS = ["General", "Questions", "Students", "Schedule & Settings"];
   const canProceed = [
     form.title.trim().length > 0,
     form.examType === "placement" ? true : form.questionIds.length > 0,
     form.assignedTo.length > 0,
     true,
   ];
+
+  // Edit mode: show all sections at once
+  if (isEdit) return (
+    <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+      {STEP_CONTENT.map((content, i) => (
+        <div key={i} style={{ marginBottom:28 }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:16, paddingBottom:8, borderBottom:`1px solid ${C.border}` }}>
+            {STEP_LABELS[i]}
+          </div>
+          {content}
+        </div>
+      ))}
+      <div style={{ display:"flex", justifyContent:"space-between", marginTop:8, paddingTop:20, borderTop:`1px solid ${C.border}` }}>
+        <Btn onClick={onCancel}>Cancel</Btn>
+        <Btn variant="primary" onClick={()=>onSave(form)}>✓ Save</Btn>
+      </div>
+    </div>
+  );
 
   return (
     <div>
@@ -499,7 +518,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
           {step<3 && <Btn variant="ghost" onClick={()=>set("status","draft")}>Save Draft</Btn>}
           {step < 3
             ? <Btn variant="primary" disabled={!canProceed[step]} onClick={()=>setStep(s=>s+1)}>Next →</Btn>
-            : <Btn variant="primary" onClick={()=>onSave(form)}>{isEdit?"✓ Save":"✓ Create"}</Btn>
+            : <Btn variant="primary" onClick={()=>onSave(form)}>✓ Create</Btn>
           }
         </div>
       </div>
