@@ -448,8 +448,9 @@ function ExamWizard({ initial, onSave, onCancel }) {
         <Input label="Start Time" value={form.startTime} onChange={v=>set("startTime",v)} type="time" />
         <Input label="End Time" value={form.endTime} onChange={v=>set("endTime",v)} type="time" />
       </div>
-      <Select label="Settings" value={form.status} onChange={v=>set("status",v)} options={Object.entries(STATUS_META).map(([v,m])=>({value:v,label:m.label}))} />
+      <Select label="Status" value={form.status} onChange={v=>set("status",v)} options={Object.entries(STATUS_META).map(([v,m])=>({value:v,label:m.label}))} />
       <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+        <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",paddingBottom:4,borderBottom:`1px solid ${C.border}` }}>Behaviour</div>
         <Toggle label="Show results to student" hint="Show results to student after exam" value={form.showResults} onChange={v=>set("showResults",v)} />
         <Toggle label="Allow Answer Review" hint="Allow answer review after submission" value={form.allowReview} onChange={v=>set("allowReview",v)} />
         <Toggle label="Show question level (A1–C2) to student" hint="Students see the level badge on each question during the exam" value={form.showQuestionLevel??true} onChange={v=>set("showQuestionLevel",v)} />
@@ -464,7 +465,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
         <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12 }}>
           {[
             { label:"Questions", value: form.questionIds.length, color:C.gold },
-            { label:"Settings",   value: pts,                    color:C.warning },
+            { label:"Points",  value: pts,                    color:C.warning },
             { label:"Student", value: form.assignedTo.length,  color:C.info },
             { label:"Pass %", value: form.passingScore+"%",   color:C.success },
           ].map(x=>(
