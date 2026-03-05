@@ -491,6 +491,29 @@ function ViewQuestion({ q, onEdit, onClose }) {
         <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, lineHeight:1.7, margin:0 }}>{q.text}</p>
       </div>
 
+      {/* Audio player preview */}
+      {q.type === "audio" && q.audioSrc && (
+        <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 20px" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:12 }}>Audio File</div>
+          <audio controls src={q.audioSrc} style={{ width:"100%", accentColor:C.gold }} preload="metadata" />
+          {q.maxPlays && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginTop:8 }}>
+            Max plays: <strong style={{color:C.gold}}>{q.maxPlays}×</strong>
+            {q.pauseSeconds ? <> · Pause between plays: <strong style={{color:C.gold}}>{q.pauseSeconds}s</strong></> : null}
+          </div>}
+        </div>
+      )}
+
+      {/* Video player preview */}
+      {q.type === "video" && q.videoSrc && (
+        <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 20px" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:12 }}>Video File</div>
+          <video controls src={q.videoSrc} style={{ width:"100%", borderRadius:8, maxHeight:300 }} preload="metadata" />
+          {q.maxPlays && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginTop:8 }}>
+            Max plays: <strong style={{color:C.gold}}>{q.maxPlays}×</strong>
+          </div>}
+        </div>
+      )}
+
       {/* Options */}
       {hasOptions && (
         <div>
@@ -596,20 +619,6 @@ function ViewQuestion({ q, onEdit, onClose }) {
               <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.gold, fontWeight:700 }}>{v}</div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Audio/Video config */}
-      {(q.maxPlays || q.pauseSeconds) && (
-        <div style={{ display:"flex", gap:10 }}>
-          {q.maxPlays && <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px" }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Max Plays</div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.gold, fontWeight:700 }}>{q.maxPlays}×</div>
-          </div>}
-          {q.pauseSeconds && <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px" }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Pause Between</div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.gold, fontWeight:700 }}>{q.pauseSeconds}s</div>
-          </div>}
         </div>
       )}
 
