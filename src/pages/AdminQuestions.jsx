@@ -19,16 +19,7 @@ const QTYPES = [
   { id:"voice",         label:"Voice",         icon:"🎤", color:"#fb923c" },
 ];
 
-// ── Seed data ────────────────────────────────────────────────────────────────
-const SEED = [
-  { id:1, type:"single_choice", level:"A2", section:"Կարդալ",      points:1, status:"published", text:"Ընտրի՛ր ճիշտ պատասխանը. «Ես ___ դպրոց եմ գնում»",          options:["դեպի","մոտ","կողքին","առաջ"],  correct:0,   createdAt:"2025-01-10" },
-  { id:2, type:"multi_choice",  level:"B1", section:"Քերականություն",points:2, status:"published", text:"Ո՞ր նախադասություններն են ճիշտ",                            options:["Նա կարդում է","Ես գնաcի","Դու կուտես","Նա գալու է"], correct:[0,1], createdAt:"2025-01-11" },
-  { id:3, type:"audio",         level:"B2", section:"Լսել",          points:3, status:"draft",    text:"Լսի՛ր և պատասխանի՛ր — ինչի՞ մասին է խոսում բանախոսը",     options:["Ճամփ.","Ընտ.","Աշխ.","Կրթ."],  correct:2,   maxPlays:2, pauseSeconds:25, createdAt:"2025-02-03" },
-  { id:4, type:"video",         level:"C1", section:"Լսել / Տեսնել", points:4, status:"published", text:"Դիտի՛ր տեսանյութը — ո՞ր թեման է հիմնականը",               options:["Քաղ.","Բնապ.","Տնտ.","Մշակ."],  correct:1,   maxPlays:2, createdAt:"2025-02-10" },
-  { id:5, type:"multi_select",  level:"B2", section:"Բառապաշար",    points:3, status:"published", text:"Ընտրի՛ր բոլոր բառերը կապված «ճամփ.» թեմայի հետ",          options:["ինքն.","բժ.","կայ.","ճամ.","դպ.","անձ."], correct:[0,2,3,5], createdAt:"2025-02-15" },
-  { id:6, type:"fill_blank",    level:"A1", section:"Գրել",          points:1, status:"draft",    text:"Լրացրո՛ւ. «Ես ___ եմ» (to be)",                            answer:"եմ", createdAt:"2025-03-01" },
-  { id:7, type:"writing",       level:"C2", section:"Ազատ շարադրություն",points:10,status:"published",text:"Գրի՛ր 150-200 բառ. «Ժամ. տեխ. ազդ. հայ. լեզ. վրա»", minWords:150, maxWords:200, createdAt:"2025-03-05" },
-];
+const SEED = DATA_QUESTIONS.map(q => ({ ...q, status: q.status || "published", createdAt: q.createdAt || "2025-01-01" }));
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
