@@ -731,7 +731,7 @@ function ExamsPage() {
           <h1 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:32,color:C.text,margin:"0 0 4px",fontWeight:600 }}>Exam Management</h1>
           <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,margin:0 }}>Exam Management · Create & Assign</p>
         </div>
-        <Btn variant="primary" onClick={()=>{setEditing(null);setModal("create")}}}>+ New Exam</Btn>
+        <Btn variant="primary" onClick={()=>{setEditing(null);setModal("create")}}>+ New Exam</Btn>
       </div>
 
       {/* Status cards */}
