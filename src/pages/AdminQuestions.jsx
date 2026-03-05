@@ -5,7 +5,7 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+G
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
-const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
+const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
 const SECTIONS = ["Կարդալ","Գրել","Լսել","Քերականություն","Բառապաշար","Լսել / Տեսնել","Ազատ շարադրություն"];
 const QTYPES = [
   { id:"single_choice", label:"Single Choice", icon:"◉", color:"#60a5fa" },
