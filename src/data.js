@@ -144,28 +144,64 @@ export function buildExamQuestions(exam) {
   return exam.shuffle ? [...qs].sort(() => Math.random() - 0.5) : qs;
 }
 
-// Compute placement result from answers
+// Compute placement result from answers — per-level scoring
 export function computePlacementLevel(exam, questions, answers) {
   const thresholds = exam.placementThresholds || {};
-  const totalPts = (exam.placementTemplate || []).reduce((s, r) => s + r.count * r.pointsEach, 0);
-
-  let earned = 0;
-  questions.forEach(q => {
-    const a = answers[q.id];
-    if (!a && a !== 0) return;
-    if (q.type === "single_choice") { if (a === q.correct) earned += q.points; }
-    else if (q.type === "multi_choice" || q.type === "multi_select") {
-      if ([...(a||[])].sort().join() === [...q.correct].sort().join()) earned += q.points;
-    } else if (q.type === "fill_blank") {
-      if ((a||"").toLowerCase().trim() === (q.answer||"").toLowerCase()) earned += q.points;
-    }
-  });
-
-  const pct = totalPts > 0 ? Math.round((earned / totalPts) * 100) : 0;
   const LEVELS_ORDER = ["A1","A2","B1","B2","C1","C2"];
+
+  // 1. Score each level separately
+  const levelStats = {};
+  for (const lvl of LEVELS_ORDER) {
+    const lvlQuestions = questions.filter(q => q.level === lvl);
+    if (lvlQuestions.length === 0) continue;
+
+    let earned = 0;
+    let maxPts = 0;
+
+    for (const q of lvlQuestions) {
+      const a = answers[q.id];
+      maxPts += q.points;
+      if (a === undefined || a === null || a === "" || (Array.isArray(a) && !a.length)) continue;
+
+      if (q.type === "single_choice") {
+        if (a === q.correct) earned += q.points;
+      } else if (q.type === "multi_choice" || q.type === "multi_select") {
+        if ([...(a||[])].sort().join() === [...(q.correct||[])].sort().join()) earned += q.points;
+      } else if (q.type === "fill_blank") {
+        if ((a||"").toLowerCase().trim() === (q.answer||"").toLowerCase()) earned += q.points;
+      } else if (q.type === "fill_wordbank") {
+        // partial credit: 1 point per correctly placed word
+        const correct = q.correct || [];
+        let hits = 0;
+        correct.forEach((wi, blankId) => {
+          if (a[blankId] === (q.wordBank||[])[wi]) hits++;
+        });
+        earned += Math.round((hits / (correct.length || 1)) * q.points);
+      }
+      // writing/voice: skipped (manual grading)
+    }
+
+    const pct = maxPts > 0 ? Math.round((earned / maxPts) * 100) : 0;
+    levelStats[lvl] = { earned, maxPts, pct };
+  }
+
+  // 2. Determine highest level where student meets the threshold
+  // AND all lower levels are also met (no gaps — must pass A1 before B1 etc.)
   let detectedLevel = "Below A1";
   for (const lvl of LEVELS_ORDER) {
-    if (pct >= (thresholds[lvl] ?? 999)) detectedLevel = lvl;
+    if (!levelStats[lvl]) continue;
+    const threshold = thresholds[lvl] ?? 60; // default 60% per level
+    if (levelStats[lvl].pct >= threshold) {
+      detectedLevel = lvl;
+    } else {
+      break; // gap found — stop here
+    }
   }
-  return { earned, totalPts, pct, detectedLevel };
+
+  // 3. Overall totals for display
+  const totalEarned = Object.values(levelStats).reduce((s, l) => s + l.earned, 0);
+  const totalPts    = Object.values(levelStats).reduce((s, l) => s + l.maxPts, 0);
+  const pct = totalPts > 0 ? Math.round((totalEarned / totalPts) * 100) : 0;
+
+  return { earned: totalEarned, totalPts, pct, detectedLevel, levelStats };
 }
