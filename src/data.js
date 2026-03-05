@@ -136,6 +136,74 @@ export const QUESTIONS = [
     text:"Ձայնագրի՛ր. «Ի՞նչ կմնտեիր զամանակակիչ հայերենի զարգացման մասին» (45–90 վրկյան).",
     maxSeconds:90, minSeconds:30, maxAttempts:2,
     status:"published", createdAt:"2025-04-06" },
+  // ── Extra questions to fill subpools ─────────────────────────────────────────
+
+  // A1 Reading +1 (need 3, have 2)
+  { id:39, type:"single_choice", level:"A1", section:"Reading", points:1,
+    text:"Ո՞ր բառն է ճիշտ. «Ես ___ եմ»",
+    options:["ուրախ","ուրախ են","ուրախ ենք","ուրախ է"], correct:0, status:"published", createdAt:"2025-01-01" },
+
+  // A1 Grammar +1 (need 2, have 1)
+  { id:40, type:"single_choice", level:"A1", section:"Grammar", points:1,
+    text:"Ո՞ր նախադասությունն է ճիշտ կազմված",
+    options:["Ես գնում եմ","Ես եմ","Գնում ես","Եմ գնում"], correct:0, status:"published", createdAt:"2025-01-01" },
+
+  // A2 Reading +1 (need 3, have 2)
+  { id:41, type:"single_choice", level:"A2", section:"Reading", points:1,
+    text:"«Նա ամեն օր վաղ արթնանում է» — ի՞նչ է նշանակում",
+    options:["Ուշ քնում է","Ուշ արթնանում է","Վաղ արթնանում է","Երբեք չի քնում"], correct:2, status:"published", createdAt:"2025-01-01" },
+
+  // A2 Vocabulary +1 (need 2, have 1)
+  { id:42, type:"single_choice", level:"A2", section:"Vocabulary", points:1,
+    text:"«Շուկա» բառի հոմանիշն է",
+    options:["Այգի","Bazaar","Դպրոց","Հիվանդանոց"], correct:1, status:"published", createdAt:"2025-01-01" },
+
+  // B1 Reading +1 (need 2, have 1)
+  { id:43, type:"single_choice", level:"B1", section:"Reading", points:2,
+    text:"Ո՞ր նախադասությունն է կրավորական սեռով",
+    options:["Նա գրեց նամակ","Նամակը գրվեց","Գրեց նամակ","Նամակ գրեցին"], correct:1, status:"published", createdAt:"2025-01-01" },
+
+  // B1 Listening +1 (need 2, have 1)
+  { id:44, type:"single_choice", level:"B1", section:"Listening", points:2,
+    text:"Ո՞ր արտահայտությունն է ճիշտ՝ հարցնելու համար ուղղություն",
+    options:["Ո՞ւր է գնում","Ո՞ւր կգնաս","Ինչ՞ կանես","Ե՞ րբ կտեսնեք"], correct:0, status:"published", createdAt:"2025-01-01" },
+
+  // B2 Reading +1 (need 2, have 1)
+  { id:45, type:"multi_choice", level:"B2", section:"Reading", points:3,
+    text:"Ո՞ր բառերն են բնութագրում լավ ղեկավարի հատկությունները",
+    options:["Համբերատար","Ազնիվ","Ագրեսիվ","Կազմակերպված"], correct:[0,1,3], status:"published", createdAt:"2025-01-01" },
+
+  // B2 Listening +2 (need 2, have 0)
+  { id:46, type:"single_choice", level:"B2", section:"Listening", points:3,
+    text:"Ո՞ր հոմանիշն է ճիշտ «լսել» բային",
+    options:["Տեսնել","Ընկալել","Խոսել","Կարդալ"], correct:1, status:"published", createdAt:"2025-01-01" },
+  { id:47, type:"single_choice", level:"B2", section:"Listening", points:3,
+    text:"Ի՞նչ է նշանակում «귀를 기울이다» հայերեն — ուշադիր լսել",
+    options:["Ուշադիր լսել","Անտեսել","Պատասխանել","Հարցնել"], correct:0, status:"published", createdAt:"2025-01-01" },
+
+  // C1 Reading +1 (need 2, have 1)
+  { id:48, type:"multi_select", level:"C1", section:"Reading", points:4,
+    text:"Ո՞ր հատկանիշներն են բնորոշ գիտական ոճին",
+    options:["Ճշգրտություն","Հուզականություն","Օբյեկտիվություն","Պատկերավորություն"], correct:[0,2], status:"published", createdAt:"2025-01-01" },
+
+  // C1 Listening +2 (need 2, have 0)
+  { id:49, type:"single_choice", level:"C1", section:"Listening", points:4,
+    text:"Ո՞ր բառն է հոմանիշ «ընկալել»-ի",
+    options:["Տեսնել","Հասկանալ","Կարդալ","Խոսել"], correct:1, status:"published", createdAt:"2025-01-01" },
+  { id:50, type:"single_choice", level:"C1", section:"Listening", points:4,
+    text:"Ի՞նչ է նշանակում «ականջ դնել»",
+    options:["Ուշադիր լսել","Ձայն հանել","Երգ երգել","Հեռախոս վերցնել"], correct:0, status:"published", createdAt:"2025-01-01" },
+
+  // C2 Reading +1 (need 2, have 1)
+  { id:51, type:"multi_select", level:"C2", section:"Reading", points:5,
+    text:"Ո՞ր արտահայտություններն ունեն փոխաբերական իմաստ",
+    options:["Սիրտ կտրել","Ջուր խմել","Ձեռք մեկնել","Հաց ուտել"], correct:[0,2], status:"published", createdAt:"2025-01-01" },
+
+  // C2 Grammar +1 (need 2, have 1)
+  { id:52, type:"fill_blank", level:"C2", section:"Grammar", points:5,
+    text:"Լրացրո՛ւ. «Եթե ավելի շատ կարդայի, ___ ավելի շատ բան» (իմանալ — անցյալ կատարյալ)",
+    answer:"կիմանայի", status:"published", createdAt:"2025-01-01" },
+
 ];
 
 export const STUDENTS = [
