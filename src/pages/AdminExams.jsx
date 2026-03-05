@@ -131,6 +131,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true, questionIds:[], assignedTo:[], startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"" };
   const blankPlacement = { examType:"placement", title:"", level:null, duration:90, passingScore:null, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true, showPlacementThreshold:true,
     startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"",
+    questionIds:[], assignedTo:[],
     placementTemplate:[
       { level:"A1", count:5, pointsEach:1 },
       { level:"A2", count:5, pointsEach:1 },
@@ -483,8 +484,8 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const STEP_LABELS = ["General", "Questions", "Students", "Schedule & Settings"];
   const canProceed = [
     form.title.trim().length > 0,
-    form.examType === "placement" ? true : form.questionIds.length > 0,
-    form.assignedTo.length > 0,
+    form.examType === "placement" ? true : (form.questionIds||[]).length > 0,
+    (form.assignedTo||[]).length > 0,
     true,
   ];
 
