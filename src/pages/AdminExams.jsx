@@ -165,7 +165,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const placementTotalQ = (form.placementTemplate||[]).reduce((s,r)=>s+r.count,0);
   const placementTotalPts = (form.placementTemplate||[]).reduce((s,r)=>s+r.count*r.pointsEach,0);
 
-  const Step0 = () => (
+  const step0 = (
     <div style={{ display:"flex",flexDirection:"column",gap:22 }}>
 
       {/* ── Exam Type selector ── */}
@@ -304,7 +304,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
   );
 
   // Step 1 — Questions (fixed) or Pool overview (placement)
-  const Step1 = () => {
+  const step1 = (()=>{
     if (form.examType === "placement") {
       // Placement: show pool status per level - how many questions exist vs needed
       return (
@@ -386,10 +386,10 @@ function ExamWizard({ initial, onSave, onCancel }) {
         <Toggle label="Shuffle Questions" hint="Randomize question order for each student" value={form.shuffle} onChange={v=>set("shuffle",v)} />
       </div>
     );
-  };
+  })();
 
   // Step 2 — Students
-  const Step2 = () => {
+  const step2 = (()=>{
     const groups = [...new Set(SEED_STUDENTS.map(s=>s.group))];
     const toggleGroup = (g) => {
       const ids = SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
@@ -438,10 +438,10 @@ function ExamWizard({ initial, onSave, onCancel }) {
         </div>
       </div>
     );
-  };
+  })();
 
   // Step 3 — Schedule & settings
-  const Step3 = () => (
+  const step3 = (
     <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
       <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
         <Input label="Start Date" value={form.startDate} onChange={v=>set("startDate",v)} type="date" />
@@ -480,7 +480,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
     </div>
   );
 
-  const STEP_CONTENT = [<Step0/>,<Step1/>,<Step2/>,<Step3/>];
+  const STEP_CONTENT = [step0,step1,step2,step3];
   const STEP_LABELS = ["General", "Questions", "Students", "Schedule & Settings"];
   const canProceed = [
     form.title.trim().length > 0,
