@@ -75,13 +75,20 @@ function Textarea({ label, value, onChange, placeholder, rows=4 }) {
   );
 }
 
-function UploadZone({ label, accept, icon, hint, onFile, fileName }) {
+function UploadZone({ label, accept, icon, hint, onFile, fileName, onClear }) {
   const [drag, setDrag] = useState(false);
   const ref = useRef();
   const handleFile = f => { if (f && onFile) onFile(f); };
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
-      {label && <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>}
+      {label && (
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>
+          {fileName && onClear && (
+            <button onClick={onClear} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 2px", lineHeight:1 }} title="Remove">✕</button>
+          )}
+        </div>
+      )}
       <div
         onClick={()=>ref.current.click()}
         onDragOver={e=>{e.preventDefault();setDrag(true)}}
@@ -262,30 +269,39 @@ function QuestionForm({ initial, onSave, onCancel }) {
               <UploadZone label="🎧 Audio file" accept="audio/*" icon="🎧" hint="MP3, WAV, OGG · max 50MB"
                 fileName={q.audioSrc ? (q.audioSrc.split("/").pop().split("?")[0] || "audio") : null}
                 onFile={f => { const url = URL.createObjectURL(f); set("audioSrc", url); set("_audioFile", f); }}
+                onClear={() => { set("audioSrc", ""); set("_audioFile", null); }}
               />
-              <input value={q.audioSrc||""} onChange={e=>set("audioSrc",e.target.value)}
-                placeholder="или URL: https://..."
-                style={{ background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 12px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, outline:"none" }}
-              />
+              <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                <input value={q.audioSrc||""} onChange={e=>set("audioSrc",e.target.value)}
+                  placeholder="or URL: https://..."
+                  style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 12px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, outline:"none" }}
+                />
+                {q.audioSrc && <button onClick={()=>{ set("audioSrc",""); set("_audioFile",null); }} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 4px" }} title="Clear">✕</button>}
+              </div>
               {q.audioSrc && <audio controls src={q.audioSrc} style={{ width:"100%", accentColor:C.gold }} preload="metadata" />}
             </div>
           )}
           {q.type==="video" && (
             <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              <UploadZone label="🎬 Тесанютт" accept="video/*" icon="🎬" hint="MP4, WebM · max 500MB"
+              <UploadZone label="🎬 Video file" accept="video/*" icon="🎬" hint="MP4, WebM · max 500MB"
                 fileName={q.videoSrc ? (q.videoSrc.split("/").pop().split("?")[0] || "video") : null}
                 onFile={f => { const url = URL.createObjectURL(f); set("videoSrc", url); set("_videoFile", f); }}
+                onClear={() => { set("videoSrc", ""); set("_videoFile", null); }}
               />
-              <input value={q.videoSrc||""} onChange={e=>set("videoSrc",e.target.value)}
-                placeholder="или URL: https://..."
-                style={{ background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 12px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, outline:"none" }}
-              />
+              <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                <input value={q.videoSrc||""} onChange={e=>set("videoSrc",e.target.value)}
+                  placeholder="or URL: https://..."
+                  style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 12px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, outline:"none" }}
+                />
+                {q.videoSrc && <button onClick={()=>{ set("videoSrc",""); set("_videoFile",null); }} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 4px" }} title="Clear">✕</button>}
+              </div>
               {q.videoSrc && <video controls src={q.videoSrc} style={{ width:"100%", borderRadius:8, maxHeight:180 }} preload="metadata" />}
             </div>
           )}
-          <UploadZone label="Нкар (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
+          <UploadZone label="Image (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
             fileName={q.imageSrc ? (q.imageSrc.split("/").pop().split("?")[0] || "image") : null}
             onFile={f => { const url = URL.createObjectURL(f); set("imageSrc", url); }}
+            onClear={() => set("imageSrc", "")}
           />
         </div>
       )}
@@ -293,6 +309,7 @@ function QuestionForm({ initial, onSave, onCancel }) {
         <UploadZone label="Image (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
           fileName={q.imageSrc ? (q.imageSrc.split("/").pop().split("?")[0] || "image") : null}
           onFile={f => { const url = URL.createObjectURL(f); set("imageSrc", url); }}
+          onClear={() => set("imageSrc", "")}
         />
       )}
 
