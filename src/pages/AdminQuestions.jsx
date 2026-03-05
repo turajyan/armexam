@@ -295,8 +295,6 @@ function QuestionForm({ initial, onSave, onCancel }) {
           onFile={f => { const url = URL.createObjectURL(f); set("imageSrc", url); }}
         />
       )}
-        <UploadZone label="Նկար (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB" />
-      )}
 
       {/* Replay settings for audio/video */}
       {hasMedia && (
