@@ -75,10 +75,10 @@ function Textarea({ label, value, onChange, placeholder, rows=4 }) {
   );
 }
 
-function UploadZone({ label, accept, icon, hint }) {
+function UploadZone({ label, accept, icon, hint, onFile, fileName }) {
   const [drag, setDrag] = useState(false);
-  const [file, setFile] = useState(null);
   const ref = useRef();
+  const handleFile = f => { if (f && onFile) onFile(f); };
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
       {label && <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>}
@@ -86,18 +86,18 @@ function UploadZone({ label, accept, icon, hint }) {
         onClick={()=>ref.current.click()}
         onDragOver={e=>{e.preventDefault();setDrag(true)}}
         onDragLeave={()=>setDrag(false)}
-        onDrop={e=>{e.preventDefault();setDrag(false);setFile(e.dataTransfer.files[0])}}
-        style={{ border:`2px dashed ${drag?C.gold:file?C.success:C.border2}`, borderRadius:12, padding:"24px 16px", textAlign:"center", cursor:"pointer", transition:"all .2s", background:drag?C.gold+"08":file?C.success+"08":"transparent" }}>
+        onDrop={e=>{e.preventDefault();setDrag(false);handleFile(e.dataTransfer.files[0])}}
+        style={{ border:`2px dashed ${drag?C.gold:fileName?C.success:C.border2}`, borderRadius:12, padding:"24px 16px", textAlign:"center", cursor:"pointer", transition:"all .2s", background:drag?C.gold+"08":fileName?C.success+"08":"transparent" }}>
         <div style={{ fontSize:28, marginBottom:6 }}>{icon}</div>
-        {file ? (
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.success }}>{file.name}</div>
+        {fileName ? (
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.success }}>{fileName}</div>
         ) : (
           <>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>Քաշի՛ր կամ սեղմի՛ր</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>Քаши՛р кам сехми՛р</div>
             <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.dim, marginTop:4 }}>{hint}</div>
           </>
         )}
-        <input ref={ref} type="file" accept={accept} style={{ display:"none" }} onChange={e=>setFile(e.target.files[0])} />
+        <input ref={ref} type="file" accept={accept} style={{ display:"none" }} onChange={e=>handleFile(e.target.files[0])} />
       </div>
     </div>
   );
@@ -254,40 +254,47 @@ function QuestionForm({ initial, onSave, onCancel }) {
       {/* Question text */}
       <Textarea label="Հարցի տեքստ" value={q.text} onChange={v=>set("text",v)} placeholder="Գրի՛ր հարցը հայերեն..." rows={3} />
 
-      {/* Media URL */}
+      {/* Media upload */}
       {hasMedia && (
-        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
           {q.type==="audio" && (
             <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>🎧 Audio URL (MP3 / OGG / WAV)</label>
-              <input
-                value={q.audioSrc||""}
-                onChange={e=>set("audioSrc",e.target.value)}
-                placeholder="https://example.com/audio.mp3"
-                style={{ background:C.panel, border:`1.5px solid ${q.audioSrc?C.gold+"66":C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", transition:"border .2s" }}
+              <UploadZone label="🎧 Ձайнагрություн" accept="audio/*" icon="🎧" hint="MP3, WAV, OGG · max 50MB"
+                fileName={q.audioSrc ? (q.audioSrc.split("/").pop().split("?")[0] || "audio") : null}
+                onFile={f => { const url = URL.createObjectURL(f); set("audioSrc", url); set("_audioFile", f); }}
               />
-              {q.audioSrc && (
-                <audio controls src={q.audioSrc} style={{ width:"100%", marginTop:4, accentColor:C.gold }} preload="metadata" />
-              )}
+              <input value={q.audioSrc||""} onChange={e=>set("audioSrc",e.target.value)}
+                placeholder="или URL: https://..."
+                style={{ background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 12px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, outline:"none" }}
+              />
+              {q.audioSrc && <audio controls src={q.audioSrc} style={{ width:"100%", accentColor:C.gold }} preload="metadata" />}
             </div>
           )}
           {q.type==="video" && (
             <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>🎬 Video URL (MP4 / WebM)</label>
-              <input
-                value={q.videoSrc||""}
-                onChange={e=>set("videoSrc",e.target.value)}
-                placeholder="https://example.com/video.mp4"
-                style={{ background:C.panel, border:`1.5px solid ${q.videoSrc?C.gold+"66":C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", transition:"border .2s" }}
+              <UploadZone label="🎬 Тесанютт" accept="video/*" icon="🎬" hint="MP4, WebM · max 500MB"
+                fileName={q.videoSrc ? (q.videoSrc.split("/").pop().split("?")[0] || "video") : null}
+                onFile={f => { const url = URL.createObjectURL(f); set("videoSrc", url); set("_videoFile", f); }}
               />
-              {q.videoSrc && (
-                <video controls src={q.videoSrc} style={{ width:"100%", borderRadius:8, maxHeight:240, marginTop:4 }} preload="metadata" />
-              )}
+              <input value={q.videoSrc||""} onChange={e=>set("videoSrc",e.target.value)}
+                placeholder="или URL: https://..."
+                style={{ background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 12px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, outline:"none" }}
+              />
+              {q.videoSrc && <video controls src={q.videoSrc} style={{ width:"100%", borderRadius:8, maxHeight:180 }} preload="metadata" />}
             </div>
           )}
+          <UploadZone label="Нкар (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
+            fileName={q.imageSrc ? (q.imageSrc.split("/").pop().split("?")[0] || "image") : null}
+            onFile={f => { const url = URL.createObjectURL(f); set("imageSrc", url); }}
+          />
         </div>
       )}
       {!hasMedia && !hasBlank && !hasWordBank && !hasWriting && !hasVoice && (
+        <UploadZone label="Нкар (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
+          fileName={q.imageSrc ? (q.imageSrc.split("/").pop().split("?")[0] || "image") : null}
+          onFile={f => { const url = URL.createObjectURL(f); set("imageSrc", url); }}
+        />
+      )}
         <UploadZone label="Նկար (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB" />
       )}
 
