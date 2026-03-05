@@ -712,7 +712,7 @@ function ExamsPage() {
 
   const handleSave = (form) => {
     if (modal==="edit") setExams(es=>es.map(e=>e.id===form.id?{...form}:e));
-    else setExams(es=>[{...form,id:Date.now(),createdAt:new Date().toISOString().slice(0,10)},...es]);
+    else setExams(es=>[{...form,id:Math.max(0,...es.map(x=>x.id))+1,createdAt:new Date().toISOString().slice(0,10)},...es]);
     setModal(null); setEditing(null);
   };
   const handleDelete = (id) => { setExams(es=>es.filter(e=>e.id!==id)); setDeleteId(null); };

@@ -667,7 +667,7 @@ function QuestionsPage() {
     if (modal==="edit") {
       setQuestions(qs=>qs.map(x=>x.id===q.id?q:x));
     } else {
-      const newQ = { ...q, id: Date.now(), createdAt: new Date().toISOString().slice(0,10) };
+      const newQ = { ...q, id: Math.max(0, ...questions.map(x=>x.id)) + 1, createdAt: new Date().toISOString().slice(0,10) };
       setQuestions(qs=>[newQ,...qs]);
     }
     setModal(null); setEditing(null);
