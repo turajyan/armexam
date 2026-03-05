@@ -245,10 +245,10 @@ function QuestionForm({ initial, onSave, onCancel }) {
 
       {/* Row: level + section + points + status */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 100px", gap:14 }}>
-        <Select label="Մակարդակ" value={q.level} onChange={v=>set("level",v)} options={LEVELS} />
-        <Select label="Բաժին" value={q.section} onChange={v=>set("section",v)} options={SECTIONS} />
-        <Input label="Կետ" value={q.points} onChange={v=>set("points",+v)} type="number" />
-        <Select label="Կարգ." value={q.status} onChange={v=>set("status",v)} options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
+        <Select label="Level" value={q.level} onChange={v=>set("level",v)} options={LEVELS} />
+        <Select label="Section" value={q.section} onChange={v=>set("section",v)} options={SECTIONS} />
+        <Input label="Points" value={q.points} onChange={v=>set("points",+v)} type="number" />
+        <Select label="Status" value={q.status} onChange={v=>set("status",v)} options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
       </div>
 
       {/* Question text */}
@@ -731,7 +731,7 @@ function QuestionsPage() {
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 20px", marginBottom:20, display:"flex", gap:16, flexWrap:"wrap", alignItems:"center" }}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search questions..." style={{ flex:"1 1 200px", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-          <Pill label="Բոլոր" active={filterType==="all"} onClick={()=>setFilterType("all")} />
+          <Pill label="All" active={filterType==="all"} onClick={()=>setFilterType("all")} />
           {QTYPES.map(t=><Pill key={t.id} label={t.icon+" "+t.label} active={filterType===t.id} onClick={()=>setFilterType(t.id)} color={t.color} />)}
         </div>
         <div style={{ display:"flex", gap:6 }}>
@@ -739,7 +739,7 @@ function QuestionsPage() {
           {LEVELS.map(l=><Pill key={l} label={l} active={filterLevel===l} onClick={()=>setFilterLevel(l)} color={LEVEL_COLORS[l]} />)}
         </div>
         <div style={{ display:"flex", gap:6 }}>
-          {[["all","Բոլոր"],["published","Published"],["draft","Draft"]].map(([v,label])=>(
+          {[["all","All"],["published","Published"],["draft","Draft"]].map(([v,label])=>(
             <Pill key={v} label={label} active={filterStatus===v} onClick={()=>setFilterStatus(v)} color={v==="published"?C.success:v==="draft"?"#f59e0b":C.gold} />
           ))}
         </div>
@@ -749,7 +749,7 @@ function QuestionsPage() {
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
         {/* Head */}
         <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 70px 90px 90px 130px", gap:14, padding:"11px 20px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
-          {["#","Հարց","Մակ.","Կետ","Ամ.","Կարգ.",""].map((h,i)=>(
+          {["#","Question","Level","Pts","Plays","Status",""].map((h,i)=>(
             <span key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:600, letterSpacing:.8, textTransform:"uppercase" }}>{h}</span>
           ))}
         </div>
