@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { EXAMS, QUESTIONS, STUDENTS, LEVELS, LEVEL_COLORS, buildExamQuestions, computePlacementLevel } from "../data.js";
 
-let C = { bg:C.bg,panel:C.panel,card:C.card,border:C.border,border2:C.border2,gold:C.gold,goldDim:C.goldDim,text:C.text,muted:C.muted,dim:C.dim,textSub:C.textSub,success:C.success,danger:C.danger,warning:C.warning,info:C.info,purple:C.purple };
+let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",textSub:"#94a3b8",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa" };
 
 
 const FONTS = `

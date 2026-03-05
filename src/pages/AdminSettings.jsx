@@ -112,7 +112,7 @@ function SaveBar({ onSave, onReset, saved }) {
   return (
     <div style={{ position:"sticky", bottom:0, background:C.panel+"ee", backdropFilter:"blur(12px)", borderTop:`1px solid ${C.border}`, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
       <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:saved?C.success:C.warning, transition:"color .3s" }}>
-        {saved ? "✓ Կարգavorbings saved!" : "⚠ Unsaved changes"}
+        {saved ? "✓ All settings saved!" : "⚠ Unsaved changes"}
       </span>
       <div style={{ display:"flex", gap:10 }}>
         <Btn onClick={onReset}>↺ Reset</Btn>
