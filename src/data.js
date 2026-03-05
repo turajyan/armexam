@@ -122,7 +122,7 @@ export const EXAMS = [
       { level:"C1", count:3, pointsEach:3 },
       { level:"C2", count:3, pointsEach:3 },
     ],
-    placementThresholds:{ A1:0, A2:20, B1:38, B2:54, C1:72, C2:88 },
+    placementThresholds:{ A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 },
   },
 ];
 

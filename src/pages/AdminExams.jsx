@@ -139,7 +139,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
       { level:"C1", count:5, pointsEach:3 },
       { level:"C2", count:5, pointsEach:3 },
     ],
-    placementThresholds:{ A1:0, A2:25, B1:40, B2:55, C1:75, C2:88 },
+    placementThresholds:{ A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 },
   };
   const blank = blankFixed;
   const [step, setStep] = useState(0);
@@ -254,7 +254,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
           <div>
             <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
               <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>Level Thresholds (%)</label>
-              <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>Student is assigned the highest level they exceed</span>
+              <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>Student must pass each level consecutively (no gaps)</span>
             </div>
             <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px",display:"flex",flexDirection:"column",gap:12 }}>
               {LEVELS.map((level,i)=>{
@@ -274,34 +274,24 @@ function ExamWizard({ initial, onSave, onCancel }) {
                     </div>
                     {i>0 && (
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,width:140 }}>
-                        score ≥ {thresh}% → {level}
+                        {level} questions: need ≥ {thresh}%
                       </span>
                     )}
                     {i===0 && (
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,width:140 }}>
-                        score &lt; {(form.placementThresholds||{})["A2"]??25}% → Below A1
+                        A1 questions: need ≥ {thresh}% to pass
                       </span>
                     )}
                   </div>
                 );
               })}
               {/* Visual explanation */}
-              <div style={{ marginTop:4,background:C.card,borderRadius:8,padding:"12px 16px",display:"flex",gap:0,overflow:"hidden" }}>
-                {LEVELS.map((level,i)=>{
-                  const from = (form.placementThresholds||{})[level]??0;
-                  const to   = i<LEVELS.length-1 ? ((form.placementThresholds||{})[LEVELS[i+1]]??100) : 100;
-                  const w    = to-from;
-                  const lc   = LEVEL_COLORS[level]||"#94a3b8";
-                  if(w<=0) return null;
-                  return (
-                    <div key={level} style={{ flex:w,background:lc+"22",borderLeft:i>0?`1px solid ${lc}44`:"none",display:"flex",alignItems:"center",justifyContent:"center",padding:"6px 4px",minWidth:0 }}>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:lc,fontWeight:700,whiteSpace:"nowrap" }}>{level}</span>
-                    </div>
-                  );
-                })}
-                <div style={{ flex:Math.max(0,(form.placementThresholds||{})["A1"]??0),background:C.dim,display:"flex",alignItems:"center",justifyContent:"center",padding:"6px 4px",minWidth:0,order:-1 }}>
-                  {((form.placementThresholds||{})["A1"]??0)>0 && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:9,color:C.muted }}>—</span>}
-                </div>
+              <div style={{ marginTop:4,background:C.card,borderRadius:8,padding:"10px 14px" }}>
+                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,lineHeight:1.6 }}>
+                  💡 Each level is scored <strong style={{color:C.text}}>independently</strong>. 
+                  Student gets highest level where <em>they and all lower levels</em> meet the threshold.
+                  Example: A1✓ A2✓ B1✗ → result is <strong style={{color:LEVEL_COLORS["A2"]}}>A2</strong>
+                </span>
               </div>
             </div>
           </div>
@@ -324,8 +314,8 @@ function ExamWizard({ initial, onSave, onCancel }) {
               <span style={{ color:C.gold }}>Review the question pool availability below.</span>
             </div>
             <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
-              <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 80px 80px",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,background:C.dim }}>
-                {["Level","Pool available","Needed","Status","Pts each"].map(h=>(
+              <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 70px 80px 80px",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,background:C.dim }}>
+                {["Level","Pool available","Needed","Threshold","Status","Pts each"].map(h=>(
                   <span key={h} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,fontWeight:700,letterSpacing:.6,textTransform:"uppercase" }}>{h}</span>
                 ))}
               </div>
@@ -333,8 +323,9 @@ function ExamWizard({ initial, onSave, onCancel }) {
                 const lc = LEVEL_COLORS[row.level]||"#94a3b8";
                 const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level).length;
                 const ok = poolCount >= row.count;
+                const thresh = (form.placementThresholds||{})[row.level]??60;
                 return (
-                  <div key={row.level} style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 80px 80px",gap:12,padding:"13px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center" }}>
+                  <div key={row.level} style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 70px 80px 80px",gap:12,padding:"13px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center" }}>
                     <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",textAlign:"center" }}>{row.level}</span>
                     <div style={{ display:"flex",alignItems:"center",gap:8 }}>
                       <div style={{ flex:1,height:4,background:C.dim,borderRadius:2 }}>
@@ -343,6 +334,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:C.warning,minWidth:20 }}>{poolCount}</span>
                     </div>
                     <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,textAlign:"center" }}>{row.count}</span>
+                    <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:lc,fontWeight:700,textAlign:"center" }}>≥{thresh}%</span>
                     <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:ok?C.success:C.warning }}>
                       {ok ? "✓ OK" : `⚠ Need ${row.count-poolCount} more`}
                     </span>
@@ -541,7 +533,7 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
           { icon:"📊",val:(exam.placementTemplate||[]).reduce((s,r)=>s+r.count,0)+" q",tip:"Total Questions" },
           { icon:"🎚",val:"A1→C2",tip:"All Levels" },
           { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
-          { icon:"🔢",val:"Auto",tip:"Level auto-detected" },
+          { icon:"🎯",val:`${Math.min(...Object.values(exam.placementThresholds||{A1:60}))}%/lvl`,tip:"Per-level threshold" },
         ] : [
           { icon:"📋",val:exam.questionIds.length+" q",tip:"Questions" },
           { icon:"🏆",val:pts+" pts",tip:"Total Points" },

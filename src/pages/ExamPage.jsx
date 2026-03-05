@@ -1145,7 +1145,7 @@ function ResultsScreen({ answers, questions, exam, onRestart }) {
         <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at 50% 0%, ${isPlacement?C.purple:passed?C.success:C.danger}0a 0%, transparent 70%)`, pointerEvents:"none" }} />
 
         {/* Donut */}
-        <div style={{ width:140, height:140, borderRadius:"50%", margin:"0 auto 24px", background:`conic-gradient(${isPlacement?C.purple:passed?GLD:C.danger} ${pct*3.6}deg, #1e293b 0deg)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ width:140, height:140, borderRadius:"50%", margin:"0 auto 24px", background:`conic-gradient(${isPlacement?C.purple:passed?GLD:C.danger} ${pct*3.6}deg, ${C.dim} 0deg)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
           <div style={{ width:112, height:112, borderRadius:"50%", background:C.panel, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:2 }}>
             <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color:isPlacement?C.purple:passed?GLD:C.danger, lineHeight:1 }}>{pct}%</span>
             <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:1 }}>SCORE</span>
@@ -1380,8 +1380,8 @@ function StartScreen({ onStart }) {
                 display:"flex", alignItems:"center", gap:20 }}>
               {/* Left icon */}
               <div style={{ width:52, height:52, borderRadius:14, flexShrink:0,
-                background: isPlacement ? "#a78bfa18" : lc+"18",
-                border:`1.5px solid ${isPlacement?"#a78bfa44":lc+"44"}`,
+                background: isPlacement ? C.purple+"18" : lc+"18",
+                border:`1.5px solid ${isPlacement?C.purple+"44":lc+"44"}`,
                 display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>
                 {isPlacement ? "📊" : "🎯"}
               </div>
@@ -1389,7 +1389,7 @@ function StartScreen({ onStart }) {
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
                   {isPlacement
-                    ? <span style={{ background:"#a78bfa18",color:C.purple,border:"1px solid #a78bfa33",borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>📊 Placement</span>
+                    ? <span style={{ background:C.purple+"18",color:C.purple,border:"1px solid #a78bfa33",borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>📊 Placement</span>
                     : <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{exam.level}</span>
                   }
                   <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.success,background:"#22c55e18",border:"1px solid #22c55e33",borderRadius:5,padding:"1px 8px" }}>Active</span>
@@ -1422,12 +1422,27 @@ function StartScreen({ onStart }) {
           {selected.examType==="placement" ? (
             <div style={{ marginBottom:20 }}>
               <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:"0 0 14px", lineHeight:1.6 }}>
-                This is a <strong style={{color:C.purple}}>Placement Exam</strong>. Questions from all levels will be selected automatically. After completion, the system determines your Armenian language level.
+                This is a <strong style={{color:C.purple}}>Placement Exam</strong>. Questions from all levels are selected automatically. To reach a level you must score the threshold on that level <em>and all lower levels</em> (no gaps).
               </p>
-              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {/* Template + threshold per level */}
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                 {(selected.placementTemplate||[]).map(r=>{
                   const lc = LEVEL_COLORS[r.level]||C.textSub;
-                  return <span key={r.level} style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{r.level}: {r.count}q</span>;
+                  const thresh = (selected.placementThresholds||{})[r.level]??60;
+                  return (
+                    <div key={r.level} style={{ display:"flex", alignItems:"center", gap:10,
+                      background:C.panel, border:`1px solid ${C.border}`, borderRadius:8, padding:"8px 12px" }}>
+                      <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,
+                        borderRadius:5,padding:"2px 8px",fontSize:11,fontWeight:700,
+                        fontFamily:"'DM Sans',sans-serif",minWidth:34,textAlign:"center" }}>{r.level}</span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,flex:1 }}>
+                        {r.count} questions · {r.pointsEach}pt each
+                      </span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:lc,fontWeight:600 }}>
+                        need ≥{thresh}%
+                      </span>
+                    </div>
+                  );
                 })}
               </div>
             </div>
@@ -1437,11 +1452,11 @@ function StartScreen({ onStart }) {
             </p>
           )}
           <button onClick={() => onStart(selected)} style={{
-            width:"100%", background:"linear-gradient(135deg,#c8a96e,#a07840)",
+            width:"100%", background:`linear-gradient(135deg,${C.gold},${C.goldDim})`,
             border:"none", borderRadius:14, padding:"16px",
             color:"white", fontFamily:"'DM Sans',sans-serif",
             fontSize:16, fontWeight:600, cursor:"pointer",
-            boxShadow:"0 8px 32px #c8a96e44", letterSpacing:.5, transition:"all .2s",
+            boxShadow:`0 8px 32px ${C.gold}44`, letterSpacing:.5, transition:"all .2s",
           }}>
             Սկսել Քննությունը →
           </button>
