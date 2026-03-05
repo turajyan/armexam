@@ -78,40 +78,43 @@ function Timer({ seconds, onExpire }) {
 
 // ── Audio Player ─────────────────────────────────────────────────────────────
 function AudioQuestion({ question, value, onChange }) {
-  const [plays, setPlays]         = useState(0);
-  const [playing, setPlaying]     = useState(false);
-  const [pauseActive, setPauseActive] = useState(false);
-  const [pauseLeft, setPauseLeft] = useState(0);
-  const [progress, setProgress]   = useState(0);
-  const [duration, setDuration]   = useState(0);
-  const audioRef  = useRef(null);
-  const pauseRef  = useRef(null);
+  const [plays,       setPlays]     = useState(0);
+  const [phase,       setPhase]     = useState("idle"); // idle | playing | pause | done
+  const [pauseLeft,   setPauseLeft] = useState(0);
+  const [progress,    setProgress]  = useState(0);
+  const [curTime,     setCurTime]   = useState(0);
+  const [dur,         setDur]       = useState(0);
+  const audioRef = useRef(null);
+  const pauseRef = useRef(null);
 
-  const remaining = question.maxPlays - plays;
-  const disabled  = plays >= question.maxPlays || playing || pauseActive;
+  const maxPlays  = question.maxPlays    || 1;
+  const pauseSecs = question.pauseSeconds || 0;
+  const fmtTime   = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 
-  const handlePlay = () => {
-    if (disabled) return;
-    if (!audioRef.current) return;
+  const startPlay = () => {
+    if (phase !== "idle" || !audioRef.current) return;
     audioRef.current.currentTime = 0;
     audioRef.current.play();
-    setPlaying(true);
+    setPhase("playing");
+    setProgress(0);
   };
 
   const handleEnded = () => {
-    setPlaying(false);
-    setProgress(0);
     const newPlays = plays + 1;
     setPlays(newPlays);
-    if (newPlays < question.maxPlays && question.pauseSeconds > 0) {
-      setPauseActive(true);
-      setPauseLeft(question.pauseSeconds);
+    setProgress(1);
+    if (newPlays >= maxPlays) { setPhase("done"); return; }
+    if (pauseSecs > 0) {
+      setPhase("pause");
+      setPauseLeft(pauseSecs);
       pauseRef.current = setInterval(() => {
         setPauseLeft(p => {
-          if (p <= 1) { clearInterval(pauseRef.current); setPauseActive(false); return 0; }
+          if (p <= 1) { clearInterval(pauseRef.current); setPhase("idle"); setProgress(0); setCurTime(0); return 0; }
           return p - 1;
         });
       }, 1000);
+    } else {
+      setPhase("idle"); setProgress(0); setCurTime(0);
     }
   };
 
@@ -119,80 +122,92 @@ function AudioQuestion({ question, value, onChange }) {
     if (!audioRef.current) return;
     const d = audioRef.current.duration || 0;
     const t = audioRef.current.currentTime || 0;
-    setProgress(d > 0 ? t / d : 0);
-    setDuration(d);
+    setDur(d); setCurTime(t); setProgress(d > 0 ? t / d : 0);
   };
 
-  const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const btnDisabled = phase !== "idle";
+  const btnLabel = phase === "done"    ? "✓ Ավарт ват"
+                 : phase === "pause"   ? `⏳ ${pauseLeft}с...`
+                 : phase === "playing" ? "▶ Играет..."
+                 : plays === 0        ? "▶ Послушать"
+                 :                      `▶ Ещё раз (${maxPlays - plays})`;
 
   return (
     <div>
-      {/* Hidden audio element */}
-      {question.audioSrc && (
-        <audio ref={audioRef} src={question.audioSrc}
-          onEnded={handleEnded}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleTimeUpdate}
-          crossOrigin="anonymous"
-          preload="metadata"
-        />
-      )}
+      <audio ref={audioRef} src={question.audioSrc || ""}
+        onEnded={handleEnded} onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleTimeUpdate} preload="metadata" />
+
       <div style={{
-        background: C.panel, border: `1px solid ${playing ? C.gold+"55" : C.border}`,
-        borderRadius: 16, padding: "20px 24px", marginBottom: 20,
-        transition: "border-color .3s",
+        background: C.panel,
+        border: `1.5px solid ${phase==="playing" ? C.gold+"88" : phase==="pause" ? C.warning+"66" : C.border}`,
+        borderRadius: 18, padding: "22px 24px", marginBottom: 20,
+        transition: "border-color .4s, box-shadow .4s",
+        boxShadow: phase==="playing" ? `0 0 28px ${C.gold}18` : "none",
       }}>
-        {/* Waveform bars */}
-        <div style={{ display:"flex", alignItems:"center", gap:3, marginBottom:14, height:40 }}>
-          {Array.from({ length: 36 }).map((_, i) => (
+
+        {/* Waveform */}
+        <div style={{ display:"flex", alignItems:"center", gap:2, marginBottom:14, height:44 }}>
+          {Array.from({length:40}).map((_,i) => (
             <div key={i} style={{
-              width: 3, borderRadius: 2,
-              background: i / 36 <= progress ? C.gold : C.dim,
-              height: `${20 + Math.abs(Math.sin(i * 0.9)) * 60}%`,
-              transition: "background .1s",
-              animation: playing ? `voiceWave ${0.4+(i%5)*0.08}s ease-in-out ${i*0.02}s infinite alternate` : "none",
-            }} />
+              width:3, borderRadius:2, flexShrink:0,
+              background: i/40 <= progress ? C.gold : C.dim,
+              height:`${22 + Math.abs(Math.sin(i*0.85))*55}%`,
+              transition:"background .15s",
+              animation: phase==="playing" ? `voiceWave ${0.35+(i%6)*0.07}s ease-in-out ${i*0.018}s infinite alternate` : "none",
+            }}/>
           ))}
         </div>
 
         {/* Progress bar */}
-        <div style={{ height:3, background:C.dim, borderRadius:2, marginBottom:14, overflow:"hidden" }}>
-          <div style={{ width:`${progress*100}%`, height:"100%", background:C.gold, transition:"width .2s" }} />
+        <div style={{ height:3, background:C.dim, borderRadius:2, marginBottom:18, overflow:"hidden" }}>
+          <div style={{ height:"100%", background:C.gold, width:`${progress*100}%`, transition: phase==="playing" ? "width .25s linear" : "none" }}/>
         </div>
 
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          {/* Play button + time */}
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <button onClick={handlePlay} disabled={disabled} style={{
-              width:48, height:48, borderRadius:"50%",
-              background: disabled ? C.dim : `linear-gradient(135deg,${C.gold},${C.goldDim})`,
-              border:"none", cursor: disabled ? "not-allowed" : "pointer",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              boxShadow: disabled ? "none" : `0 0 16px ${C.gold}44`,
-              transition:"all .2s", opacity: pauseActive ? 0.5 : 1,
-            }}>
-              {playing
-                ? <svg width={16} height={16} viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                : <svg width={16} height={16} viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-              }
-            </button>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>
-              {duration > 0 ? fmtTime(audioRef.current?.currentTime||0) + " / " + fmtTime(duration) : "--:-- / --:--"}
-            </span>
-          </div>
+        {/* Controls */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
+          <button onClick={startPlay} disabled={btnDisabled} style={{
+            display:"flex", alignItems:"center", gap:10,
+            padding:"12px 26px", borderRadius:50,
+            background: phase==="done" ? C.dim
+              : btnDisabled ? C.panel
+              : `linear-gradient(135deg,${C.gold},${C.goldDim})`,
+            border: btnDisabled && phase!=="done" ? `1.5px solid ${phase==="pause"?C.warning+"88":C.gold+"44"}` : "none",
+            cursor: btnDisabled ? "default" : "pointer",
+            color: phase==="done" ? C.muted : phase==="pause" ? C.warning : "white",
+            fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600,
+            boxShadow: !btnDisabled ? `0 4px 20px ${C.gold}44` : "none",
+            transition:"all .25s", opacity: phase==="playing" ? 0.8 : 1,
+            pointerEvents: btnDisabled ? "none" : "auto",
+          }}>
+            {phase==="playing" && (
+              <span style={{display:"flex",gap:2,alignItems:"center"}}>
+                {[0,1,2].map(j=>(
+                  <span key={j} style={{width:3,borderRadius:2,background:C.gold,height:14,display:"block",animation:`voiceWave ${0.4+j*0.15}s ease-in-out ${j*0.1}s infinite alternate`}}/>
+                ))}
+              </span>
+            )}
+            {btnLabel}
+          </button>
 
-          {/* Plays counter */}
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, textAlign:"right" }}>
-            {pauseActive
-              ? <span style={{ color:C.warning }}>⏳ Սպасе՛қt {pauseLeft}с...</span>
-              : plays >= question.maxPlays
-                ? <span style={{ color:C.muted }}>✓ Ավарт ват</span>
-                : <span style={{ color:C.textSub }}>{remaining} անгам мнац</span>
-            }
+          <div style={{textAlign:"right"}}>
+            {phase==="playing" && dur > 0 && (
+              <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold,fontWeight:600,marginBottom:2}}>
+                {fmtTime(curTime)} / {fmtTime(dur)}
+              </div>
+            )}
+            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>
+              {phase==="done"
+                ? `Прослушано ${maxPlays}/${maxPlays}`
+                : plays > 0
+                ? `Осталось: ${maxPlays-plays}/${maxPlays}`
+                : `${maxPlays}× прослушивание`}
+            </div>
           </div>
         </div>
       </div>
-      <SingleChoiceOptions options={question.options} value={value} onChange={onChange} />
+
+      <SingleChoiceOptions options={question.options} value={value} onChange={onChange}/>
     </div>
   );
 }
