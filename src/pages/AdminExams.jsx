@@ -7,7 +7,7 @@ let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"
 
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const SECTIONS = ["Կարդալ","Գրել","Լսել","Քերականություն","Բառապաշար","Լսել / Տեսնել","Ազատ շարադրություն"];
+const SECTIONS = ["Reading","Writing","Listening","Grammar","Vocabulary","Listening / Տեսնել","Free Writing"];
 
 // ── Seed ─────────────────────────────────────────────────────────────────────
 const SEED_QUESTIONS = DATA_QUESTIONS;

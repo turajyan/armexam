@@ -6,7 +6,7 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+G
 // ── Constants ────────────────────────────────────────────────────────────────
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const SECTIONS = ["Կարդալ","Գրել","Լսել","Քերականություն","Բառապաշար","Լսել / Տեսնել","Ազատ շարադրություն"];
+const SECTIONS = ["Reading","Writing","Listening","Grammar","Vocabulary","Listening / Տեսնել","Free Writing"];
 const QTYPES = [
   { id:"single_choice", label:"Single Choice", icon:"◉", color:"#60a5fa" },
   { id:"multi_choice",  label:"Multi Choice",  icon:"☑", color:"#a78bfa" },
@@ -223,7 +223,7 @@ function WordBankEditor({ q, set }) {
 // ── Question Form ───────────────────────────────────────────────────────────────
 function QuestionForm({ initial, onSave, onCancel }) {
   const isEdit = !!initial;
-  const blank = { type:"single_choice", level:"B1", section:"Կարդալ", points:1, status:"draft", text:"", options:["","","",""], correct:0 };
+  const blank = { type:"single_choice", level:"B1", section:"Reading", points:1, status:"draft", text:"", options:["","","",""], correct:0 };
   const [q, setQ] = useState(initial ? {...initial, options: initial.options ? [...initial.options] : ["","","",""] } : blank);
   const set = (k,v) => setQ(p=>({...p,[k]:v}));
 
