@@ -139,17 +139,19 @@ const WIZARD_STEPS = ["General","Questions","Students","Schedule"];
 
 function ExamWizard({ initial, onSave, onCancel }) {
   const isEdit = !!initial;
-  const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true, questionIds:[], assignedTo:[], startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"" };
+  const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true,
+    subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }],
+    assignedTo:[], startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"" };
   const blankPlacement = { examType:"placement", title:"", level:null, duration:90, passingScore:null, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true, showPlacementThreshold:true,
     startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"",
     questionIds:[], assignedTo:[],
     placementTemplate:[
-      { level:"A1", pointsEach:1, subpools:[{ section:"Reading", type:"single_choice", count:3 },{ section:"Grammar", type:"single_choice", count:2 }] },
-      { level:"A2", pointsEach:1, subpools:[{ section:"Reading", type:"single_choice", count:3 },{ section:"Vocabulary", type:"multi_choice", count:2 }] },
-      { level:"B1", pointsEach:2, subpools:[{ section:"Reading", type:"single_choice", count:2 },{ section:"Listening", type:"audio", count:2 },{ section:"Grammar", type:"fill_blank", count:1 }] },
-      { level:"B2", pointsEach:2, subpools:[{ section:"Reading", type:"single_choice", count:2 },{ section:"Listening", type:"audio", count:2 },{ section:"Writing", type:"writing", count:1 }] },
-      { level:"C1", pointsEach:3, subpools:[{ section:"Reading", type:"multi_select", count:2 },{ section:"Listening", type:"audio", count:2 },{ section:"Writing", type:"writing", count:1 }] },
-      { level:"C2", pointsEach:3, subpools:[{ section:"Reading", type:"multi_select", count:2 },{ section:"Grammar", type:"fill_blank", count:2 },{ section:"Writing", type:"writing", count:1 }] },
+      { level:"A1", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }] },
+      { level:"A2", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Vocabulary", count:2 }] },
+      { level:"B1", pointsEach:2, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Grammar", count:1 }] },
+      { level:"B2", pointsEach:2, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }] },
+      { level:"C1", pointsEach:3, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }] },
+      { level:"C2", pointsEach:3, subpools:[{ section:"Reading", count:2 },{ section:"Grammar", count:2 },{ section:"Writing", count:1 }] },
     ],
     placementThresholds:{ A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 },
   };
@@ -164,31 +166,33 @@ function ExamWizard({ initial, onSave, onCancel }) {
 
   const pts = totalPoints(form.questionIds);
 
-  // Step 0 — Exam type + General info
+  // Subpool helpers — shared for both fixed and placement
+  const fixedTotalQ = (form.subpools||[]).reduce((s,sp)=>s+sp.count,0);
   const rowTotal = (row) => (row.subpools||[]).reduce((s,sp)=>s+sp.count,0);
-  const updatePtsEach = (level, val) => {
-    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level?{...r,pointsEach:+val}:r));
-  };
-  const addSubpool = (level) => {
-    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
-      ? {...r, subpools:[...(r.subpools||[]), {section:"Reading", type:"single_choice", count:2}]}
-      : r));
-  };
-  const removeSubpool = (level, idx) => {
-    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
-      ? {...r, subpools:(r.subpools||[]).filter((_,i)=>i!==idx)}
-      : r));
-  };
-  const updateSubpool = (level, idx, field, val) => {
-    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
-      ? {...r, subpools:(r.subpools||[]).map((sp,i)=>i===idx?{...sp,[field]:field==="count"?+val:val}:sp)}
-      : r));
-  };
-  const updateThreshold = (level, val) => {
-    set("placementThresholds", {...(form.placementThresholds||{}), [level]:+val});
-  };
 
-  const placementTotalQ = (form.placementTemplate||[]).reduce((s,r)=>s+rowTotal(r),0);
+  // Fixed subpool ops
+  const addFixedSubpool   = () => set("subpools", [...(form.subpools||[]), {section:"Reading", count:2}]);
+  const removeFixedSP     = (idx) => set("subpools", (form.subpools||[]).filter((_,i)=>i!==idx));
+  const updateFixedSP     = (idx, field, val) =>
+    set("subpools", (form.subpools||[]).map((sp,i)=>i===idx?{...sp,[field]:field==="count"?+val:val}:sp));
+
+  // Placement subpool ops
+  const updatePtsEach     = (level, val) =>
+    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level?{...r,pointsEach:+val}:r));
+  const addSubpool        = (level) =>
+    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
+      ? {...r, subpools:[...(r.subpools||[]), {section:"Reading", count:2}]} : r));
+  const removeSubpool     = (level, idx) =>
+    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
+      ? {...r, subpools:(r.subpools||[]).filter((_,i)=>i!==idx)} : r));
+  const updateSubpool     = (level, idx, field, val) =>
+    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
+      ? {...r, subpools:(r.subpools||[]).map((sp,i)=>i===idx?{...sp,[field]:field==="count"?+val:val}:sp)} : r));
+
+  const updateThreshold   = (level, val) =>
+    set("placementThresholds", {...(form.placementThresholds||{}), [level]:+val});
+
+  const placementTotalQ   = (form.placementTemplate||[]).reduce((s,r)=>s+rowTotal(r),0);
   const placementTotalPts = (form.placementTemplate||[]).reduce((s,r)=>s+rowTotal(r)*r.pointsEach,0);
 
   const step0 = (
@@ -278,7 +282,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
                       <div style={{ padding:"12px 16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic" }}>No subpools — click "+ Add subpool" to define pools</div>
                     )}
                     {(row.subpools||[]).map((sp,idx)=>{
-                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section&&q.type===sp.type).length;
+                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length;
                       const ok = poolCount >= sp.count;
                       return (
                         <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 16px",borderBottom:`1px solid ${C.border}` }}>
@@ -286,10 +290,6 @@ function ExamWizard({ initial, onSave, onCancel }) {
                           <select value={sp.section} onChange={e=>updateSubpool(row.level,idx,"section",e.target.value)}
                             style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",flex:"0 0 140px" }}>
                             {SECTIONS.map(s=><option key={s} value={s}>{s}</option>)}
-                          </select>
-                          <select value={sp.type} onChange={e=>updateSubpool(row.level,idx,"type",e.target.value)}
-                            style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",flex:"0 0 140px" }}>
-                            {QTYPES_LIST.map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
                           </select>
                           <input type="number" min={1} max={20} value={sp.count}
                             onChange={e=>updateSubpool(row.level,idx,"count",e.target.value)}
@@ -380,7 +380,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
                 const lc = LEVEL_COLORS[row.level]||"#94a3b8";
                 const total = rowTotal(row);
                 const allOk = (row.subpools||[]).every(sp=>
-                  SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section&&q.type===sp.type).length >= sp.count
+                  SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length >= sp.count
                 );
                 return (
                   <div key={row.level}>
@@ -392,13 +392,12 @@ function ExamWizard({ initial, onSave, onCancel }) {
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:allOk?C.success:"#f87171" }}>{allOk?"✓ OK":"✗ Error"}</span>
                     </div>
                     {(row.subpools||[]).map((sp,idx)=>{
-                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section&&q.type===sp.type).length;
+                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length;
                       const ok = poolCount >= sp.count;
-                      const qt = QTYPES_LIST.find(t=>t.id===sp.type);
                       return (
                         <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"7px 18px 7px 32px",borderBottom:`1px solid ${C.border}`,background:ok?"transparent":"#f8717106" }}>
                           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>┗</span>
-                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,flex:1 }}>{sp.section} · {qt?.icon} {qt?.label}</span>
+                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,flex:1 }}>{sp.section}</span>
                           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>need {sp.count}</span>
                           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:"#f87171",fontWeight:600,minWidth:80,textAlign:"right" }}>
                             {ok ? `✓ ${poolCount} in pool` : `✗ only ${poolCount}`}
@@ -419,32 +418,39 @@ function ExamWizard({ initial, onSave, onCancel }) {
         </div>
       );
     }
-    // Fixed exam — manual question selection
+    // Fixed exam — subpool editor by section
+    const level = form.level || "B1";
     return (
       <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>
-            Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.questionIds.length}</span> questions · <span style={{ color:C.gold,fontWeight:700 }}>{pts}</span> pts
-          </div>
-          <div style={{ display:"flex",gap:8 }}>
-            <Btn small onClick={()=>set("questionIds",availableQs.map(q=>q.id))}>Select All</Btn>
-            <Btn small onClick={()=>set("questionIds",[])}>Clear</Btn>
-          </div>
+        <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 18px",fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,lineHeight:1.6 }}>
+          Questions are picked <strong style={{color:C.text}}>randomly</strong> at exam time from the <strong style={{color:LEVEL_COLORS[level]||C.gold}}>{level}</strong> question bank, by section.
         </div>
-        <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:380,overflowY:"auto" }}>
-          {availableQs.map(q=>{
-            const sel = form.questionIds.includes(q.id);
-            const lc = LEVEL_COLORS[q.level]||"#94a3b8";
+        <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+            <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>
+              Section subpools · total: {fixedTotalQ} questions
+            </span>
+            <button onClick={addFixedSubpool} style={{ background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 12px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600 }}>+ Add section</button>
+          </div>
+          {(form.subpools||[]).length === 0 && (
+            <div style={{ padding:"16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic",background:C.panel,borderRadius:10,textAlign:"center" }}>No sections added yet</div>
+          )}
+          {(form.subpools||[]).map((sp,idx)=>{
+            const poolCount = SEED_QUESTIONS.filter(q=>q.level===level&&q.section===sp.section).length;
+            const ok = poolCount >= sp.count;
             return (
-              <div key={q.id} onClick={()=>toggleQ(q.id)} style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:sel?C.gold+"0e":C.panel,border:`1.5px solid ${sel?C.gold+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .15s" }}>
-                <div style={{ width:20,height:20,borderRadius:4,border:`2px solid ${sel?C.gold:C.border2}`,background:sel?C.gold+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                  {sel && <svg width={11} height={11} viewBox="0 0 11 11"><path d="M1.5 6l3 3 5-5" stroke={C.gold} strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg>}
-                </div>
-                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,minWidth:24 }}>#{q.id}</span>
-                <span style={{ fontSize:14 }}>{QTYPE_ICON[q.type]}</span>
-                <span style={{ flex:1,fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{q.text}</span>
-                <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{q.level}</span>
-                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold,fontWeight:600,minWidth:28,textAlign:"right" }}>{q.points}pt</span>
+              <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.panel,border:`1.5px solid ${ok?C.border2:"#f8717144"}`,borderRadius:10 }}>
+                <select value={sp.section} onChange={e=>updateFixedSP(idx,"section",e.target.value)}
+                  style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",flex:"0 0 160px" }}>
+                  {SECTIONS.map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+                <input type="number" min={1} max={30} value={sp.count}
+                  onChange={e=>updateFixedSP(idx,"count",e.target.value)}
+                  style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",width:64,textAlign:"center" }} />
+                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:"#f87171",flex:1 }}>
+                  {ok ? `✓ ${poolCount} available` : `✗ only ${poolCount} in pool (need ${sp.count})`}
+                </span>
+                <button onClick={()=>removeFixedSP(idx)} style={{ background:"transparent",border:"none",color:"#f87171",cursor:"pointer",fontSize:15,padding:"0 4px" }}>✕</button>
               </div>
             );
           })}
@@ -531,7 +537,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
         <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:14 }}>Summary</div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12 }}>
           {[
-            { label:"Questions", value: form.questionIds.length, color:C.gold },
+            { label:"Questions", value: form.examType==="placement"?placementTotalQ:fixedTotalQ, color:C.gold },
             { label:"Points",  value: pts,                    color:C.warning },
             { label:"Student", value: form.assignedTo.length,  color:C.info },
             { label:"Pass %", value: form.passingScore+"%",   color:C.success },
@@ -550,7 +556,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const STEP_LABELS = ["General", "Questions", "Students", "Schedule & Settings"];
   const canProceed = [
     form.title.trim().length > 0,
-    form.examType === "placement" ? true : (form.questionIds||[]).length > 0,
+    form.examType === "placement" ? placementTotalQ > 0 : fixedTotalQ > 0,
     (form.assignedTo||[]).length > 0,
     true,
   ];
@@ -597,7 +603,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
 function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
   const sm = STATUS_META[exam.status]||STATUS_META.draft;
   const lc = LEVEL_COLORS[exam.level]||"#94a3b8";
-  const pts = totalPoints(exam.questionIds);
+  const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
   const assignedStudents = SEED_STUDENTS.filter(s=>exam.assignedTo.includes(s.id));
 
   return (
@@ -627,7 +633,7 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
           { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
           { icon:"🎯",val:`${Math.min(...Object.values(exam.placementThresholds||{A1:60}))}%/lvl`,tip:"Per-level threshold" },
         ] : [
-          { icon:"📋",val:exam.questionIds.length+" q",tip:"Questions" },
+          { icon:"📋",val:(exam.subpools||(exam.placementTemplate||[]).flatMap(r=>r.subpools||[])).reduce((s,sp)=>s+sp.count,0)+" q",tip:"Questions" },
           { icon:"🏆",val:pts+" pts",tip:"Total Points" },
           { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
           { icon:"🎯",val:(exam.passingScore??0)+"%",tip:"Pass Score" },
@@ -738,7 +744,7 @@ function AssignModal({ exam, onClose, onSave }) {
 function ResultsModal({ exam, onClose }) {
   const students = SEED_STUDENTS.filter(s=>exam.assignedTo.includes(s.id));
   const fakeScore = (id) => Math.floor(50 + (id*17+exam.id*7) % 45);
-  const pts = totalPoints(exam.questionIds);
+  const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
   return (
     <Modal title="Results" subtitle={exam.title} onClose={onClose}>
       <div style={{ display:"flex",flexDirection:"column",gap:8,maxHeight:420,overflowY:"auto" }}>

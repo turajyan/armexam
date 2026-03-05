@@ -175,27 +175,35 @@ export function buildExamQuestions(exam) {
     const result = [];
     for (const row of exam.placementTemplate || []) {
       for (const sp of row.subpools || []) {
-        const pool = QUESTIONS.filter(q =>
-          q.level === row.level &&
-          q.section === sp.section &&
-          q.type === sp.type
-        );
+        const pool = QUESTIONS.filter(q => q.level === row.level && q.section === sp.section);
         if (pool.length < sp.count) {
           throw new Error(
-            `Not enough questions for ${row.level} / ${sp.section} / ${sp.type}: ` +
+            `Not enough questions for ${row.level} / ${sp.section}: ` +
             `need ${sp.count}, only ${pool.length} available`
           );
         }
-        const shuffled = [...pool].sort(() => Math.random() - 0.5);
-        const picked = shuffled.slice(0, sp.count).map(q => ({...q, points: row.pointsEach}));
+        const picked = [...pool].sort(() => Math.random() - 0.5)
+          .slice(0, sp.count)
+          .map(q => ({...q, points: row.pointsEach}));
         result.push(...picked);
       }
     }
     return result;
   }
-  // fixed — return questions in order, shuffle if enabled
-  const qs = exam.questionIds.map(id => QUESTIONS.find(q => q.id === id)).filter(Boolean);
-  return exam.shuffle ? [...qs].sort(() => Math.random() - 0.5) : qs;
+  // Fixed exam — pick randomly by section subpools
+  const result = [];
+  for (const sp of exam.subpools || []) {
+    const pool = QUESTIONS.filter(q => q.level === exam.level && q.section === sp.section);
+    if (pool.length < sp.count) {
+      throw new Error(
+        `Not enough questions for ${exam.level} / ${sp.section}: ` +
+        `need ${sp.count}, only ${pool.length} available`
+      );
+    }
+    const picked = [...pool].sort(() => Math.random() - 0.5).slice(0, sp.count);
+    result.push(...picked);
+  }
+  return exam.shuffle ? [...result].sort(() => Math.random() - 0.5) : result;
 }
 
 // Compute placement result from answers — per-level scoring
