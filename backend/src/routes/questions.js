@@ -21,6 +21,10 @@ export default async function questionsRoutes(fastify) {
 
   // POST /api/questions
   fastify.post("/api/questions", async (req, reply) => {
+    const { type, level, section, text } = req.body ?? {};
+    if (!type || !level || !section || !text) {
+      return reply.code(400).send({ error: "type, level, section, text are required" });
+    }
     const q = await prisma.question.create({ data: sanitize(req.body) });
     return reply.code(201).send(q);
   });

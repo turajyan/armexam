@@ -23,6 +23,10 @@ export default async function studentsRoutes(fastify) {
 
   // POST /api/students
   fastify.post("/api/students", async (req, reply) => {
+    const { name, email } = req.body ?? {};
+    if (!name || !email) {
+      return reply.code(400).send({ error: "name and email are required" });
+    }
     const s = await prisma.student.create({ data: sanitize(req.body) });
     return reply.code(201).send(s);
   });

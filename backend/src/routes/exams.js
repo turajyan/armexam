@@ -77,8 +77,12 @@ export default async function examsRoutes(fastify) {
     const exam = await prisma.exam.findUnique({ where: { id: Number(req.params.id) } });
     if (!exam) return reply.code(404).send({ error: "Not found" });
 
-    const questions = await buildExamQuestions(prisma, exam);
-    return questions;
+    try {
+      const questions = await buildExamQuestions(prisma, exam);
+      return questions;
+    } catch (err) {
+      return reply.code(400).send({ error: err.message });
+    }
   });
 }
 
@@ -102,7 +106,12 @@ function sanitize(body) {
 }
 
 function pick(arr, n) {
-  return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
 }
 
 async function buildExamQuestions(prisma, exam) {

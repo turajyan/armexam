@@ -32,7 +32,10 @@ export default async function resultsRoutes(fastify) {
 
   // POST /api/results  — submit exam result
   fastify.post("/api/results", async (req, reply) => {
-    const { examId, studentId, score, totalPoints, pct, passed, answers, detectedLevel, levelStats } = req.body;
+    const { examId, studentId, score, totalPoints, pct, passed, answers, detectedLevel, levelStats } = req.body ?? {};
+    if (examId == null || studentId == null || score == null || totalPoints == null || pct == null) {
+      return reply.code(400).send({ error: "examId, studentId, score, totalPoints, pct are required" });
+    }
     const result = await prisma.result.create({
       data: { examId, studentId, score, totalPoints, pct, passed, answers, detectedLevel, levelStats },
     });
