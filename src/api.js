@@ -35,4 +35,9 @@ export const api = {
 
   // Analytics
   getSummary: () => req('/analytics/summary'),
+
+  // Registration (public)
+  getRegisterExams: ()     => req('/register/exams'),
+  register:         (data) => req('/register', { method: 'POST', body: JSON.stringify(data) }),
+  getByPin:         (pin)  => req(`/register/pin/${pin}`),
 };

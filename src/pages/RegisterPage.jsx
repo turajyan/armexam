@@ -4,7 +4,7 @@ import { api } from "../api.js";
 const GROUPS = ["Խ-101", "Խ-102", "Խ-103", "Խ-104"];
 
 // Step 1: Student info → Step 2: Choose exams → Step 3: Success + PIN
-export default function RegisterPage({ theme: T }) {
+export default function RegisterPage({ theme: T, onBack }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: "", email: "", phone: "", group: "" });
   const [exams, setExams] = useState([]);
@@ -18,7 +18,7 @@ export default function RegisterPage({ theme: T }) {
   useEffect(() => {
     if (step === 2 && exams.length === 0) {
       setLoadingExams(true);
-      api.get("/api/register/exams")
+      api.getRegisterExams()
         .then(data => setExams(data))
         .catch(() => setError("Не удалось загрузить список экзаменов"))
         .finally(() => setLoadingExams(false));
@@ -43,7 +43,7 @@ export default function RegisterPage({ theme: T }) {
     if (selectedExams.length === 0) return setError("Выберите хотя бы один экзамен");
     setSubmitting(true);
     try {
-      const data = await api.post("/api/register", {
+      const data = await api.register({
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         phone: form.phone.trim() || undefined,

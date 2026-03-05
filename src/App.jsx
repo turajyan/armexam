@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ExamPage        from "./pages/ExamPage";
 import AdminQuestions  from "./pages/AdminQuestions";
 import AdminExams      from "./pages/AdminExams";
@@ -37,14 +37,21 @@ export default function App() {
     () => { try { return localStorage.getItem(THEME_KEY) || DEFAULT_THEME; } catch { return DEFAULT_THEME; } }
   );
 
+  const [hash, setHash] = useState(() => window.location.hash);
+  useEffect(() => {
+    const onHash = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
   const T = THEMES[themeId] || THEMES[DEFAULT_THEME];
 
   // Public registration page — accessible via URL hash #register
-  if (window.location.hash === "#register") {
+  if (hash === "#register") {
     return (
       <>
         <style>{FONTS}{`*{box-sizing:border-box;margin:0;padding:0}body{background:${T.bg};color:${T.text}}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:${T.scrollThumb};border-radius:3px}::-webkit-scrollbar-track{background:transparent}`}</style>
-        <RegisterPage theme={T} />
+        <RegisterPage theme={T} onBack={() => { window.location.hash = ""; setHash(""); }} />
       </>
     );
   }
