@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SETTINGS_KEY } from "../theme.js";
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
@@ -190,6 +191,17 @@ const SEED_BACKUPS = [
   { id:4, name:"backup_2025-02-08_auto.sql",   date:"2025-02-08 03:00", size:"12.9 MB", type:"auto",   status:"failed"  },
 ];
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch { return {}; }
+}
+function saveExamSettings(cfg) {
+  try {
+    const prev = loadSettings();
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...prev, ...cfg }));
+  } catch {}
+}
+
 // ── Main Settings Page ────────────────────────────────────────────────────────
 export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
   if (theme) C = theme;
@@ -227,6 +239,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     certificateEnabled:true,
   });
 
+  const _saved = loadSettings();
   const [appearance, setAppearance] = useState({
     primaryColor:"#c8a96e",
     accentColor:"#60a5fa",
@@ -236,9 +249,11 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     fontBody:"DM Sans",
     borderRadius:"14",
     logoText:"Հ",
-    showLevelBadges:true,
-    showTimer:true,
-    compactMode:false,
+    showLevelBadges: _saved.showLevelBadges ?? true,
+    showTimer: _saved.showTimer ?? true,
+    compactMode: _saved.compactMode ?? false,
+    showQuestionLevel: _saved.showQuestionLevel ?? true,
+    showPlacementThreshold: _saved.showPlacementThreshold ?? true,
   });
 
   const [emailCfg, setEmailCfg] = useState({
@@ -402,9 +417,11 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
         </SettingSection>
 
         <SettingSection title="UI Display Options" icon="🖥" description="Toggle visible elements in the student exam view">
-          <Toggle label="Show Level Badges (A1–C2)" value={appearance.showLevelBadges} onChange={v=>setA("showLevelBadges",v)} hint="Display coloured level indicators next to each question" />
-          <Toggle label="Show Countdown Timer" value={appearance.showTimer} onChange={v=>setA("showTimer",v)} hint="Students see a live timer during the exam" />
-          <Toggle label="Compact Layout" value={appearance.compactMode} onChange={v=>setA("compactMode",v)} hint="Reduce padding and spacing for smaller screens" />
+          <Toggle label="Show Level Badges (A1–C2)" value={appearance.showLevelBadges} onChange={v=>{ setA("showLevelBadges",v); saveExamSettings({showLevelBadges:v}); }} hint="Display coloured level indicators next to each question" />
+          <Toggle label="Show Question Level to Student" value={appearance.showQuestionLevel} onChange={v=>{ setA("showQuestionLevel",v); saveExamSettings({showQuestionLevel:v}); }} hint="Students can see A1/B2/C1 level tag on each question during the exam" />
+          <Toggle label="Show Placement Thresholds to Student" value={appearance.showPlacementThreshold} onChange={v=>{ setA("showPlacementThreshold",v); saveExamSettings({showPlacementThreshold:v}); }} hint="On Placement exam start screen, show required % threshold per level" />
+          <Toggle label="Show Countdown Timer" value={appearance.showTimer} onChange={v=>{ setA("showTimer",v); saveExamSettings({showTimer:v}); }} hint="Students see a live timer during the exam" />
+          <Toggle label="Compact Layout" value={appearance.compactMode} onChange={v=>{ setA("compactMode",v); saveExamSettings({compactMode:v}); }} hint="Reduce padding and spacing for smaller screens" />
         </SettingSection>
 
         <SettingSection title="Live Preview" icon="👁" description="See how your color and font settings look in real time">

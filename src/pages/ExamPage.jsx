@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { EXAMS, QUESTIONS, STUDENTS, LEVELS, LEVEL_COLORS, buildExamQuestions, computePlacementLevel } from "../data.js";
+import { SETTINGS_KEY } from "../theme.js";
+
+function loadExamSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); } catch { return {}; }
+}
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",textSub:"#94a3b8",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa" };
 
@@ -910,6 +915,7 @@ function VoiceQuestion({ question, value, onChange }) {
 
 // ── Question Card ─────────────────────────────────────────────────────────────
 function QuestionCard({ question, index, total, value, onChange, onNext, onPrev, isLast }) {
+  const cfg = loadExamSettings();
   const renderBody = () => {
     switch (question.type) {
       case "single_choice":
@@ -961,7 +967,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <LevelBadge level={question.level} />
+          {(cfg.showQuestionLevel ?? true) && <LevelBadge level={question.level} />}
           <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, letterSpacing: 0.5 }}>
             {question.section}
           </span>
@@ -1341,6 +1347,7 @@ function StartScreen({ onStart }) {
   const [selected, setSelected] = useState(null);
   const activeExams = EXAMS.filter(e => e.status === "active");
   const STATUS_COLORS = { active:C.success, draft:C.warning, scheduled:C.info, completed:C.textSub };
+  const cfg = loadExamSettings();
   return (
     <div style={{
       maxWidth: 780, width: "100%",
@@ -1438,9 +1445,11 @@ function StartScreen({ onStart }) {
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,flex:1 }}>
                         {r.count} questions · {r.pointsEach}pt each
                       </span>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:lc,fontWeight:600 }}>
-                        need ≥{thresh}%
-                      </span>
+                      {(cfg.showPlacementThreshold ?? true) && (
+                        <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:lc,fontWeight:600 }}>
+                          need ≥{thresh}%
+                        </span>
+                      )}
                     </div>
                   );
                 })}

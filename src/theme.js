@@ -80,3 +80,5 @@ export const DEFAULT_THEME = "dark";
 
 // React context key for theme
 export const THEME_KEY = "armexam_theme";
+
+export const SETTINGS_KEY = "armexam_settings";
