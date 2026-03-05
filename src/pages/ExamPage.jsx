@@ -938,7 +938,7 @@ function VoiceQuestion({ question, value, onChange }) {
 }
 
 // ── Question Card ─────────────────────────────────────────────────────────────
-function QuestionCard({ question, index, total, value, onChange, onNext, onPrev, isLast, showQuestionLevel=true }) {
+function QuestionCard({ question, index, total, value, onChange, onNext, onPrev, isLast, showQuestionLevel=true, showQuestionPoints=true }) {
   const renderBody = () => {
     switch (question.type) {
       case "single_choice":
@@ -1002,9 +1002,11 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
             {typeLabels[question.type]}
           </span>
         </div>
-        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.gold, fontWeight: 600 }}>
-          {question.points} {question.points === 1 ? "միավոր" : "միավոր"}
-        </span>
+          {showQuestionPoints && (
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.gold, fontWeight: 600 }}>
+              {question.points} pt
+            </span>
+          )}
       </div>
 
       {/* Progress */}
@@ -1632,6 +1634,7 @@ export default function ArmExam({ theme }) {
                 onPrev={handlePrev}
                 isLast={current === examQuestions.length - 1}
                 showQuestionLevel={activeExam?.showQuestionLevel ?? true}
+                showQuestionPoints={activeExam?.showQuestionPoints ?? true}
               />
             </div>
           )}
