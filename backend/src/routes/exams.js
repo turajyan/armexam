@@ -190,7 +190,7 @@ async function buildExamQuestions(prisma, exam, preview = false) {
     for (const row of template) {
       for (const sp of row.subpools || []) {
         const pool = await prisma.question.findMany({
-          where: { level: row.level, section: sp.section, status: "published" },
+          where: { level: row.level, section: { name: sp.section }, status: "published" },
         });
         if (!preview && pool.length < sp.count) {
           throw new Error(`Not enough questions for ${row.level}/${sp.section}`);
@@ -206,7 +206,7 @@ async function buildExamQuestions(prisma, exam, preview = false) {
   const result = [];
   for (const sp of exam.subpools || []) {
     const pool = await prisma.question.findMany({
-      where: { level: exam.level, section: sp.section, status: "published" },
+      where: { level: exam.level, section: { name: sp.section }, status: "published" },
     });
     if (!preview && pool.length < sp.count) {
       throw new Error(`Not enough questions for ${exam.level}/${sp.section}`);
