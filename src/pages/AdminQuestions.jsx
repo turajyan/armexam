@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "../api.js";
+import { getSections } from "../sections.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const SECTIONS = ["Reading","Writing","Listening","Grammar","Vocabulary","Listening / Տեսնել","Free Writing"];
+const SECTIONS = getSections();
 const QTYPES = [
   { id:"single_choice", label:"Single Choice", icon:"◉", color:"#60a5fa" },
   { id:"multi_choice",  label:"Multi Choice",  icon:"☑", color:"#a78bfa" },
