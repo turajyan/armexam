@@ -96,13 +96,22 @@ export default function App() {
     return "exams";
   };
 
-  const [page, setPage] = useState("exams");
+  const [page, setPage] = useState(
+    () => { try { return localStorage.getItem("armexam_admin_page") || "exams"; } catch { return "exams"; } }
+  );
+  const gotoPage = (p) => { setPage(p); try { localStorage.setItem("armexam_admin_page", p); } catch {} };
 
   useEffect(() => {
     const token = localStorage.getItem("armexam_admin_token");
     if (token) {
       api.adminMe()
-        .then(d => { setAdmin(d); setPage(defaultPageForRole(d.role)); })
+        .then(d => {
+          setAdmin(d);
+          // restore saved page only if valid for this role, else use role default
+          const saved = (() => { try { return localStorage.getItem("armexam_admin_page"); } catch { return null; } })();
+          const allowed = ALL_NAV.filter(n => n.roles.includes(d.role)).map(n => n.id);
+          gotoPage(saved && allowed.includes(saved) ? saved : defaultPageForRole(d.role));
+        })
         .catch(() => localStorage.removeItem("armexam_admin_token"))
         .finally(() => setAdminChecked(true));
     } else {
@@ -131,7 +140,7 @@ export default function App() {
 
   const handleAdminLogin = (a) => {
     setAdmin(a);
-    setPage(defaultPageForRole(a.role));
+    gotoPage(defaultPageForRole(a.role));
     window.location.hash = "";
   };
 
@@ -246,7 +255,7 @@ export default function App() {
             const active = safePage === n.id;
             const ic = active ? T.gold : T.muted;
             return (
-              <button key={n.id} onClick={() => setPage(n.id)} title={n.label}
+              <button key={n.id} onClick={() => gotoPage(n.id)} title={n.label}
                 style={{ width:50, height:50, borderRadius:12, background:active?T.gold+"22":"transparent", border:`1px solid ${active?T.gold+"66":"transparent"}`, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, transition:"all .15s" }}>
                 <div style={{ width:26, height:26, borderRadius:7, background:ic+"20", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, fontFamily:"'DM Sans',sans-serif", color:ic }}>{n.glyph}</div>
                 <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:ic, letterSpacing:.2 }}>{n.label}</span>
