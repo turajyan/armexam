@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { QUESTIONS as DATA_QUESTIONS } from "../data.js";
 import { api } from "../api.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
@@ -20,9 +19,6 @@ const QTYPES_LIST = [
   { id:"voice",         label:"Voice",         icon:"🎤" },
 ];
 
-// ── Seed ─────────────────────────────────────────────────────────────────────
-const SEED_QUESTIONS = DATA_QUESTIONS; // used only for question-pool availability checks in wizard
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STATUS_META = {
   draft:     { label:"Draft",     color:"#f59e0b", icon:"○" },
@@ -35,8 +31,8 @@ const STATUS_META = {
 const QTYPE_ICON = { single_choice:"◉", multi_choice:"☑", multi_select:"⊞", audio:"🎧", video:"🎬", fill_blank:"✎", writing:"✍" };
 const QTYPE_COLOR = { single_choice:"#60a5fa", multi_choice:"#a78bfa", multi_select:"#34d399", audio:"#f59e0b", video:"#f87171", fill_blank:"#e879f9", writing:"#94a3b8" };
 
-function totalPoints(qIds) {
-  return (qIds||[]).reduce((s,id)=>{ const q=SEED_QUESTIONS.find(q=>q.id===id); return s+(q?.points||0); },0);
+function totalPoints(qIds, allQs) {
+  return (qIds||[]).reduce((s,id)=>{ const q=(allQs||[]).find(q=>q.id===id); return s+(q?.points||0); },0);
 }
 
 // ── UI Atoms ──────────────────────────────────────────────────────────────────
@@ -155,12 +151,17 @@ function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] })
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initial ? {...blank,...initial} : blank);
   const set = (k,v) => setForm(p=>({...p,[k]:v}));
+  const [allQuestions, setAllQuestions] = useState([]);
 
-  const availableQs = SEED_QUESTIONS.filter(q => !form.level || q.level === form.level || form.level === "all");
+  useEffect(() => {
+    api.getQuestions().then(data => setAllQuestions(Array.isArray(data) ? data : [])).catch(()=>{});
+  }, []);
+
+  const availableQs = allQuestions.filter(q => !form.level || q.level === form.level || form.level === "all");
   const toggleQ = (id) => set("questionIds", form.questionIds.includes(id) ? form.questionIds.filter(x=>x!==id) : [...form.questionIds,id]);
   const toggleStudent = (id) => set("assignedTo", form.assignedTo.includes(id) ? form.assignedTo.filter(x=>x!==id) : [...form.assignedTo,id]);
 
-  const pts = totalPoints(form.questionIds);
+  const pts = totalPoints(form.questionIds, allQuestions);
 
   // Subpool helpers — shared for both fixed and placement
   const fixedTotalQ = (form.subpools||[]).reduce((s,sp)=>s+sp.count,0);
@@ -278,7 +279,7 @@ function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] })
                       <div style={{ padding:"12px 16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic" }}>No subpools — click "+ Add subpool" to define pools</div>
                     )}
                     {(row.subpools||[]).map((sp,idx)=>{
-                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length;
+                      const poolCount = allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length;
                       const ok = poolCount >= sp.count;
                       return (
                         <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 16px",borderBottom:`1px solid ${C.border}` }}>
@@ -376,7 +377,7 @@ function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] })
                 const lc = LEVEL_COLORS[row.level]||"#94a3b8";
                 const total = rowTotal(row);
                 const allOk = (row.subpools||[]).every(sp=>
-                  SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length >= sp.count
+                  allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length >= sp.count
                 );
                 return (
                   <div key={row.level}>
@@ -388,7 +389,7 @@ function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] })
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:allOk?C.success:"#f87171" }}>{allOk?"✓ OK":"✗ Error"}</span>
                     </div>
                     {(row.subpools||[]).map((sp,idx)=>{
-                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length;
+                      const poolCount = allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length;
                       const ok = poolCount >= sp.count;
                       return (
                         <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"7px 18px 7px 32px",borderBottom:`1px solid ${C.border}`,background:ok?"transparent":"#f8717106" }}>
@@ -432,7 +433,7 @@ function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] })
             <div style={{ padding:"16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic",background:C.panel,borderRadius:10,textAlign:"center" }}>No sections added yet</div>
           )}
           {(form.subpools||[]).map((sp,idx)=>{
-            const poolCount = SEED_QUESTIONS.filter(q=>q.level===level&&q.section===sp.section).length;
+            const poolCount = allQuestions.filter(q=>q.level===level&&q.section===sp.section).length;
             const ok = poolCount >= sp.count;
             return (
               <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.panel,border:`1.5px solid ${ok?C.border2:"#f8717144"}`,borderRadius:10 }}>
