@@ -513,7 +513,7 @@ async function main() {
     { name:"Super Admin",    email:"admin@armexam.am",    password:"admin1234", role:"super_admin",   centerId:null },
     { name:"Center Admin",   email:"center@armexam.am",   password:"demo1234",  role:"center_admin",  centerId:centers[0].id },
     { name:"Moderator",      email:"moder@armexam.am",    password:"demo1234",  role:"moderator",     centerId:null },
-    { name:"Examiner",       email:"examiner@armexam.am", password:"demo1234",  role:"examiner",      centerId:centers[0].id },
+    { name:"Examiner",       email:"examiner@armexam.am", password:"demo1234",  role:"examiner",      centerId:null },
   ];
   for (const a of adminSeeds) {
     await prisma.admin.create({
