@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { getSections, saveSections } from "../sections.js";
+import { useState, useEffect } from "react";
+import { api } from "../api.js";
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
@@ -200,26 +200,42 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
   const [saved, setSaved] = useState(true);
   const [admins, setAdmins] = useState(SEED_ADMINS);
   const [toast, setToast] = useState(null);
-  const [sections, setSections] = useState(getSections);
+  // sections: [{ id, name }]
+  const [sections, setSections] = useState([]);
   const [newSection, setNewSection] = useState("");
-  const [editingSection, setEditingSection] = useState(null); // { idx, value }
+  const [editingSection, setEditingSection] = useState(null); // { id, value }
 
-  const commitSections = (next) => { setSections(next); saveSections(next); };
-  const addSection = () => {
+  useEffect(() => {
+    api.getSections().then(setSections).catch(() => {});
+  }, []);
+
+  const addSection = async () => {
     const name = newSection.trim();
-    if (!name || sections.includes(name)) return;
-    commitSections([...sections, name]);
-    setNewSection("");
+    if (!name || sections.some(s => s.name === name)) return;
+    try {
+      const created = await api.createSection({ name });
+      setSections(prev => [...prev, created].sort((a,b) => a.name.localeCompare(b.name)));
+      setNewSection("");
+    } catch (e) { setToast({ type:"danger", msg: e.message }); }
   };
-  const deleteSection = (idx) => commitSections(sections.filter((_,i)=>i!==idx));
-  const startEdit = (idx) => setEditingSection({ idx, value: sections[idx] });
-  const confirmEdit = () => {
+
+  const deleteSection = async (id) => {
+    try {
+      await api.deleteSection(id);
+      setSections(prev => prev.filter(s => s.id !== id));
+    } catch (e) { setToast({ type:"danger", msg: e.message }); }
+  };
+
+  const startEdit = (sec) => setEditingSection({ id: sec.id, value: sec.name });
+  const confirmEdit = async () => {
     if (!editingSection) return;
     const name = editingSection.value.trim();
     if (!name) return;
-    const next = sections.map((s,i)=>i===editingSection.idx?name:s);
-    commitSections(next);
-    setEditingSection(null);
+    try {
+      const updated = await api.updateSection(editingSection.id, { name });
+      setSections(prev => prev.map(s => s.id === updated.id ? updated : s).sort((a,b) => a.name.localeCompare(b.name)));
+      setEditingSection(null);
+    } catch (e) { setToast({ type:"danger", msg: e.message }); }
   };
 
   const [general, setGeneral] = useState({
@@ -642,10 +658,10 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
           </div>
           {/* List */}
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            {sections.map((s,idx)=>(
-              <div key={idx} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:C.panel, border:`1px solid ${C.border}`, borderRadius:10 }}>
+            {sections.map((s)=>(
+              <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:C.panel, border:`1px solid ${C.border}`, borderRadius:10 }}>
                 <span style={{ fontSize:14 }}>📂</span>
-                {editingSection?.idx===idx ? (
+                {editingSection?.id===s.id ? (
                   <input
                     autoFocus
                     value={editingSection.value}
@@ -654,27 +670,24 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
                     style={{ flex:1, background:C.bg, border:`1.5px solid ${C.gold}`, borderRadius:8, padding:"5px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }}
                   />
                 ) : (
-                  <span style={{ flex:1, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text }}>{s}</span>
+                  <span style={{ flex:1, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text }}>{s.name}</span>
                 )}
                 <div style={{ display:"flex", gap:6 }}>
-                  {editingSection?.idx===idx ? (
+                  {editingSection?.id===s.id ? (
                     <>
                       <Btn small variant="success" onClick={confirmEdit}>✓</Btn>
                       <Btn small onClick={()=>setEditingSection(null)}>✕</Btn>
                     </>
                   ) : (
                     <>
-                      <Btn small onClick={()=>startEdit(idx)}>✎ Rename</Btn>
-                      <Btn small variant="danger" onClick={()=>deleteSection(idx)}>✕</Btn>
+                      <Btn small onClick={()=>startEdit(s)}>✎ Rename</Btn>
+                      <Btn small variant="danger" onClick={()=>deleteSection(s.id)}>✕</Btn>
                     </>
                   )}
                 </div>
               </div>
             ))}
           </div>
-          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, margin:0 }}>
-            ⚠ Renaming or deleting a section does not update existing questions — you'll need to reassign them manually.
-          </p>
         </SettingSection>
       </>);
 

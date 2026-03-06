@@ -7,11 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Section {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  questions Question[]
+}
+
 model Question {
   id          Int      @id @default(autoincrement())
   type        String   // single_choice | multi_choice | multi_select | fill_blank | fill_wordbank | writing | audio | video | voice
   level       String   // A1 | A2 | B1 | B2 | C1 | C2
-  section     String
+  sectionId   Int
+  section     Section  @relation(fields: [sectionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   points      Int      @default(1)
   text        String
 

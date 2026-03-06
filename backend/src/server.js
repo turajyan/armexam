@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import { PrismaClient } from "@prisma/client";
 
 import questionsRoutes from "./routes/questions.js";
+import sectionsRoutes  from "./routes/sections.js";
 import studentsRoutes  from "./routes/students.js";
 import examsRoutes     from "./routes/exams.js";
 import resultsRoutes   from "./routes/results.js";
@@ -24,6 +25,7 @@ await fastify.register(cors, {
 });
 
 await fastify.register(questionsRoutes);
+await fastify.register(sectionsRoutes);
 await fastify.register(studentsRoutes);
 await fastify.register(examsRoutes);
 await fastify.register(resultsRoutes);

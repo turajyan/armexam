@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "../api.js";
-import { getSections } from "../sections.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const SECTIONS = getSections();
 const QTYPES = [
   { id:"single_choice", label:"Single Choice", icon:"◉", color:"#60a5fa" },
   { id:"multi_choice",  label:"Multi Choice",  icon:"☑", color:"#a78bfa" },
@@ -220,7 +218,7 @@ function WordBankEditor({ q, set }) {
 }
 
 // ── Question Form ───────────────────────────────────────────────────────────────
-function QuestionForm({ initial, onSave, onCancel }) {
+function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
   const isEdit = !!initial;
   const blank = { type:"single_choice", level:"B1", section:"Reading", points:1, status:"draft", text:"", options:["","","",""], correct:0 };
   const [q, setQ] = useState(initial ? {...initial, options: initial.options ? [...initial.options] : ["","","",""] } : blank);
@@ -259,7 +257,7 @@ function QuestionForm({ initial, onSave, onCancel }) {
       {/* Row: level + section + points + status */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 100px", gap:14 }}>
         <Select label="Level" value={q.level} onChange={v=>set("level",v)} options={LEVELS} />
-        <Select label="Section" value={q.section} onChange={v=>set("section",v)} options={SECTIONS} />
+        <Select label="Section" value={q.section} onChange={v=>set("section",v)} options={sections} />
         <Input label="Points" value={q.points} onChange={v=>set("points",+v)} type="number" />
         <Select label="Status" value={q.status} onChange={v=>set("status",v)} options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
       </div>
@@ -699,6 +697,7 @@ function ViewQuestion({ q, onEdit, onClose }) {
 // ── Questions Page ─────────────────────────────────────────────────────────────
 function QuestionsPage() {
   const [questions, setQuestions] = useState([]);
+  const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // null | "create" | "edit" | "view"
   const [editing, setEditing] = useState(null);
@@ -711,7 +710,11 @@ function QuestionsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
-    api.getQuestions().then(data => { setQuestions(data); setLoading(false); });
+    Promise.all([api.getQuestions(), api.getSections()]).then(([qs, secs]) => {
+      setQuestions(qs);
+      setSections(secs.map(s => s.name));
+      setLoading(false);
+    });
   }, []);
 
   const filtered = questions.filter(q => {
@@ -785,7 +788,7 @@ function QuestionsPage() {
         </div>
         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
           <Pill label="All Sections" active={filterSection==="all"} onClick={()=>setFilterSection("all")} />
-          {SECTIONS.map(s=><Pill key={s} label={s} active={filterSection===s} onClick={()=>setFilterSection(s)} />)}
+          {sections.map(s=><Pill key={s} label={s} active={filterSection===s} onClick={()=>setFilterSection(s)} />)}
         </div>
       </div>
 
@@ -821,7 +824,7 @@ function QuestionsPage() {
       {/* Create/Edit Modal */}
       {(modal==="create"||modal==="edit") && (
         <Modal title={modal==="edit"?"Edit Question":"New Question"} onClose={()=>{setModal(null);setEditing(null)}}>
-          <QuestionForm initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} />
+          <QuestionForm initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} sections={sections} />
         </Modal>
       )}
 

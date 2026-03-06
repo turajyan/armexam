@@ -39,6 +39,12 @@ export const api = {
   // User exam registration (authenticated)
   registerForExam: (examId) => req('/user/register-exam', { method: 'POST', body: JSON.stringify({ examId }) }),
 
+  // Sections
+  getSections:    ()           => req('/sections'),
+  createSection:  (data)       => req('/sections',      { method: 'POST',   body: JSON.stringify(data) }),
+  updateSection:  (id, data)   => req(`/sections/${id}`, { method: 'PUT',   body: JSON.stringify(data) }),
+  deleteSection:  (id)         => req(`/sections/${id}`, { method: 'DELETE' }),
+
   // Questions
   getQuestions:   (p = {}) => req('/questions?' + new URLSearchParams(p)),
   createQuestion: (data)   => req('/questions', { method: 'POST', body: JSON.stringify(data) }),

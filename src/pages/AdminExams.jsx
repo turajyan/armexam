@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { QUESTIONS as DATA_QUESTIONS } from "../data.js";
 import { api } from "../api.js";
-import { getSections } from "../sections.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
@@ -9,7 +8,6 @@ let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"
 
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const SECTIONS = getSections();
 const QTYPES_LIST = [
   { id:"single_choice", label:"Single Choice", icon:"◉" },
   { id:"multi_choice",  label:"Multi Choice",  icon:"☑" },
@@ -287,7 +285,7 @@ function ExamWizard({ initial, onSave, onCancel, students = [] }) {
                           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,width:20,textAlign:"center" }}>┗</span>
                           <select value={sp.section} onChange={e=>updateSubpool(row.level,idx,"section",e.target.value)}
                             style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",flex:"0 0 140px" }}>
-                            {SECTIONS.map(s=><option key={s} value={s}>{s}</option>)}
+                            {sections.map(s=><option key={s} value={s}>{s}</option>)}
                           </select>
                           <input type="number" min={1} max={20} value={sp.count}
                             onChange={e=>updateSubpool(row.level,idx,"count",e.target.value)}
@@ -440,7 +438,7 @@ function ExamWizard({ initial, onSave, onCancel, students = [] }) {
               <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.panel,border:`1.5px solid ${ok?C.border2:"#f8717144"}`,borderRadius:10 }}>
                 <select value={sp.section} onChange={e=>updateFixedSP(idx,"section",e.target.value)}
                   style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",flex:"0 0 160px" }}>
-                  {SECTIONS.map(s=><option key={s} value={s}>{s}</option>)}
+                  {sections.map(s=><option key={s} value={s}>{s}</option>)}
                 </select>
                 <input type="number" min={1} max={30} value={sp.count}
                   onChange={e=>updateFixedSP(idx,"count",e.target.value)}
@@ -769,6 +767,7 @@ const NAV = [
 function ExamsPage() {
   const [exams, setExams] = useState([]);
   const [students, setStudents] = useState([]);
+  const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -780,8 +779,8 @@ function ExamsPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    Promise.all([api.getExams(), api.getStudents()]).then(([e, s]) => {
-      setExams(e); setStudents(s); setLoading(false);
+    Promise.all([api.getExams(), api.getStudents(), api.getSections()]).then(([e, s, secs]) => {
+      setExams(e); setStudents(s); setSections(secs.map(sec => sec.name)); setLoading(false);
     });
   }, []);
 

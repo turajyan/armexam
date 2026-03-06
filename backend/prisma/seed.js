@@ -438,11 +438,24 @@ async function main() {
   await prisma.exam.deleteMany();
   await prisma.student.deleteMany();
   await prisma.question.deleteMany();
+  await prisma.section.deleteMany();
   await prisma.examCenter.deleteMany();
   await prisma.city.deleteMany();
 
+  // Sections
+  const SECTION_NAMES = ["Reading", "Grammar", "Vocabulary", "Writing", "Listening", "Speaking", "Listening / Watching", "Free Writing"];
+  const sectionMap = {};
+  for (const name of SECTION_NAMES) {
+    const sec = await prisma.section.create({ data: { name } });
+    sectionMap[name] = sec.id;
+  }
+  console.log(`✅ ${SECTION_NAMES.length} sections`);
+
   // Questions
-  for (const q of QUESTIONS) await prisma.question.create({ data: q });
+  for (const q of QUESTIONS) {
+    const { section, ...rest } = q;
+    await prisma.question.create({ data: { ...rest, sectionId: sectionMap[section] } });
+  }
   console.log(`✅ ${QUESTIONS.length} questions (5 × 8 sections × 6 levels)`);
 
   // Cities & Centers
