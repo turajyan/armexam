@@ -759,16 +759,84 @@ function ExamPreview({ exam, questions, onClose }) {
     setAnswer(q.id, arr.includes(idx) ? arr.filter(x=>x!==idx) : [...arr, idx]);
   };
 
+  // Group questions by level for placement exams
+  const isPlacement = exam.examType === "placement";
+  const levels = isPlacement ? [...new Set(questions.map(q => q.level))] : [];
+
+  const isDotAnswered = (q) => {
+    const ans = answers[q.id];
+    if (ans === undefined || ans === null || ans === "") return false;
+    if (Array.isArray(ans)) return ans.length > 0;
+    return true;
+  };
+
   return (
     <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
       {/* Progress */}
-      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:18 }}>
+      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:12 }}>
         <span style={{ color:C.muted,fontSize:13 }}>Вопрос {current+1} / {questions.length}</span>
         <div style={{ flex:1,height:4,background:C.border,borderRadius:2 }}>
           <div style={{ width:`${((current+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s" }} />
         </div>
         <span style={{ color:C.muted,fontSize:11 }}>{q.points} балл · {q.level}</span>
       </div>
+
+      {/* Dot navigation */}
+      {isPlacement ? (
+        <div style={{ display:"flex",gap:16,flexWrap:"wrap",marginBottom:18,padding:"10px 14px",background:C.panel,borderRadius:10,border:`1px solid ${C.border}` }}>
+          {levels.map(lvl => {
+            const lvlQs = questions.map((qq,i) => ({ qq, i })).filter(({ qq }) => qq.level === lvl);
+            return (
+              <div key={lvl} style={{ display:"flex",alignItems:"center",gap:5 }}>
+                <span style={{ fontSize:10,fontWeight:700,color:LEVEL_COLORS[lvl]||C.muted,minWidth:20 }}>{lvl}</span>
+                <div style={{ display:"flex",gap:4 }}>
+                  {lvlQs.map(({ qq, i }) => {
+                    const isCur = i === current;
+                    const isDone = isDotAnswered(qq);
+                    return (
+                      <button
+                        key={i}
+                        title={`${lvl} · Вопрос ${i+1}`}
+                        onClick={() => setCurrent(i)}
+                        style={{
+                          width:12,height:12,borderRadius:"50%",padding:0,cursor:"pointer",
+                          background: isCur ? C.gold : isDone ? C.gold+"88" : C.border2,
+                          border:`2px solid ${isCur ? C.gold : isDone ? C.gold+"55" : C.border2}`,
+                          outline: isCur ? `2px solid ${C.gold}44` : "none",
+                          outlineOffset:1,
+                          transition:"all .15s",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:18,padding:"10px 14px",background:C.panel,borderRadius:10,border:`1px solid ${C.border}` }}>
+          {questions.map((qq, i) => {
+            const isCur = i === current;
+            const isDone = isDotAnswered(qq);
+            return (
+              <button
+                key={i}
+                title={`Вопрос ${i+1}`}
+                onClick={() => setCurrent(i)}
+                style={{
+                  width:12,height:12,borderRadius:"50%",padding:0,cursor:"pointer",
+                  background: isCur ? C.gold : isDone ? C.gold+"88" : C.border2,
+                  border:`2px solid ${isCur ? C.gold : isDone ? C.gold+"55" : C.border2}`,
+                  outline: isCur ? `2px solid ${C.gold}44` : "none",
+                  outlineOffset:1,
+                  transition:"all .15s",
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Question text */}
       <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 20px",marginBottom:16,fontSize:15,color:C.text,lineHeight:1.6 }}>
