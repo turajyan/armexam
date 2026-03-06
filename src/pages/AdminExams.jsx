@@ -619,7 +619,7 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, onPreview, 
       <div style={{ display:"flex",gap:12 }}>
         {(exam.examType==="placement" ? [
           { icon:"📊",val:(exam.placementTemplate||[]).reduce((s,r)=>s+(r.subpools||[]).reduce((ss,sp)=>ss+sp.count,0),0)+" q",tip:"Total Questions" },
-          { icon:"🎚",val:(()=>{ const lvls=(exam.placementTemplate||[]).map(r=>r.level).filter(Boolean); return lvls.length?lvls[0]+(lvls.length>1?"→"+lvls[lvls.length-1]:""):"—"; })(),tip:"Levels" },
+          { icon:"🎚",val:(()=>{ const lvls=(exam.placementTemplate||[]).map(r=>r.level).filter(Boolean); return lvls.length?lvls.join("·"):"—"; })(),tip:"Levels" },
           { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
           { icon:"🎯",val:(()=>{ const vals=Object.values(exam.placementThresholds||{}); return vals.length?Math.min(...vals)+"%/lvl":"—"; })(),tip:"Per-level threshold" },
         ] : [
