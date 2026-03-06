@@ -705,6 +705,7 @@ function QuestionsPage() {
   const [filterType, setFilterType] = useState("all");
   const [filterLevel, setFilterLevel] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterSection, setFilterSection] = useState("all");
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
@@ -716,6 +717,7 @@ function QuestionsPage() {
     if (filterType!=="all" && q.type!==filterType) return false;
     if (filterLevel!=="all" && q.level!==filterLevel) return false;
     if (filterStatus!=="all" && q.status!==filterStatus) return false;
+    if (filterSection!=="all" && q.section!==filterSection) return false;
     if (search && !q.text.toLowerCase().includes(search.toLowerCase()) && !String(q.id).includes(search)) return false;
     return true;
   });
@@ -779,6 +781,10 @@ function QuestionsPage() {
           {[["all","All"],["published","Published"],["draft","Draft"]].map(([v,label])=>(
             <Pill key={v} label={label} active={filterStatus===v} onClick={()=>setFilterStatus(v)} color={v==="published"?C.success:v==="draft"?"#f59e0b":C.gold} />
           ))}
+        </div>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          <Pill label="All Sections" active={filterSection==="all"} onClick={()=>setFilterSection("all")} />
+          {SECTIONS.map(s=><Pill key={s} label={s} active={filterSection===s} onClick={()=>setFilterSection(s)} />)}
         </div>
       </div>
 
