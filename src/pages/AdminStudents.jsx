@@ -165,26 +165,38 @@ function StudentProfile({ student, onClose, onEdit }) {
   const avgScore = avg(scores);
   const passed = results.filter(r=>r.passed).length;
 
+  const avatarLetter = student.avatar || student.name?.[0] || "?";
+  const subtitle = [student.email, student.group].filter(Boolean).join(" · ");
+
+  const contactRows = [
+    ["📧", student.email],
+    ["📞", student.phone],
+    ["📅", student.joined ? new Date(student.joined).toLocaleDateString("hy-AM", { year:"numeric", month:"long", day:"numeric" }) : null],
+    ["👥", student.group],
+  ].filter(([, val]) => val);
+
   return (
-    <Modal title={student.name} subtitle={`${student.email} · ${student.group}`} onClose={onClose} wide>
+    <Modal title={student.name} subtitle={subtitle} onClose={onClose} wide>
       <div style={{ display:"flex",gap:24,flexWrap:"wrap" }}>
         {/* Left column */}
         <div style={{ display:"flex",flexDirection:"column",gap:16,minWidth:220,flex:"0 0 220px" }}>
           <div style={{ textAlign:"center",padding:"24px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:14 }}>
-            <Avatar letter={student.avatar} size={64} color={LC[student.level]||C.gold} />
+            <Avatar letter={avatarLetter} size={64} color={LC[student.level]||C.gold} />
             <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:C.text,fontWeight:600,marginTop:12 }}>{student.name}</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,marginTop:4 }}>{student.group}</div>
+            {student.group && <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,marginTop:4 }}>{student.group}</div>}
             <div style={{ marginTop:10 }}><LevelBadge level={student.level} /></div>
             <div style={{ marginTop:8 }}><StatusDot status={student.status} /></div>
           </div>
-          <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px" }}>
-            {[["📧",student.email],["📞",student.phone],["📅",student.joined],["👥",student.group]].map(([icon,val])=>(
-              <div key={val} style={{ display:"flex",gap:10,alignItems:"flex-start",padding:"8px 0",borderBottom:`1px solid ${C.border}` }}>
-                <span style={{ fontSize:13,marginTop:1 }}>{icon}</span>
-                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,wordBreak:"break-all" }}>{val}</span>
-              </div>
-            ))}
-          </div>
+          {contactRows.length > 0 && (
+            <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px" }}>
+              {contactRows.map(([icon, val], i) => (
+                <div key={icon} style={{ display:"flex",gap:10,alignItems:"flex-start",padding:"8px 0",borderBottom: i < contactRows.length-1 ? `1px solid ${C.border}` : "none" }}>
+                  <span style={{ fontSize:13,marginTop:1,flexShrink:0 }}>{icon}</span>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,wordBreak:"break-all" }}>{val}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right column */}
@@ -194,7 +206,7 @@ function StudentProfile({ student, onClose, onEdit }) {
             {[
               { label:"Exams", value:results.length, color:C.info },
               { label:"Passed", value:passed, color:C.success },
-              { label:"Avg %", value:avgScore+"%", color:pctColor(avgScore) },
+              { label:"Avg %", value:results.length ? avgScore+"%" : "—", color:results.length ? pctColor(avgScore) : C.muted },
             ].map(s=>(
               <div key={s.label} style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",textAlign:"center" }}>
                 <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,color:s.color }}>{s.value}</div>
@@ -206,36 +218,47 @@ function StudentProfile({ student, onClose, onEdit }) {
           {/* Score trend */}
           {scores.length > 1 && (
             <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 20px" }}>
-              <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:12 }}>Ա. դ. · Score Trend</div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:12 }}>Score Trend</div>
               <Sparkline data={scores} color={C.gold} width={340} height={60} />
             </div>
           )}
 
           {/* Exam results list */}
           <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 20px" }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:12 }}>Քննությունների ա.</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:12 }}>Exam Results</div>
             <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
               {results.map(r=>(
                 <div key={r.examId} style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10 }}>
                   <div style={{ flex:1 }}>
                     <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,fontWeight:500 }}>{r.examTitle}</div>
-                    <div style={{ display:"flex",gap:8,marginTop:4 }}>
-                      <MiniBar value={r.score} max={r.maxScore} color={pctColor(r.pct)} height={4} />
+                    <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:5 }}>
+                      <div style={{ flex:1 }}><MiniBar value={r.score} max={r.maxScore} color={pctColor(r.pct)} height={4} /></div>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,flexShrink:0 }}>{r.score}/{r.maxScore}</span>
                     </div>
+                    {r.completedAt && (
+                      <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,marginTop:3 }}>
+                        {new Date(r.completedAt).toLocaleDateString("hy-AM", { year:"numeric", month:"short", day:"numeric" })}
+                      </div>
+                    )}
                   </div>
                   <div style={{ textAlign:"right",minWidth:70 }}>
                     <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:pctColor(r.pct) }}>{r.pct}%</div>
-                    <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:r.passed?C.success:C.danger }}>{r.passed?"✓ Ան.":"✕ Ձ."}</div>
+                    <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:r.passed?C.success:C.danger,fontWeight:600 }}>{r.passed?"✓ Passed":"✕ Failed"}</div>
                   </div>
                 </div>
               ))}
-              {results.length===0 && <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,padding:"12px 0" }}>No results yet</div>}
+              {results.length===0 && (
+                <div style={{ textAlign:"center",padding:"24px 0" }}>
+                  <div style={{ fontSize:28,marginBottom:8 }}>📋</div>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>No exam results yet</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
       <div style={{ display:"flex",justifyContent:"flex-end",marginTop:20,paddingTop:16,borderTop:`1px solid ${C.border}`,gap:10 }}>
-        <Btn onClick={onClose}>Փ.</Btn>
+        <Btn onClick={onClose}>Close</Btn>
         <Btn variant="primary" onClick={()=>onEdit(student)}>✎ Edit</Btn>
       </div>
     </Modal>
