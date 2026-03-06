@@ -5,6 +5,8 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+G
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("ru-RU", { day:"2-digit", month:"short", year:"numeric" }) : "";
+
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
 const QTYPES_LIST = [
@@ -637,7 +639,7 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, onPreview, 
       {exam.startDate && (
         <div style={{ display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:9 }}>
           <span style={{ fontSize:13 }}>📅</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>{exam.startDate}{exam.endDate&&exam.endDate!==exam.startDate?" → "+exam.endDate:""}</span>
+          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>{fmtDate(exam.startDate)}{exam.endDate&&exam.endDate!==exam.startDate?" → "+fmtDate(exam.endDate):""}</span>
         </div>
       )}
 
