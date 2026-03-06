@@ -11,7 +11,7 @@ export default async function examsRoutes(fastify) {
 
     const exams = await prisma.exam.findMany({
       where,
-      include: { assignedStudents: { select: { studentId: true } } },
+      include: { assignedStudents: { select: { studentId: true, pin: true } } },
       orderBy: { id: "asc" },
     });
 
@@ -22,7 +22,7 @@ export default async function examsRoutes(fastify) {
   fastify.get("/api/exams/:id", async (req, reply) => {
     const exam = await prisma.exam.findUnique({
       where: { id: Number(req.params.id) },
-      include: { assignedStudents: { select: { studentId: true } } },
+      include: { assignedStudents: { select: { studentId: true, pin: true } } },
     });
     if (!exam) return reply.code(404).send({ error: "Not found" });
     return flattenExam(exam);
@@ -31,14 +31,20 @@ export default async function examsRoutes(fastify) {
   // POST /api/exams
   fastify.post("/api/exams", async (req, reply) => {
     const { assignedTo, ...rest } = req.body;
+
+    let assignedStudentsData = {};
+    if (assignedTo?.length) {
+      const assignments = [];
+      for (const sid of assignedTo) {
+        const pin = await generateUniquePin(prisma);
+        assignments.push({ studentId: sid, pin });
+      }
+      assignedStudentsData = { assignedStudents: { create: assignments } };
+    }
+
     const exam = await prisma.exam.create({
-      data: {
-        ...sanitize(rest),
-        ...(assignedTo?.length
-          ? { assignedStudents: { create: assignedTo.map((id) => ({ studentId: id })) } }
-          : {}),
-      },
-      include: { assignedStudents: { select: { studentId: true } } },
+      data: { ...sanitize(rest), ...assignedStudentsData },
+      include: { assignedStudents: { select: { studentId: true, pin: true } } },
     });
     return reply.code(201).send(flattenExam(exam));
   });
@@ -51,17 +57,33 @@ export default async function examsRoutes(fastify) {
     await prisma.exam.update({ where: { id }, data: sanitize(rest) });
 
     if (assignedTo !== undefined) {
-      await prisma.examAssignment.deleteMany({ where: { examId: id } });
-      if (assignedTo.length) {
-        await prisma.examAssignment.createMany({
-          data: assignedTo.map((sid) => ({ examId: id, studentId: sid })),
+      // Keep existing assignments (preserve PINs), only add/remove
+      const existing = await prisma.examAssignment.findMany({
+        where: { examId: id },
+        select: { studentId: true, pin: true },
+      });
+      const existingIds = existing.map((a) => a.studentId);
+      const newIds = assignedTo;
+
+      // Remove students no longer assigned
+      const toRemove = existingIds.filter((sid) => !newIds.includes(sid));
+      if (toRemove.length) {
+        await prisma.examAssignment.deleteMany({
+          where: { examId: id, studentId: { in: toRemove } },
         });
+      }
+
+      // Add newly assigned students with fresh PINs
+      const toAdd = newIds.filter((sid) => !existingIds.includes(sid));
+      for (const sid of toAdd) {
+        const pin = await generateUniquePin(prisma);
+        await prisma.examAssignment.create({ data: { examId: id, studentId: sid, pin } });
       }
     }
 
     const exam = await prisma.exam.findUnique({
       where: { id },
-      include: { assignedStudents: { select: { studentId: true } } },
+      include: { assignedStudents: { select: { studentId: true, pin: true } } },
     });
     return flattenExam(exam);
   });
@@ -70,6 +92,27 @@ export default async function examsRoutes(fastify) {
   fastify.delete("/api/exams/:id", async (req, reply) => {
     await prisma.exam.delete({ where: { id: Number(req.params.id) } });
     return reply.code(204).send();
+  });
+
+  // GET /api/exams/:id/assignments — returns students with their PINs
+  fastify.get("/api/exams/:id/assignments", async (req, reply) => {
+    const id = Number(req.params.id);
+    const assignments = await prisma.examAssignment.findMany({
+      where: { examId: id },
+      include: {
+        student: { select: { id: true, name: true, email: true, phone: true, level: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    return assignments.map((a) => ({
+      studentId: a.studentId,
+      pin: a.pin,
+      name: a.student.name,
+      email: a.student.email,
+      phone: a.student.phone,
+      level: a.student.level,
+      registeredAt: a.createdAt,
+    }));
   });
 
   // GET /api/exams/:id/questions  — build question list for taking the exam
@@ -90,7 +133,11 @@ export default async function examsRoutes(fastify) {
 
 function flattenExam(exam) {
   const { assignedStudents, ...rest } = exam;
-  return { ...rest, assignedTo: assignedStudents.map((a) => a.studentId) };
+  return {
+    ...rest,
+    assignedTo: assignedStudents.map((a) => a.studentId),
+    assignments: assignedStudents.map((a) => ({ studentId: a.studentId, pin: a.pin })),
+  };
 }
 
 function sanitize(body) {
@@ -112,6 +159,24 @@ function pick(arr, n) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a.slice(0, n);
+}
+
+const PIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const PIN_LENGTH = 8;
+
+function randomPin() {
+  return Array.from({ length: PIN_LENGTH }, () =>
+    PIN_CHARS[Math.floor(Math.random() * PIN_CHARS.length)]
+  ).join("");
+}
+
+async function generateUniquePin(prisma) {
+  for (let i = 0; i < 20; i++) {
+    const pin = randomPin();
+    const exists = await prisma.examAssignment.findUnique({ where: { pin } });
+    if (!exists) return pin;
+  }
+  throw new Error("Не удалось сгенерировать уникальный PIN");
 }
 
 async function buildExamQuestions(prisma, exam) {

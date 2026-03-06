@@ -58,11 +58,12 @@ export const api = {
   deleteStudent: (id)     => req(`/students/${id}`, { method: 'DELETE' }),
 
   // Exams (admin)
-  getExams:          (p = {}) => req('/exams?' + new URLSearchParams(p)),
-  createExam:        (data)   => req('/exams', { method: 'POST', body: JSON.stringify(data) }),
-  updateExam:        (id, data) => req(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteExam:        (id)     => req(`/exams/${id}`, { method: 'DELETE' }),
-  getExamQuestions:  (id)     => req(`/exams/${id}/questions`),
+  getExams:              (p = {}) => req('/exams?' + new URLSearchParams(p)),
+  createExam:            (data)   => req('/exams', { method: 'POST', body: JSON.stringify(data) }),
+  updateExam:            (id, data) => req(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteExam:            (id)     => req(`/exams/${id}`, { method: 'DELETE' }),
+  getExamQuestions:      (id)     => req(`/exams/${id}/questions`),
+  getExamAssignments:    (id)     => req(`/exams/${id}/assignments`),
 
   // Results
   getResults:   (p = {}) => req('/results?' + new URLSearchParams(p)),

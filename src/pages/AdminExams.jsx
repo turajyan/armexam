@@ -588,7 +588,11 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, allStudents
   const sm = STATUS_META[exam.status]||STATUS_META.draft;
   const lc = LEVEL_COLORS[exam.level]||"#94a3b8";
   const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
-  const assignedStudents = allStudents.filter(s=>exam.assignedTo.includes(s.id));
+  // assignments = [{ studentId, pin }] from backend; enrich with student name from allStudents
+  const assignments = (exam.assignments || []).map(a => ({
+    ...a,
+    student: allStudents.find(s => s.id === a.studentId),
+  }));
 
   return (
     <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"22px 24px",display:"flex",flexDirection:"column",gap:16,transition:"border .2s",cursor:"default" }}
@@ -637,24 +641,36 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, allStudents
         </div>
       )}
 
-      {/* Assigned students */}
+      {/* Registered students with PINs */}
       <div>
         <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:8 }}>
-          Assigned Students · {assignedStudents.length}
+          Registered Students · {assignments.length}
         </div>
-        <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>
-          {assignedStudents.slice(0,5).map(s=>(
-            <div key={s.id} title={s.name} style={{ width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,border:`2px solid ${C.panel}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:C.text,fontFamily:"'DM Sans',sans-serif" }}>
-              {s.name[0]}
+        {assignments.length === 0
+          ? <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>None yet</span>
+          : <div style={{ display:"flex",flexDirection:"column",gap:4 }}>
+              {assignments.slice(0,4).map(a => (
+                <div key={a.studentId} style={{ display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8 }}>
+                  <div style={{ width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,color:C.text,flexShrink:0 }}>
+                    {a.student ? a.student.name[0] : "?"}
+                  </div>
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                      {a.student ? a.student.name : `#${a.studentId}`}
+                    </div>
+                  </div>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:5,padding:"1px 7px",letterSpacing:.8,flexShrink:0 }}>
+                    {a.pin}
+                  </span>
+                </div>
+              ))}
+              {assignments.length > 4 && (
+                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,paddingLeft:10 }}>
+                  +{assignments.length - 4} more
+                </div>
+              )}
             </div>
-          ))}
-          {assignedStudents.length>5 && (
-            <div style={{ width:30,height:30,borderRadius:"50%",background:C.dim,border:`2px solid ${C.panel}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.muted,fontFamily:"'DM Sans',sans-serif" }}>
-              +{assignedStudents.length-5}
-            </div>
-          )}
-          {assignedStudents.length===0 && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>None yet</span>}
-        </div>
+        }
       </div>
 
       {/* Actions */}
@@ -677,6 +693,8 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, allStudents
 // ── Assign Modal ──────────────────────────────────────────────────────────────
 function AssignModal({ exam, onClose, onSave, students = [] }) {
   const [assigned, setAssigned] = useState([...exam.assignedTo]);
+  // existing PINs map: studentId -> pin (for already-assigned students)
+  const existingPins = Object.fromEntries((exam.assignments || []).map(a => [a.studentId, a.pin]));
   const toggle = (id) => setAssigned(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
   const allSelected = students.length > 0 && students.every(s=>assigned.includes(s.id));
   const toggleAll = () => setAssigned(allSelected ? [] : students.map(s=>s.id));
@@ -692,6 +710,7 @@ function AssignModal({ exam, onClose, onSave, students = [] }) {
         {students.map(s=>{
           const sel=assigned.includes(s.id);
           const lc=LEVEL_COLORS[s.level]||"#94a3b8";
+          const pin=existingPins[s.id];
           return (
             <div key={s.id} onClick={()=>toggle(s.id)} style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:sel?C.info+"0e":C.panel,border:`1.5px solid ${sel?C.info+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .15s" }}>
               <div style={{ width:20,height:20,borderRadius:"50%",border:`2px solid ${sel?C.info:C.border2}`,background:sel?C.info+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
@@ -702,7 +721,11 @@ function AssignModal({ exam, onClose, onSave, students = [] }) {
                 <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500 }}>{s.name}</div>
                 <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
               </div>
-              <Badge color="#94a3b8" small>#{s.id}</Badge>
+              {pin && (
+                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:5,padding:"1px 7px",letterSpacing:.8 }}>
+                  {pin}
+                </span>
+              )}
               <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level||"—"}</span>
             </div>
           );
