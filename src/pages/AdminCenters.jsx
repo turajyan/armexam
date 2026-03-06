@@ -63,8 +63,8 @@ export default function AdminCenters({ theme: T }) {
                   <div style={{ color:C.muted, fontSize:11, marginTop:2 }}>{city.centers.length} центр(ов)</div>
                 </div>
                 <div style={{ display:"flex", gap:4 }}>
-                  <IconBtn onClick={e => { e.stopPropagation(); setModal({ type:"city", data:city }); }} C={C}>✏️</IconBtn>
-                  <IconBtn danger onClick={e => { e.stopPropagation(); setDelConf({ type:"city", id:city.id, name:city.name }); }} C={C}>🗑</IconBtn>
+                  <IconBtn onClick={e => { e.stopPropagation(); setModal({ type:"city", data:city }); }} C={C}>✎</IconBtn>
+                  <IconBtn danger onClick={e => { e.stopPropagation(); setDelConf({ type:"city", id:city.id, name:city.name }); }} C={C}>✕</IconBtn>
                 </div>
               </div>
             </div>
@@ -184,8 +184,8 @@ function CenterCard({ center, cityName, C, onEdit, onDelete }) {
           </span>
         </div>
         <div style={{ display:"flex", gap:6 }}>
-          <IconBtn onClick={onEdit} C={C}>✏️</IconBtn>
-          <IconBtn danger onClick={onDelete} C={C}>🗑</IconBtn>
+          <IconBtn onClick={onEdit} C={C}>✎</IconBtn>
+          <IconBtn danger onClick={onDelete} C={C}>✕</IconBtn>
         </div>
       </div>
 
@@ -355,11 +355,14 @@ function Btn({ children, onClick, primary, danger, small, disabled, C }) {
   );
 }
 function IconBtn({ children, onClick, danger, C }) {
+  const color = danger ? C.danger : C.gold;
   return (
     <button onClick={onClick} style={{
-      width:28, height:28, borderRadius:8, background:"transparent",
-      border:`1px solid ${danger ? C.danger+"33" : C.border}`,
+      width:28, height:28, borderRadius:8,
+      background: color+"18",
+      border:`1px solid ${color+"44"}`,
       cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center",
+      color, transition:"all .15s",
     }}>{children}</button>
   );
 }
