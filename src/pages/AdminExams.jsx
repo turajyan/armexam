@@ -986,7 +986,7 @@ function ExamsPage() {
   const handlePreview = async (exam) => {
     setPreviewLoading(true);
     try {
-      const questions = await api.getExamQuestions(exam.id);
+      const questions = await api.getExamQuestions(exam.id, true);
       setPreviewing({ exam, questions });
     } catch (e) {
       alert("Ошибка загрузки вопросов: " + e.message);

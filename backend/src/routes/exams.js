@@ -123,8 +123,9 @@ export default async function examsRoutes(fastify) {
     const exam = await prisma.exam.findUnique({ where: { id: Number(req.params.id) } });
     if (!exam) return reply.code(404).send({ error: "Not found" });
 
+    const preview = req.query.preview === "true";
     try {
-      const questions = await buildExamQuestions(prisma, exam);
+      const questions = await buildExamQuestions(prisma, exam, preview);
       return questions;
     } catch (err) {
       return reply.code(400).send({ error: err.message });
@@ -182,7 +183,7 @@ async function generateUniquePin(prisma) {
   throw new Error("Не удалось сгенерировать уникальный PIN");
 }
 
-async function buildExamQuestions(prisma, exam) {
+async function buildExamQuestions(prisma, exam, preview = false) {
   if (exam.examType === "placement") {
     const template = exam.placementTemplate || [];
     const result = [];
@@ -191,10 +192,10 @@ async function buildExamQuestions(prisma, exam) {
         const pool = await prisma.question.findMany({
           where: { level: row.level, section: sp.section, status: "published" },
         });
-        if (pool.length < sp.count) {
+        if (!preview && pool.length < sp.count) {
           throw new Error(`Not enough questions for ${row.level}/${sp.section}`);
         }
-        const picked = pick(pool, sp.count).map((q) => ({ ...q, points: row.pointsEach }));
+        const picked = pick(pool, Math.min(sp.count, pool.length)).map((q) => ({ ...q, points: row.pointsEach }));
         result.push(...picked);
       }
     }
@@ -207,10 +208,10 @@ async function buildExamQuestions(prisma, exam) {
     const pool = await prisma.question.findMany({
       where: { level: exam.level, section: sp.section, status: "published" },
     });
-    if (pool.length < sp.count) {
+    if (!preview && pool.length < sp.count) {
       throw new Error(`Not enough questions for ${exam.level}/${sp.section}`);
     }
-    result.push(...pick(pool, sp.count));
+    result.push(...pick(pool, Math.min(sp.count, pool.length)));
   }
   return exam.shuffle ? pick(result, result.length) : result;
 }

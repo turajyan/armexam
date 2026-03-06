@@ -96,7 +96,7 @@ export const api = {
   createExam:         (data)     => adminReq('/exams',           { method: 'POST', body: JSON.stringify(data) }),
   updateExam:         (id, data) => adminReq(`/exams/${id}`,     { method: 'PUT',  body: JSON.stringify(data) }),
   deleteExam:         (id)       => adminReq(`/exams/${id}`,     { method: 'DELETE' }),
-  getExamQuestions:   (id)       => adminReq(`/exams/${id}/questions`),
+  getExamQuestions:   (id, preview = false) => adminReq(`/exams/${id}/questions${preview ? "?preview=true" : ""}`),
   getExamAssignments: (id)       => adminReq(`/exams/${id}/assignments`),
 
   // ── Results ──────────────────────────────────────────────────────────────────
