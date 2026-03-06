@@ -508,17 +508,26 @@ async function main() {
   }
   console.log(`✅ ${STUDENTS_DATA.length} students`);
 
-  // Default super_admin
-  await prisma.admin.create({
-    data: {
-      name:         "Super Admin",
-      email:        "admin@armexam.am",
-      passwordHash: hashPassword("admin1234", "admin@armexam.am"),
-      role:         "super_admin",
-      status:       "active",
-    },
-  });
-  console.log("✅ super_admin  admin@armexam.am / admin1234");
+  // Admins
+  const adminSeeds = [
+    { name:"Super Admin",    email:"admin@armexam.am",    password:"admin1234", role:"super_admin",   centerId:null },
+    { name:"Center Admin",   email:"center@armexam.am",   password:"demo1234",  role:"center_admin",  centerId:centers[0].id },
+    { name:"Moderator",      email:"moder@armexam.am",    password:"demo1234",  role:"moderator",     centerId:null },
+    { name:"Examiner",       email:"examiner@armexam.am", password:"demo1234",  role:"examiner",      centerId:centers[0].id },
+  ];
+  for (const a of adminSeeds) {
+    await prisma.admin.create({
+      data: {
+        name:         a.name,
+        email:        a.email,
+        passwordHash: hashPassword(a.password, a.email),
+        role:         a.role,
+        status:       "active",
+        ...(a.centerId ? { centerId: a.centerId } : {}),
+      },
+    });
+    console.log(`✅ ${a.role.padEnd(14)} ${a.email} / ${a.password}`);
+  }
 
   console.log("\n🎉 Seed complete! Password for all students: demo1234");
 }
