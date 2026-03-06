@@ -459,28 +459,15 @@ function ExamWizard({ initial, onSave, onCancel, students = [] }) {
 
   // Step 2 — Students
   const step2 = (()=>{
-    const groups = [...new Set(students.map(s=>s.group))];
-    const toggleGroup = (g) => {
-      const ids = students.filter(s=>s.group===g).map(s=>s.id);
-      const allSel = ids.every(id=>form.assignedTo.includes(id));
-      set("assignedTo", allSel ? form.assignedTo.filter(id=>!ids.includes(id)) : [...new Set([...form.assignedTo,...ids])]);
-    };
+    const allSelected = students.length > 0 && students.every(s=>form.assignedTo.includes(s.id));
+    const toggleAll = () => set("assignedTo", allSelected ? [] : students.map(s=>s.id));
     return (
       <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
         <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.assignedTo.length}</span> students</span>
-          <div style={{ display:"flex",gap:8 }}>
-            <Btn small onClick={()=>set("assignedTo",students.map(s=>s.id))}>Select All</Btn>
-            <Btn small onClick={()=>set("assignedTo",[])}>Clear</Btn>
-          </div>
-        </div>
-        {/* Groups */}
-        <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-          {groups.map(g=>{
-            const ids = students.filter(s=>s.group===g).map(s=>s.id);
-            const allSel = ids.every(id=>form.assignedTo.includes(id));
-            return <button key={g} onClick={()=>toggleGroup(g)} style={{ background:allSel?C.info+"22":"transparent",border:`1px solid ${allSel?C.info:C.border2}`,borderRadius:8,padding:"6px 14px",color:allSel?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>{g} ({ids.length})</button>;
-          })}
+          <button onClick={toggleAll} style={{ background:allSelected?C.info+"22":"transparent",border:`1px solid ${allSelected?C.info:C.border2}`,borderRadius:8,padding:"6px 14px",color:allSelected?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>
+            {allSelected ? "Deselect All" : "Select All"}
+          </button>
         </div>
         {/* Student list */}
         <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:340,overflowY:"auto" }}>
@@ -691,23 +678,15 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, allStudents
 function AssignModal({ exam, onClose, onSave, students = [] }) {
   const [assigned, setAssigned] = useState([...exam.assignedTo]);
   const toggle = (id) => setAssigned(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
-  const groups = [...new Set(students.map(s=>s.group))];
-  const toggleGroup = (g) => {
-    const ids = students.filter(s=>s.group===g).map(s=>s.id);
-    const allSel = ids.every(id=>assigned.includes(id));
-    setAssigned(a=>allSel?a.filter(id=>!ids.includes(id)):[...new Set([...a,...ids])]);
-  };
+  const allSelected = students.length > 0 && students.every(s=>assigned.includes(s.id));
+  const toggleAll = () => setAssigned(allSelected ? [] : students.map(s=>s.id));
   return (
     <Modal title="Assign Students" subtitle={exam.title} onClose={onClose}>
       <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14 }}>
         <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{assigned.length}</span></span>
-        <div style={{ display:"flex",gap:8 }}>
-          {groups.map(g=>{
-            const ids=students.filter(s=>s.group===g).map(s=>s.id);
-            const allSel=ids.every(id=>assigned.includes(id));
-            return <button key={g} onClick={()=>toggleGroup(g)} style={{ background:allSel?C.info+"22":"transparent",border:`1px solid ${allSel?C.info:C.border2}`,borderRadius:8,padding:"5px 12px",color:allSel?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer" }}>{g}</button>;
-          })}
-        </div>
+        <button onClick={toggleAll} style={{ background:allSelected?C.info+"22":"transparent",border:`1px solid ${allSelected?C.info:C.border2}`,borderRadius:8,padding:"5px 14px",color:allSelected?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>
+          {allSelected ? "Deselect All" : "Select All"}
+        </button>
       </div>
       <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:360,overflowY:"auto",marginBottom:20 }}>
         {students.map(s=>{
