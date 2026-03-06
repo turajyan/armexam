@@ -499,8 +499,8 @@ function ExamWizard({ initial, onSave, onCancel, students = [] }) {
                   <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500 }}>{s.name}</div>
                   <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
                 </div>
-                <Badge color="#60a5fa" small>{s.group}</Badge>
-                <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level}</span>
+                <Badge color="#94a3b8" small>#{s.id}</Badge>
+                <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level||"—"}</span>
               </div>
             );
           })}
@@ -723,8 +723,8 @@ function AssignModal({ exam, onClose, onSave, students = [] }) {
                 <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500 }}>{s.name}</div>
                 <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
               </div>
-              <Badge color="#60a5fa" small>{s.group}</Badge>
-              <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level}</span>
+              <Badge color="#94a3b8" small>#{s.id}</Badge>
+              <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level||"—"}</span>
             </div>
           );
         })}
