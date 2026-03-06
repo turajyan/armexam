@@ -121,7 +121,7 @@ model Exam {
 model ExamAssignment {
   examId    Int
   studentId Int
-  pin       String   @unique  // 6-digit PIN for student exam access
+  pin       String   @unique  // 8-char PIN (A-Z + 0-9) for student exam access
   createdAt DateTime @default(now())
 
   exam    Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)

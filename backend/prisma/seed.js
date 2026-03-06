@@ -415,9 +415,16 @@ const STUDENTS_DATA = [
   { name:"Կարեն Հ.",           email:"karen@example.am",   gender:"male",   country:"Armenia", documentType:"id_card",  documentNumber:"ID667788" },
 ];
 
+const PIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const PIN_LENGTH = 8;
+
 function randPin(used) {
   let p;
-  do { p = String(Math.floor(100000 + Math.random() * 900000)); } while (used.has(p));
+  do {
+    p = Array.from({ length: PIN_LENGTH }, () =>
+      PIN_CHARS[Math.floor(Math.random() * PIN_CHARS.length)]
+    ).join("");
+  } while (used.has(p));
   used.add(p);
   return p;
 }

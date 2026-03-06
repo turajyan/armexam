@@ -127,9 +127,18 @@ export default async function citiesRoutes(fastify) {
   });
 }
 
+const PIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const PIN_LENGTH = 8;
+
+function randomPin() {
+  return Array.from({ length: PIN_LENGTH }, () =>
+    PIN_CHARS[Math.floor(Math.random() * PIN_CHARS.length)]
+  ).join("");
+}
+
 async function generateUniquePin(prisma) {
   for (let i = 0; i < 20; i++) {
-    const pin = String(Math.floor(100000 + Math.random() * 900000));
+    const pin = randomPin();
     const exists = await prisma.examAssignment.findUnique({ where: { pin } });
     if (!exists) return pin;
   }
