@@ -3,107 +3,52 @@ import { api } from "../api.js";
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
-
-const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LC = { A1:"#4ade80", A2:"#86efac", B1:"#60a5fa", B2:"#93c5fd", C1:"#f59e0b", C2:"#fbbf24" };
-
-const MONTHLY = [
-  { month:"Sep", exams:4,  passed:3  },
-  { month:"Oct", exams:7,  passed:5  },
-  { month:"Nov", exams:12, passed:8  },
-  { month:"Dec", exams:9,  passed:7  },
-  { month:"Jan", exams:6,  passed:4  },
-  { month:"Feb", exams:8,  passed:6  },
-];
+const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 
 const avg  = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
 const pct2 = (n,t) => t ? Math.round((n/t)*100) : 0;
 
-function StatCard({ icon, label, value, sub, color=C.gold, trend }) {
+// ── Stat Card ─────────────────────────────────────────────────────────────────
+function StatCard({ icon, label, value, sub, color }) {
   return (
-    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px", display:"flex", flexDirection:"column", gap:8, flex:1, minWidth:160 }}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <span style={{ fontSize:22 }}>{icon}</span>
-        {trend!==undefined && (
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, color:trend>=0?C.success:C.danger, background:trend>=0?C.success+"18":C.danger+"18", border:`1px solid ${trend>=0?C.success+"44":C.danger+"44"}`, borderRadius:6, padding:"2px 8px" }}>
-            {trend>=0?"↑":"↓"} {Math.abs(trend)}%
-          </span>
-        )}
-      </div>
-      <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:700, color, lineHeight:1 }}>{value}</div>
-      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>{label}</div>
-      {sub && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#334155" }}>{sub}</div>}
+    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px", display:"flex", flexDirection:"column", gap:6, flex:1, minWidth:140 }}>
+      <span style={{ fontSize:20 }}>{icon}</span>
+      <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color: color||C.gold, lineHeight:1 }}>{value}</div>
+      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text, fontWeight:500 }}>{label}</div>
+      {sub && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{sub}</div>}
     </div>
   );
 }
 
-function BarChart({ data }) {
-  const maxV = Math.max(...data.map(d=>Math.max(d.exams,d.passed)));
-  const W=500, H=180, PL=32, PR=10, PT=10, PB=38;
-  const cW=W-PL-PR, cH=H-PT-PB;
-  const bW=(cW/data.length)*0.33;
-  return (
-    <div>
-      <div style={{ display:"flex", gap:16, marginBottom:10 }}>
-        {[["Exams Taken",C.info],["Passed",C.success]].map(([l,c])=>(
-          <div key={l} style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <div style={{ width:10, height:10, borderRadius:3, background:c }} />
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{l}</span>
-          </div>
-        ))}
-      </div>
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
-        {[0,.25,.5,.75,1].map(r=>{
-          const y=PT+cH*(1-r);
-          return <g key={r}>
-            <line x1={PL} y1={y} x2={W-PR} y2={y} stroke={C.border} strokeWidth={1} strokeDasharray={r===0?"none":"3 3"}/>
-            <text x={PL-5} y={y+4} textAnchor="end" style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, fill:C.muted }}>{Math.round(maxV*r)}</text>
-          </g>;
-        })}
-        {data.map((d,i)=>{
-          const sw=cW/data.length, x0=PL+sw*i+sw*0.12;
-          const h1=(d.exams/maxV)*cH, h2=(d.passed/maxV)*cH;
-          return <g key={i}>
-            <rect x={x0}      y={PT+cH-h1} width={bW} height={h1} fill={C.info}    rx={3} opacity={.85}/>
-            <rect x={x0+bW+2} y={PT+cH-h2} width={bW} height={h2} fill={C.success} rx={3} opacity={.9}/>
-            <text x={x0+bW+1} y={H-8} textAnchor="middle" style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, fill:C.muted }}>{d.month}</text>
-          </g>;
-        })}
-      </svg>
-    </div>
-  );
-}
-
-function DonutChart({ segments, size=130 }) {
+// ── Donut Chart ───────────────────────────────────────────────────────────────
+function DonutChart({ segments, size=120, label="" }) {
   const total = segments.reduce((a,s)=>a+s.value,0);
-  if (!total) return null;
-  const R=size/2-12, r=R*.58, cx=size/2, cy=size/2;
+  if (!total) return <div style={{ color:C.muted, fontSize:12, textAlign:"center", padding:"20px 0" }}>Нет данных</div>;
+  const R=size/2-10, r=R*.54, cx=size/2, cy=size/2;
   let angle=-Math.PI/2;
-  const paths = segments.map(seg=>{
+  const paths = segments.map(seg => {
     const sw=(seg.value/total)*2*Math.PI;
     const x1=cx+R*Math.cos(angle), y1=cy+R*Math.sin(angle);
     angle+=sw;
     const x2=cx+R*Math.cos(angle), y2=cy+R*Math.sin(angle);
-    const lg=sw>Math.PI?1:0;
-    return { ...seg, d:`M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${lg} 1 ${x2} ${y2} Z`, pct:Math.round((seg.value/total)*100) };
+    return { ...seg, d:`M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${sw>Math.PI?1:0} 1 ${x2} ${y2} Z`, pct:Math.round((seg.value/total)*100) };
   });
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:20, flexWrap:"wrap" }}>
+    <div style={{ display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
       <svg width={size} height={size} style={{ flexShrink:0 }}>
         {paths.map((p,i)=><path key={i} d={p.d} fill={p.color} opacity={.9} stroke={C.bg} strokeWidth={2}/>)}
         <circle cx={cx} cy={cy} r={r} fill={C.card}/>
-        <text x={cx} y={cy-5} textAnchor="middle" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fill:C.gold, fontWeight:700 }}>{total}</text>
-        <text x={cx} y={cy+12} textAnchor="middle" style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, fill:C.muted }}>total</text>
+        <text x={cx} y={cy-4} textAnchor="middle" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fill:C.gold, fontWeight:700 }}>{total}</text>
+        {label && <text x={cx} y={cy+12} textAnchor="middle" style={{ fontFamily:"'DM Sans',sans-serif", fontSize:8, fill:C.muted }}>{label}</text>}
       </svg>
-      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+      <div style={{ display:"flex", flexDirection:"column", gap:6, flex:1 }}>
         {paths.map((p,i)=>(
-          <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ width:10, height:10, borderRadius:3, background:p.color, flexShrink:0 }}/>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text }}>{p.label}</span>
-            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, color:p.color, fontWeight:700, marginLeft:8 }}>
-              {p.value} <span style={{ fontSize:11, color:C.muted }}>({p.pct}%)</span>
-            </span>
+          <div key={i} style={{ display:"flex", alignItems:"center", gap:7 }}>
+            <div style={{ width:9, height:9, borderRadius:3, background:p.color, flexShrink:0 }}/>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text, flex:1 }}>{p.label}</span>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:p.color, fontWeight:700 }}>{p.value}</span>
+            <span style={{ color:C.muted, fontSize:10, width:30, textAlign:"right" }}>{p.pct}%</span>
           </div>
         ))}
       </div>
@@ -111,112 +56,70 @@ function DonutChart({ segments, size=130 }) {
   );
 }
 
-function ScoreDist({ results }) {
-  const buckets=[
-    { label:"90–100%", min:90, max:100, color:"#22c55e" },
-    { label:"75–89%",  min:75, max:89,  color:"#86efac" },
-    { label:"60–74%",  min:60, max:74,  color:"#f59e0b" },
-    { label:"40–59%",  min:40, max:59,  color:"#f97316" },
-    { label:"0–39%",   min:0,  max:39,  color:"#f87171" },
-  ];
-  const maxN=Math.max(...buckets.map(b=>results.filter(r=>r.pct>=b.min&&r.pct<=b.max).length),1);
+// ── Bar Chart (simple horizontal) ────────────────────────────────────────────
+function HBar({ label, value, max, color, total }) {
+  const w = max ? Math.round((value / max) * 100) : 0;
+  const pct = total ? Math.round((value / total) * 100) : 0;
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-      {buckets.map(b=>{
-        const n=results.filter(r=>r.pct>=b.min&&r.pct<=b.max).length;
-        return (
-          <div key={b.label} style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, width:60, flexShrink:0 }}>{b.label}</span>
-            <div style={{ flex:1, height:18, background:C.dim, borderRadius:4, overflow:"hidden" }}>
-              <div style={{ width:`${(n/maxN)*100}%`, height:"100%", background:b.color, borderRadius:4, transition:"width .4s" }}/>
-            </div>
-            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, color:b.color, fontWeight:700, width:24, textAlign:"right" }}>{n}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function LevelDist({ students }) {
-  const total=students.length;
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-      {LEVELS.map(l=>{
-        const n=students.filter(s=>s.level===l).length;
-        const w=pct2(n,total);
-        return (
-          <div key={l} style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, color:LC[l], width:28 }}>{l}</span>
-            <div style={{ flex:1, height:20, background:C.dim, borderRadius:5, overflow:"hidden" }}>
-              <div style={{ width:`${w}%`, height:"100%", background:LC[l]+"88", borderRadius:5, display:"flex", alignItems:"center", paddingLeft:8 }}>
-                {w>=15 && <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.bg, fontWeight:700 }}>{n}</span>}
-              </div>
-            </div>
-            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:LC[l], fontWeight:700, width:24, textAlign:"right" }}>{n}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function TopStudentsTable({ students, results }) {
-  const rows = students.map(s=>{
-    const rs=results.filter(r=>r.studentId===s.id);
-    return { ...s, examCount:rs.length, avgPct:avg(rs.map(r=>r.pct)), passRate:pct2(rs.filter(r=>r.passed).length, rs.length) };
-  }).sort((a,b)=>b.avgPct-a.avgPct).slice(0,8);
-  return (
-    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
-      <div style={{ padding:"18px 22px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600 }}>Top Students</span>
-        <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>ranked by avg score</span>
+    <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text, width:100, flexShrink:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</span>
+      <div style={{ flex:1, height:18, background:C.dim, borderRadius:4, overflow:"hidden" }}>
+        <div style={{ width:`${w}%`, height:"100%", background:color, borderRadius:4, display:"flex", alignItems:"center", paddingLeft:8, transition:"width .4s" }}>
+          {w >= 20 && <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#000a", fontWeight:700 }}>{value}</span>}
+        </div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 100px 110px", gap:12, padding:"10px 22px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
-        {["#","Student","Level","Exams","Pass Rate","Avg Score"].map(h=>(
-          <span key={h} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:700, letterSpacing:.6, textTransform:"uppercase" }}>{h}</span>
-        ))}
-      </div>
-      {rows.map((s,i)=>{
-        const lc=LC[s.level]||"#94a3b8";
-        const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
-        return (
-          <div key={s.id} style={{ display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 100px 110px", gap:12, padding:"12px 22px", borderBottom:`1px solid ${C.border}`, alignItems:"center", transition:"background .15s" }}
-            onMouseEnter={e=>e.currentTarget.style.background=C.panel}
-            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>{medal||`${i+1}`}</span>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:30, height:30, borderRadius:"50%", background:`${lc}22`, border:`1px solid ${lc}44`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:lc, fontWeight:700, flexShrink:0 }}>{s.name[0]}</div>
-              <div>
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, fontWeight:500 }}>{s.name}</div>
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{s.group}</div>
-              </div>
-            </div>
-            <span style={{ background:`${lc}18`, color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 8px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{s.level}</span>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, textAlign:"center" }}>{s.examCount}</span>
-            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-              <div style={{ flex:1, height:4, background:C.dim, borderRadius:2 }}>
-                <div style={{ width:`${s.passRate}%`, height:"100%", background:s.passRate>=75?C.success:s.passRate>=50?C.warning:C.danger, borderRadius:2 }}/>
-              </div>
-              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, width:32, textAlign:"right" }}>{s.passRate}%</span>
-            </div>
-            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <div style={{ flex:1, height:6, background:C.dim, borderRadius:3 }}>
-                <div style={{ width:`${Math.min(s.avgPct,100)}%`, height:"100%", background:`linear-gradient(90deg,${C.gold},${C.goldDim})`, borderRadius:3 }}/>
-              </div>
-              <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:C.gold, fontWeight:700, width:38, textAlign:"right" }}>{s.avgPct}%</span>
-            </div>
-          </div>
-        );
-      })}
+      <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, color, fontWeight:700, width:28, textAlign:"right" }}>{value}</span>
+      {total > 0 && <span style={{ color:C.muted, fontSize:10, width:30 }}>{pct}%</span>}
     </div>
   );
 }
 
+// ── City / Center Table ───────────────────────────────────────────────────────
+function CityStatsTable({ cities }) {
+  const [expanded, setExpanded] = useState({});
+  if (!cities || cities.length === 0) return <div style={{ color:C.muted, fontSize:13, padding:"20px 0", textAlign:"center" }}>Нет данных</div>;
+  return (
+    <div>
+      {cities.map(city => (
+        <div key={city.id} style={{ marginBottom:8 }}>
+          <div
+            onClick={() => setExpanded(e => ({ ...e, [city.id]: !e[city.id] }))}
+            style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", background:C.panel, borderRadius:10, cursor:"pointer", border:`1px solid ${C.border}` }}>
+            <span style={{ color:C.gold, fontSize:14 }}>{expanded[city.id] ? "▼" : "▶"}</span>
+            <span style={{ color:C.text, fontWeight:600, fontSize:14, flex:1 }}>🏙 {city.name}</span>
+            <Chip label={`${city.totalStudents} студ.`} color={C.info} />
+            <Chip label={`${city.totalExams} экз.`} color={C.purple} />
+            <Chip label={`${city.totalResults} рез.`} color={C.muted} />
+            <Chip label={`${city.passRate}% сданы`} color={city.passRate >= 60 ? C.success : C.danger} />
+          </div>
+          {expanded[city.id] && city.centers.map(ctr => (
+            <div key={ctr.id} style={{ marginLeft:24, marginTop:4, padding:"10px 16px", background:C.card, borderRadius:10, border:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:14 }}>
+              <span style={{ color:C.muted, fontSize:13 }}>└</span>
+              <div style={{ flex:1 }}>
+                <div style={{ color:C.text, fontSize:13, fontWeight:500 }}>{ctr.name}</div>
+                {ctr.address && <div style={{ color:C.muted, fontSize:11, marginTop:2 }}>📍 {ctr.address}</div>}
+              </div>
+              <Chip label={`${ctr.totalStudents} студ.`} color={C.info} />
+              <Chip label={`${ctr.totalExams} экз.`} color={C.purple} />
+              <Chip label={`${ctr.passRate}% сданы`} color={ctr.passRate >= 60 ? C.success : C.danger} />
+              <Chip label={`avg ${ctr.avgScore}%`} color={C.gold} />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Chip({ label, color }) {
+  return <span style={{ background:color+"18", color, border:`1px solid ${color}33`, borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:500, fontFamily:"'DM Sans',sans-serif", whiteSpace:"nowrap" }}>{label}</span>;
+}
+
+// ── Exam Perf Table ───────────────────────────────────────────────────────────
 function ExamPerfTable({ exams, results }) {
   return (
     <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
-      <div style={{ padding:"18px 22px", borderBottom:`1px solid ${C.border}` }}>
+      <div style={{ padding:"16px 22px", borderBottom:`1px solid ${C.border}` }}>
         <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600 }}>Exam Performance</span>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px 1fr 80px", gap:12, padding:"10px 22px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
@@ -224,29 +127,25 @@ function ExamPerfTable({ exams, results }) {
           <span key={h} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:700, letterSpacing:.6, textTransform:"uppercase" }}>{h}</span>
         ))}
       </div>
+      {exams.length === 0 && <div style={{ padding:"20px 22px", color:C.muted, fontSize:13 }}>Нет экзаменов</div>}
       {exams.map(exam=>{
         const rs=results.filter(r=>r.examId===exam.id);
         const taken=rs.length, passed=rs.filter(r=>r.passed).length;
         const passR=pct2(passed,taken), avgSc=avg(rs.map(r=>r.pct));
         const lc=LC[exam.level]||"#94a3b8";
         return (
-          <div key={exam.id} style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px 1fr 80px", gap:12, padding:"14px 22px", borderBottom:`1px solid ${C.border}`, alignItems:"center", transition:"background .15s" }}
-            onMouseEnter={e=>e.currentTarget.style.background=C.panel}
-            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-            <div>
-              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, fontWeight:500 }}>{exam.title}</div>
-              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:2 }}>{exam.date}</div>
-            </div>
-            <span style={{ background:`${lc}18`, color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 8px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{exam.level}</span>
+          <div key={exam.id} style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px 1fr 80px", gap:12, padding:"12px 22px", borderBottom:`1px solid ${C.border}`, alignItems:"center" }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, fontWeight:500 }}>{exam.title}</div>
+            <span style={{ background:`${lc}18`, color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"2px 8px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{exam.level || "Place."}</span>
             <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.text, textAlign:"center" }}>{taken}</span>
             <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.success, textAlign:"center" }}>{passed}</span>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <div style={{ flex:1, height:6, background:C.dim, borderRadius:3, overflow:"hidden" }}>
                 <div style={{ width:`${Math.min(passR,100)}%`, height:"100%", background:passR>=75?C.success:passR>=50?C.warning:C.danger, borderRadius:3 }}/>
               </div>
-              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:passR>=75?C.success:passR>=50?C.warning:C.danger, minWidth:36, textAlign:"right", flexShrink:0 }}>{passR}%</span>
+              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:passR>=75?C.success:passR>=50?C.warning:C.danger, minWidth:36, textAlign:"right" }}>{passR}%</span>
             </div>
-            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:700, textAlign:"center" }}>{Math.min(avgSc,100)}%</span>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:700, textAlign:"center" }}>{avgSc}%</span>
           </div>
         );
       })}
@@ -254,13 +153,65 @@ function ExamPerfTable({ exams, results }) {
   );
 }
 
+// ── Top Students Table ────────────────────────────────────────────────────────
+function TopStudentsTable({ students, results }) {
+  const rows = students.map(s => {
+    const rs = results.filter(r => r.studentId === s.id);
+    return { ...s, examCount:rs.length, avgPct:avg(rs.map(r=>r.pct)), passRate:pct2(rs.filter(r=>r.passed).length, rs.length) };
+  }).sort((a,b) => b.avgPct - a.avgPct).slice(0, 8);
+
+  return (
+    <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
+      <div style={{ padding:"16px 22px", borderBottom:`1px solid ${C.border}` }}>
+        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600 }}>Top Students</span>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"30px 1fr 60px 50px 50px 80px 100px", gap:12, padding:"10px 22px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
+        {["#","Student","Level","Пол","Exams","Pass","Avg"].map(h=>(
+          <span key={h} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:700, letterSpacing:.6, textTransform:"uppercase" }}>{h}</span>
+        ))}
+      </div>
+      {rows.length === 0 && <div style={{ padding:"20px 22px", color:C.muted, fontSize:13 }}>Нет студентов</div>}
+      {rows.map((s,i)=>{
+        const lc = LC[s.level]||"#94a3b8";
+        const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
+        const gIcon = s.gender === "female" ? "♀" : s.gender === "male" ? "♂" : "—";
+        return (
+          <div key={s.id} style={{ display:"grid", gridTemplateColumns:"30px 1fr 60px 50px 50px 80px 100px", gap:12, padding:"11px 22px", borderBottom:`1px solid ${C.border}`, alignItems:"center" }}>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>{medal||`${i+1}`}</span>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ width:28, height:28, borderRadius:"50%", background:`${lc}22`, border:`1px solid ${lc}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, color:lc, fontWeight:700, flexShrink:0 }}>{s.name[0]}</div>
+              <div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text }}>{s.name}</div>
+                <div style={{ fontSize:10, color:C.muted }}>{s.country}</div>
+              </div>
+            </div>
+            <span style={{ background:`${lc}18`, color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"2px 7px", fontSize:11, fontWeight:700, textAlign:"center" }}>{s.level||"—"}</span>
+            <span style={{ color:s.gender==="female"?"#f472b6":s.gender==="male"?C.info:C.muted, fontSize:14, textAlign:"center" }}>{gIcon}</span>
+            <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:C.text, textAlign:"center" }}>{s.examCount}</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:s.passRate>=75?C.success:s.passRate>=50?C.warning:C.danger, textAlign:"center" }}>{s.passRate}%</span>
+            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ flex:1, height:5, background:C.dim, borderRadius:3 }}>
+                <div style={{ width:`${Math.min(s.avgPct,100)}%`, height:"100%", background:`linear-gradient(90deg,${C.gold},${C.goldDim})`, borderRadius:3 }}/>
+              </div>
+              <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:C.gold, fontWeight:700, width:34, textAlign:"right" }}>{s.avgPct}%</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function AdminAnalytics({ theme }) {
   if (theme) C = theme;
-  const [period, setPeriod] = useState("all");
-  const [summary, setSummary] = useState(null);
-  const [students, setStudents] = useState([]);
-  const [allResults, setAllResults] = useState([]);
-  const [exams, setExams] = useState([]);
+
+  const [summary,    setSummary]    = useState(null);
+  const [students,   setStudents]   = useState([]);
+  const [results,    setResults]    = useState([]);
+  const [exams,      setExams]      = useState([]);
+  const [cityStats,  setCityStats]  = useState([]);
+  const [tab,        setTab]        = useState("overview"); // overview | cities | students
 
   useEffect(() => {
     Promise.all([
@@ -268,93 +219,130 @@ export default function AdminAnalytics({ theme }) {
       api.getStudents(),
       api.getResults(),
       api.getExams(),
-    ]).then(([s, st, r, e]) => {
-      setSummary(s); setStudents(st); setAllResults(r); setExams(e);
-    });
+      api.getByCity(),
+    ]).then(([s, st, r, e, cs]) => {
+      setSummary(s); setStudents(st); setResults(r); setExams(e); setCityStats(cs);
+    }).catch(console.error);
   }, []);
 
-  const results = allResults;
+  const totalStudents  = summary?.totalStudents  ?? students.length;
+  const totalResults   = summary?.totalResults   ?? results.length;
+  const totalPassed    = results.filter(r => r.passed).length;
+  const avgScore       = summary?.avgScore       ?? avg(results.map(r => r.pct));
+  const passRate       = summary?.passRate       ?? pct2(totalPassed, totalResults);
+  const totalCenters   = summary?.totalCenters   ?? 0;
+  const totalCities    = summary?.totalCities    ?? 0;
 
-  const totalStudents  = summary?.totalStudents ?? students.length;
-  const activeStudents = students.filter(s=>s.status==="active").length;
-  const totalTaken     = summary?.totalResults ?? results.length;
-  const totalPassed    = results.filter(r=>r.passed).length;
-  const avgScore       = summary?.avgScore ?? avg(results.map(r=>r.pct));
-  const passRate       = summary?.passRate ?? pct2(totalPassed, totalTaken);
+  const byGender  = summary?.studentsByGender  ?? {};
+  const byLevel   = summary?.studentsByLevel   ?? {};
+  const byCountry = summary?.studentsByCountry ?? {};
+
+  const genderSegs = [
+    { label:"Мужской",  value: byGender.male   || 0, color: C.info      },
+    { label:"Женский",  value: byGender.female  || 0, color: "#f472b6"  },
+    { label:"Другой",   value: byGender.other   || 0, color: C.muted    },
+  ].filter(s => s.value > 0);
+
+  const levelSegs = LEVELS.map((l, i) => ({ label: l, value: byLevel[l] || 0, color: LC[l] })).filter(s => s.value > 0);
+  const countryEntries = Object.entries(byCountry).sort((a,b) => b[1]-a[1]).slice(0, 6);
+  const maxCountry = countryEntries[0]?.[1] || 1;
+
+  const TABS = [["overview","📊 Обзор"],["cities","🏙 Города"],["students","👤 Студенты"]];
 
   return (
-    <>
-      <style>{FONTS}{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        @keyframes fadeSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-        button:active{transform:scale(.97)}
-      `}</style>
-      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box", animation:"fadeSlideIn .35s ease" }}>
+    <div style={{ flex:1, overflowY:"auto", minWidth:0 }}>
+      <div style={{ padding:"28px 36px", fontFamily:"'DM Sans',sans-serif" }}>
 
         {/* Header */}
-        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28, flexWrap:"wrap", gap:16 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
           <div>
-            <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:C.text, margin:"0 0 4px", fontWeight:600 }}>Analytics</h1>
-            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:0 }}>Platform performance overview</p>
+            <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:C.text, fontWeight:600, margin:0 }}>Аналитика</h1>
+            <p style={{ fontSize:13, color:C.muted, margin:"4px 0 0" }}>Статистика платформы</p>
           </div>
-          <div style={{ display:"flex", gap:6 }}>
-            {[["all","All Time"],["quarter","Last Quarter"],["month","Last Month"]].map(([v,l])=>(
-              <button key={v} onClick={()=>setPeriod(v)} style={{ background:period===v?C.gold+"22":"transparent", border:`1px solid ${period===v?C.gold:C.border2}`, borderRadius:9, padding:"8px 16px", color:period===v?C.gold:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, cursor:"pointer", transition:"all .15s" }}>{l}</button>
+          <div style={{ display:"flex", gap:4 }}>
+            {TABS.map(([id, label]) => (
+              <button key={id} onClick={() => setTab(id)} style={{
+                background: tab===id ? C.gold+"22" : "transparent",
+                border: `1px solid ${tab===id ? C.gold : C.border}`,
+                borderRadius:9, padding:"7px 16px", color: tab===id ? C.gold : C.muted,
+                fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, cursor:"pointer",
+              }}>{label}</button>
             ))}
           </div>
         </div>
 
-        {/* KPI row */}
-        <div style={{ display:"flex", gap:16, marginBottom:24, flexWrap:"wrap" }}>
-          <StatCard icon="👤" label="Total Students"  value={totalStudents}  sub={`${activeStudents} active`}          color={C.info}    trend={8}  />
-          <StatCard icon="📝" label="Exams Taken"     value={totalTaken}    sub={`across ${exams.length} exams`}  color={C.purple}  trend={12} />
-          <StatCard icon="✅" label="Pass Rate"       value={`${passRate}%`} sub={`${totalPassed} passed`}             color={C.success} trend={3}  />
-          <StatCard icon="⭐" label="Avg Score"       value={`${avgScore}%`} sub="across all exams"                    color={C.gold}    trend={-2} />
+        {/* KPIs */}
+        <div style={{ display:"flex", gap:14, marginBottom:24, flexWrap:"wrap" }}>
+          <StatCard icon="👤" label="Студентов"  value={totalStudents}        color={C.info}    />
+          <StatCard icon="📝" label="Результатов" value={totalResults}         color={C.purple}  />
+          <StatCard icon="✅" label="Сданы"       value={`${passRate}%`}       color={C.success} />
+          <StatCard icon="⭐" label="Средний балл" value={`${avgScore}%`}      color={C.gold}    />
+          <StatCard icon="🏛" label="Центров"     value={totalCenters}         color={C.warning} sub={`${totalCities} городов`} />
+          <StatCard icon="📋" label="Экзаменов"   value={exams.length}         color={C.info}    />
         </div>
 
-        {/* Charts row */}
-        <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:20, marginBottom:20 }}>
-          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600, marginBottom:16 }}>Monthly Activity</div>
-            <BarChart data={MONTHLY}/>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-            <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 24px" }}>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, color:C.text, fontWeight:600, marginBottom:14 }}>Pass / Fail</div>
-              <DonutChart segments={[
-                { label:"Passed", value:totalPassed,              color:C.success },
-                { label:"Failed", value:totalTaken-totalPassed,   color:C.danger  },
-              ]}/>
+        {/* ── Tab: Overview ─────────────────────────────────────────────────── */}
+        {tab === "overview" && (
+          <>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:18, marginBottom:20 }}>
+
+              {/* Gender distribution */}
+              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px" }}>
+                <SectionTitle>Пол</SectionTitle>
+                <DonutChart segments={genderSegs} label="студ." />
+              </div>
+
+              {/* Level distribution */}
+              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px" }}>
+                <SectionTitle>Уровень</SectionTitle>
+                <DonutChart segments={levelSegs} label="студ." />
+              </div>
+
+              {/* Pass / Fail */}
+              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px" }}>
+                <SectionTitle>Сдано / Не сдано</SectionTitle>
+                <DonutChart segments={[
+                  { label:"Сдано",    value:totalPassed,              color:C.success },
+                  { label:"Не сдано", value:totalResults - totalPassed, color:C.danger },
+                ].filter(s=>s.value>0)} label="рез." />
+              </div>
             </div>
-            <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 24px" }}>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, color:C.text, fontWeight:600, marginBottom:14 }}>Groups</div>
-              <DonutChart segments={["Խ-101","Խ-102","Խ-103"].map((g,i)=>({
-                label:g, value:students.filter(s=>s.group===g).length,
-                color:[C.info,C.purple,C.warning][i],
-              }))}/>
+
+            {/* Country breakdown */}
+            <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px", marginBottom:20 }}>
+              <SectionTitle>Студенты по странам</SectionTitle>
+              {countryEntries.length === 0 && <Muted>Нет данных</Muted>}
+              {countryEntries.map(([country, count], i) => (
+                <HBar key={country} label={country} value={count} max={maxCountry} total={totalStudents}
+                  color={[C.info, C.gold, C.success, C.warning, C.purple, "#f472b6"][i % 6]} />
+              ))}
             </div>
-          </div>
-        </div>
 
-        {/* Score dist + Level dist */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:20 }}>
-          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600, marginBottom:16 }}>Score Distribution</div>
-            <ScoreDist results={results}/>
-          </div>
-          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"22px 24px" }}>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600, marginBottom:16 }}>Student Levels</div>
-            <LevelDist students={students}/>
-          </div>
-        </div>
+            {/* Exam performance */}
+            <ExamPerfTable exams={exams} results={results} />
+          </>
+        )}
 
-        {/* Tables */}
-        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-          <ExamPerfTable exams={exams} results={results}/>
-          <TopStudentsTable students={students} results={results}/>
-        </div>
+        {/* ── Tab: Cities ───────────────────────────────────────────────────── */}
+        {tab === "cities" && (
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px" }}>
+            <SectionTitle>Статистика по городам и центрам</SectionTitle>
+            <CityStatsTable cities={cityStats} />
+          </div>
+        )}
 
+        {/* ── Tab: Students ─────────────────────────────────────────────────── */}
+        {tab === "students" && (
+          <TopStudentsTable students={students} results={results} />
+        )}
       </div>
-    </>
+    </div>
   );
+}
+
+function SectionTitle({ children }) {
+  return <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, color:C.text, fontWeight:600, marginBottom:14 }}>{children}</div>;
+}
+function Muted({ children }) {
+  return <div style={{ color:C.muted, fontSize:13, padding:"8px 0" }}>{children}</div>;
 }

@@ -3,89 +3,428 @@ import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
-const QUESTIONS = [
-  { type:"single_choice", level:"A1", section:"Reading",    points:1, text:"Ընտրի՛ր ճիշտ պատասխանը. «Ես ___ եմ»", options:["ուսանող","ուսանողի","ուսանողը","ուսանողին"], correct:0 },
-  { type:"single_choice", level:"A1", section:"Reading",    points:1, text:"«Բարի լույս» — ե՞րբ ենք ասում", options:["երեկոյան","գիշերը","առավոտյան","կեսօրին"], correct:2 },
-  { type:"fill_blank",    level:"A1", section:"Writing",    points:1, text:"Լրացրո՛ւ բաց թողածը. «Նա ___ է գնում» (դպրոց)", answer:"դպրոց" },
-  { type:"single_choice", level:"A1", section:"Grammar",    points:1, text:"Ո՞ր բառն է անուն", options:["վազել","կանաչ","տուն","արագ"], correct:2 },
-  { type:"multi_choice",  level:"A1", section:"Vocabulary", points:1, text:"Ո՞ր բառերն են թվեր", options:["երկու","կարմիր","հինգ","մեծ","ութ"], correct:[0,2,4] },
-
-  { type:"single_choice", level:"A2", section:"Reading",    points:1, text:"Ընտրի՛ր ճիշտ ձևը. «Ես ___ դպրոց եմ գնում ամեն օր»", options:["դեպի","մոտ","կողքին","առաջ"], correct:0 },
-  { type:"single_choice", level:"A2", section:"Grammar",    points:1, text:"Ո՞ր նախադասությունն է ճիշտ", options:["Ես գնացի խանութ","Ես խանութ եմ գնացի","Ես խանութ գնացի եմ","Ես եմ խանութ գնացի"], correct:0 },
-  { type:"fill_blank",    level:"A2", section:"Writing",    points:1, text:"Լրացրո՛ւ. «Նա ամեն օր ___ է ուտում» (նախաճաշ)", answer:"նախաճաշ" },
-  { type:"multi_choice",  level:"A2", section:"Vocabulary", points:2, text:"Ո՞ր բառերն են կապված ընտանիքի հետ", options:["մայր","սեղան","հայր","լուսամուտ","քույր"], correct:[0,2,4] },
-  { type:"single_choice", level:"A2", section:"Reading",    points:1, text:"«Ես սիրում եմ երաժշտություն» — ի՞նչ է նշանակում", options:["I hate music","I love music","I hear music","I play music"], correct:1 },
-
-  { type:"multi_choice",  level:"B1", section:"Grammar",    points:2, text:"Ո՞ր նախադասություններն են քերականորեն ճիշտ", options:["Նա գրքեր է կարդում","Ես երեկ կինո գնացի","Նրանք վաղը կգնան","Դու ճաշ ուտում ես արդեն"], correct:[0,1,2] },
-  { type:"single_choice", level:"B1", section:"Reading",    points:2, text:"Ո՞ր բառն է հոմանիշ «ուրախ»-ի", options:["տխուր","երջանիկ","հոգնած","բարկացած"], correct:1 },
-  { type:"fill_blank",    level:"B1", section:"Writing",    points:2, text:"Լրացրո՛ւ. «Եթե վաղը անձրև ___, ես տանը կմնամ» (գա)", answer:"գա" },
-  { type:"multi_select",  level:"B1", section:"Vocabulary", points:2, text:"Ընտրի՛ր բոլոր բառերը, որոնք կապված են «եղանակ»-ի հետ", options:["արև","բժիշկ","անձրև","ձյուն","գիրք","քամի"], correct:[0,2,3,5] },
-  { type:"single_choice", level:"B1", section:"Grammar",    points:2, text:"Ո՞ր ձևն է ճիշտ. «Եթե ես ժամանակ ___, կկարդայի»", options:["ունեմ","ունենամ","ունեի","ունեցել եմ"], correct:2 },
-
-  { type:"multi_select",  level:"B2", section:"Vocabulary", points:3, text:"Ընտրի՛ր բոլոր բառերը, որոնք կապված են «ճամփորդություն»-ի հետ", options:["ինքնաթիռ","բժիշկ","կայարան","ճամպրուկ","դպրոց","անձնագիր"], correct:[0,2,3,5] },
-  { type:"single_choice", level:"B2", section:"Reading",    points:3, text:"Ո՞ր բառն է հականիշ «աղմկոտ»-ի", options:["բարձրաձայն","լուռ","ուժեղ","արագ"], correct:1 },
-  { type:"multi_choice",  level:"B2", section:"Grammar",    points:3, text:"Ո՞ր ձևերն են ճիշտ", options:["Նա ասաց, որ կգա","Ես չգիտեի, թե ինչ անեմ","Երբ տեսա, ուրախացա","Կուզեի, եթե կարողanayir"], correct:[0,1,2] },
-  { type:"fill_blank",    level:"B2", section:"Writing",    points:3, text:"Լրացրո՛ւ. «Չ___ կողմից ստացված նամակը հասավ ուշ» (սպաս)", answer:"սպասված" },
-  { type:"writing",       level:"B2", section:"Free Writing", points:5, text:"Գրի՛ր 80-100 բառ թեմայով. «Ի՞նչ կփոխեի իմ քաղաքում»", minWords:80, maxWords:120 },
-
-  { type:"single_choice", level:"C1", section:"Reading",    points:4, text:"Ո՞ր արտահայտությունն է ճիշտ գործածված", options:["Ջուրը քարը կոտրեց","Ջուրը քարը փորեց","Ջուրը քար կտրեց","Ջուրը քարին ծակ արեց"], correct:1 },
-  { type:"multi_choice",  level:"C1", section:"Grammar",    points:4, text:"Ո՞ր նախադասություններն են ոճական առումով ճիշտ", options:["Հանդիպումը կայացավ երեկ","Ժողովը տեղի ունեցավ","Նա ելույթ ունեցավ","Ես ասացի"], correct:[0,1,2] },
-  { type:"fill_blank",    level:"C1", section:"Writing",    points:4, text:"Լրացրո՛ւ դարձվածքը. «Ոսկե ___ ունի» (ձեռքեր)", answer:"ձեռքեր" },
-  { type:"multi_select",  level:"C1", section:"Vocabulary", points:4, text:"Ո՞ր բառերն են բարձր ոճի", options:["ակնկալել","ուզել","հայցել","ասել","հայտնել","ճռճռալ"], correct:[0,2,4] },
-  { type:"writing",       level:"C1", section:"Free Writing", points:8, text:"Գրի՛ր 120-150 բառ. «Ժամանակակից հայերենի մարտահրավերները»", minWords:120, maxWords:180 },
-
-  { type:"single_choice", level:"C2", section:"Reading",    points:5, text:"Ո՞ր բառն է ճշգրիտ. «Հեղինակը ___ ոճ է գործածել» (պատկերավոր)", options:["փոխաբերական","ուղիղ","բառացի","զգացմունքային"], correct:0 },
-  { type:"multi_choice",  level:"C2", section:"Grammar",    points:5, text:"Ո՞ր նախադասություններն են ճիշտ կազմված", options:["Այն, ինչ ասացիր, ճշմարիտ է","Ով ջանա՝ կհասնի","Ուր գնաս, ես կգամ","Թեեւ հոգնած էր, շարունակեց"], correct:[0,1,2,3] },
-  { type:"fill_blank",    level:"C2", section:"Writing",    points:5, text:"Լրացրո՛ւ. «___ չէ, ով բոլորին հաճոյանա» (մարդ)", answer:"մարդ" },
-  { type:"multi_select",  level:"C2", section:"Vocabulary", points:5, text:"Ո՞ր բառերն են արխաիզմներ", options:["շնորհ","ոգի","յուր","նա","ահա","ես"], correct:[2] },
-  { type:"writing",       level:"C2", section:"Free Writing", points:10, text:"Գրի՛ր 150-200 բառ. «Գրականության դերը ազգային ինքնության պահպանման մեջ»", minWords:150, maxWords:220 },
-
-  { type:"fill_wordbank", level:"A2", section:"Grammar", points:2, text:"Տեղադրի՛ր բառերը ճիշտ տեղերում:", segments:[{type:"text",content:"Ես ամեն օր "},{type:"blank",id:0},{type:"text",content:" դպրոց եմ գնում "},{type:"blank",id:1},{type:"text",content:" ավտոբուսով:"}], wordBank:["առավոտյան","դեպի","երեկոյան","կողքին"], correct:[1,0] },
-  { type:"fill_wordbank", level:"B1", section:"Vocabulary", points:3, text:"Լրացրո՛ւ նախադասությունները ճիշտ բառերով:", segments:[{type:"text",content:"Երկիրը "},{type:"blank",id:0},{type:"text",content:" ունի, իսկ մայրաքաղաքը "},{type:"blank",id:1},{type:"text",content:" է:"}], wordBank:["Երևան","լեռներ","ծով","Թբիլիսի"], correct:[1,0] },
-
-  { type:"audio", level:"A2", section:"Listening", points:2, text:"Լսի՛ր ձայնագրությունը և ընտրի՛ր ճիշտ պատասխանը. Ո՞ւր է գնում խոսողը:", audioSrc:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", maxPlays:2, pauseSeconds:10, options:["Դպրոց","Խանութ","Բժիշկ","Կայարան"], correct:0 },
-  { type:"audio", level:"B1", section:"Listening", points:3, text:"Լսի՛ր երկխոսությունը. Ի՞նչ է ուզում գնել Արամը:", audioSrc:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", maxPlays:2, pauseSeconds:15, options:["Գիրք","Հագուստ","Սնունդ","Նվեր"], correct:2 },
-
-  { type:"video", level:"B2", section:"Listening / Watching", points:4, text:"Դիտի՛ր հատվածը. Ո՞ր թեմայի մասին է պատմում բանախոսը:", videoSrc:"https://www.w3schools.com/html/mov_bbb.mp4", maxPlays:1, options:["Բնապահպանություն","Տնտեսություն","Կրթություն","Մշակույթ"], correct:0 },
-  { type:"video", level:"C1", section:"Listening / Watching", points:5, text:"Դիտի՛ր հարցազրույցը. Ի՞նչ խնդիր է բարձրացնում հյուրը:", videoSrc:"https://www.w3schools.com/html/movie.mp4", maxPlays:1, options:["Լեզվի պահպանում","Տեխնոլոգիա","Սպորտ","Արվեստ"], correct:0 },
-
-  { type:"voice", level:"B1", section:"Speaking", points:3, text:"Ձայնագրի՛ր պատասխանդ. «Պատմի՛ր քո սիրած տոնի մասին» (30–60 վրկյան).", maxSeconds:60, minSeconds:15, maxAttempts:2 },
-  { type:"voice", level:"C1", section:"Speaking", points:5, text:"Ձայնագրի՛ր. «Ի՞նչ կմտածեիր ժամանակակից հայերենի զարգացման մասին» (45–90 վրկյան).", maxSeconds:90, minSeconds:30, maxAttempts:2 },
-
-  { type:"single_choice", level:"A1", section:"Reading",    points:1, text:"Ո՞ր բառն է ճիշտ. «Ես ___ եմ»", options:["ուրախ","ուրախ են","ուրախ ենք","ուրախ է"], correct:0 },
-  { type:"single_choice", level:"A1", section:"Grammar",    points:1, text:"Ո՞ր նախադասությունն է ճիշտ կազմված", options:["Ես գնում եմ","Ես եմ","Գնում ես","Եմ գնում"], correct:0 },
-  { type:"single_choice", level:"A2", section:"Reading",    points:1, text:"«Նա ամեն օր վաղ արթնանում է» — ի՞նչ է նշանակում", options:["Ուշ քնում է","Ուշ արթնանում է","Վաղ արթնանում է","Երբեք չի քնում"], correct:2 },
-  { type:"single_choice", level:"A2", section:"Vocabulary", points:1, text:"«Շուկա» բառի հոմանիշն է", options:["Այգի","Bazaar","Դպրոց","Հիվանդանոց"], correct:1 },
-  { type:"single_choice", level:"B1", section:"Reading",    points:2, text:"Ո՞ր նախադասությունն է կրավորական սեռով", options:["Նա գրեց նամակ","Նամակը գրվեց","Գրեց նամակ","Նամակ գրեցին"], correct:1 },
-  { type:"single_choice", level:"B1", section:"Listening",  points:2, text:"Ո՞ր արտահայտությունն է ճիշտ՝ հարցնելու համար ուղղություն", options:["Ո՞ւր է գնում","Ո՞ւր կգնաս","Ինչ՞ կանես","Ե՞րբ կտեսնեք"], correct:0 },
-  { type:"multi_choice",  level:"B2", section:"Reading",    points:3, text:"Ո՞ր բառերն են բնութագրում լավ ղեկավարի հատկությունները", options:["Համբերատար","Ազնիվ","Ագրեսիվ","Կազմակերպված"], correct:[0,1,3] },
-  { type:"single_choice", level:"B2", section:"Listening",  points:3, text:"Ո՞ր հոմանիշն է ճիշտ «լսել» բային", options:["Տեսնել","Ընկալել","Խոսել","Կարդալ"], correct:1 },
-  { type:"single_choice", level:"B2", section:"Listening",  points:3, text:"«Ուշադիր լսել» — ի՞նչ է նշանակում", options:["Ուշադիր լսել","Անտեսել","Պատասխանել","Հարցնել"], correct:0 },
-  { type:"multi_select",  level:"C1", section:"Reading",    points:4, text:"Ո՞ր հատկանիշներն են բնորոշ գիտական ոճին", options:["Ճշգրտություն","Հուզականություն","Օբյեկտիվություն","Պատկերավորություն"], correct:[0,2] },
-  { type:"single_choice", level:"C1", section:"Listening",  points:4, text:"Ո՞ր բառն է հոմանիշ «ընկալել»-ի", options:["Տեսնել","Հասկանալ","Կարդալ","Խոսել"], correct:1 },
-  { type:"single_choice", level:"C1", section:"Listening",  points:4, text:"Ի՞նչ է նշանակում «ականջ դնել»", options:["Ուշադիր լսել","Ձայն հանել","Երգ երգել","Հեռախոս վերցնել"], correct:0 },
-  { type:"multi_select",  level:"C2", section:"Reading",    points:5, text:"Ո՞ր արտահայտություններն ունեն փոխաբերական իմաստ", options:["Սիրտ կտրել","Ջուր խմել","Ձեռք մեկնել","Հաց ուտել"], correct:[0,2] },
-  { type:"fill_blank",    level:"C2", section:"Grammar",    points:5, text:"Լրացրո՛ւ. «Եթե ավելի շատ կարդայի, ___ ավելի շատ բան» (իմանալ — անցյալ կատարյալ)", answer:"կիմանայի" },
-];
-
-// sha256(password + email) — password for all demo users is "demo1234"
 function hashPassword(password, email) {
   return crypto.createHash("sha256").update(password + email.toLowerCase()).digest("hex");
 }
 
-const STUDENTS = [
-  { name:"Անի Հակոբյան",   email:"ani@example.am",    country:"Armenia", documentType:"passport", documentNumber:"AA123456", level:"B1", status:"active" },
-  { name:"Արամ Պետրոսյան", email:"aram@example.am",   country:"Armenia", documentType:"id_card",  documentNumber:"ID789012", level:"A2", status:"active" },
-  { name:"Մարինե Գ.",      email:"marine@example.am", country:"Armenia", documentType:"passport", documentNumber:"AA345678", level:"B2", status:"active" },
-  { name:"Դավիթ Ս.",       email:"davit@example.am",  country:"Georgia", documentType:"passport", documentNumber:"GE001234", level:"C1", status:"active" },
-  { name:"Նարեկ Ավ.",      email:"narek@example.am",  country:"Armenia", documentType:"id_card",  documentNumber:"ID555000", level:"A1", status:"inactive" },
-  { name:"Լուսինե Կ.",     email:"lusine@example.am", country:"Russia",  documentType:"passport", documentNumber:"RU998877", level:"B1", status:"active" },
-  { name:"Վահե Մ.",        email:"vahe@example.am",   country:"Armenia", documentType:"passport", documentNumber:"AA111222", level:"A2", status:"active" },
-  { name:"Հայկ Ա.",        email:"hayk@example.am",   country:"Armenia", documentType:"id_card",  documentNumber:"ID333444", level:"B2", status:"active" },
+// ─── QUESTION BANKS: 5 per section per level ─────────────────────────────────
+// Points: A1=1, A2=1, B1=2, B2=3, C1=4, C2=5
+const PTS = { A1:1, A2:1, B1:2, B2:3, C1:4, C2:5 };
+
+// ── READING (single_choice) ───────────────────────────────────────────────────
+const READING = {
+  A1: [
+    { text:"«Բարև» բառի հոմանիշն է", options:["Ցտեսություն","Ողջո՜ւն","Կներեք","Շնորհակալ եմ"], correct:1 },
+    { text:"«Ես ուսանող եմ» — ո՞ ր թ-ն է ճ.", options:["I am a teacher","I am a student","I go to school","I study here"], correct:1 },
+    { text:"Ո՞ ր բ. է կ. ա.", options:["Սեղան","Շուն","Պատ","Գիրք"], correct:1 },
+    { text:"«Ինն» — ո՞ ր թ. է", options:["7","8","9","10"], correct:2 },
+    { text:"«Կարմիր» բ. կ. ցույց տա", options:["Թ.","Բ.","Ա.","Մ."], correct:2 },
+  ],
+  A2: [
+    { text:"«Ամռանը» — ե՞ ր ե.", options:["Ձ.","Ա.","Գ.","Ա. 4"], correct:1 },
+    { text:"«Ես ամ. օ. դ. եմ գ. ա.» — ե՞ կ. գ.", options:["Ոտ.","Ա.","Մ.","Հ."], correct:1 },
+    { text:"«Երեկ» — ե՞ ր ժ.", options:["Ա.","Վ.","Ա. 3","Ա. 4"], correct:2 },
+    { text:"«Ուտ.» = ?", options:["To drink","To eat","To sleep","To play"], correct:1 },
+    { text:"«Ն. կ. գ. գ.» — ո՞ վ ա.", options:["Ե.","Ն.","Մ.","Ն. 4"], correct:1 },
+  ],
+  B1: [
+    { text:"«Ջ. ք. փ.» — ի՞ ն ա.", options:["Ու. ա. կ.","Հ. հ. կ.","Ջ. վտ. է","Ք. կ."], correct:1 },
+    { text:"«Ուրախ» բ. հ. է", options:["Տ.","Ե.","Հ.","Բ."], correct:1 },
+    { text:"«Ե. կ., ե. ժ. ու.» — ձ.", options:["Ե.","Ս.","Պ.","Հ."], correct:2 },
+    { text:"Ո՞ ր ն. է կ. ս.", options:["Ն. գ. ն.","Ն. գ.","Գ. ն.","Ն. ու."], correct:1 },
+    { text:"«Հ.» բ. ա. է", options:["Ծ.","Ու.","Ե.","Հ."], correct:2 },
+  ],
+  B2: [
+    { text:"«Ա.» բ. ի. է", options:["Մ.","Ան.","Կ.","Ու."], correct:1 },
+    { text:"«Ն. ա., որ կ.» — ձ.", options:["Ու. ե.","Ան. ե.","Հ.","Ե."], correct:1 },
+    { text:"«Ա.» բ. ա. է", options:["Բ.","Ու.","Լ.","Ա."], correct:2 },
+    { text:"«Ժ.» բ. ա. ունի", options:["ժ-","ժ-ա-","ժա-","ժ-ան-"], correct:0 },
+    { text:"Ո՞ ր շ. է հ.", options:["ու.-տ.","գ.-գ.","ա.-դ.","մ.-փ."], correct:1 },
+  ],
+  C1: [
+    { text:"«Ոս. ձ. ու.» — ի՞ ն ա.", options:["Ոս. ու.","Վ. ա. է","Ա. է","Ձ. ոս. են"], correct:1 },
+    { text:"«Հ. լ. ընդ մ.» — ոճ", options:["Ժ.","Գ.-բ.","Բ.","Ժ.-խ."], correct:1 },
+    { text:"Ո՞ ա. ու. փ. ի.", options:["Ս. ջ. խ.","Ս. կ.","Դ. բ.","Ճ. գ."], correct:1 },
+    { text:"«Ճ. ձ.» — ի՞ ոճ. հ.", options:["Փ.","Ձ.","Հ.","Հ. 4"], correct:2 },
+    { text:"«Ա.» և «ու.» տ.", options:["Ն. ի.","«Ա.»-ն բ. ո. է","«Ու.»-ն պ.","Ե. ա. են"], correct:1 },
+  ],
+  C2: [
+    { text:"«Յ.» բ. ժ. հ.", options:["Ընդ. է","Ա. է","Ժ.-խ.","Բ."], correct:1 },
+    { text:"«Փ.» ոճ — ի՞ ա.", options:["Ու. ա.","Մ. բ. ա.","Կ.","Հ."], correct:1 },
+    { text:"Ո՞ ր շ. ա. բ. են", options:["ե., ն., մ.","յ., ա., ո.","գ., բ., ն.","լ., ձ., բ."], correct:1 },
+    { text:"«Ստ.» բ. ա. է", options:["ստ-","ստ.-","ստ.-","ստ. 4"], correct:2 },
+    { text:"«Ա. ի.» — ոճ", options:["Խ.","Գ.-հ.","Գ.","Կ."], correct:1 },
+  ],
+};
+
+// ── GRAMMAR (fill_blank for A1,B1,C1; single_choice for A2,B2,C2) ─────────────
+const GRAMMAR = {
+  A1: [
+    { type:"fill_blank", text:"Լ. «Ես ___ եմ» (ուս.)", answer:"ուսանող" },
+    { type:"fill_blank", text:"Լ. «Ն. ___ է» (ուս.)", answer:"ուսուցիչ" },
+    { type:"single_choice", text:"Ճ. ն.", options:["Ես գ. եմ","Ես եմ","Գ. ե.","Ե. ես"], correct:0 },
+    { type:"fill_blank", text:"Լ. «Ն. ___ է գ.» (դ.)", answer:"դպրոց" },
+    { type:"single_choice", text:"Ճ. «Ես ___ հ.»", options:["ե.","եմ","են","ե. 4"], correct:1 },
+  ],
+  A2: [
+    { type:"single_choice", text:"Ճ. «Ես ___ դ.»", options:["գ.","գ. ե.","կ.","ե. գ."], correct:1 },
+    { type:"fill_blank", text:"Լ. «Ն. ամ. օ. ___ է ու.» (ն.)", answer:"նախաճաշ" },
+    { type:"single_choice", text:"«Ես գ.» — ձ.", options:["Ն.","Ա. կ.","Ա.","Հ."], correct:1 },
+    { type:"fill_blank", text:"Լ. «Ն. ___ է» (բ.)", answer:"բժիշկ" },
+    { type:"single_choice", text:"Ճ. «___ դ. ամ. օ.»", options:["դ.","մ.","կ.","հ."], correct:0 },
+  ],
+  B1: [
+    { type:"fill_blank", text:"Լ. «Ե. ան. ___, կ. մ.» (գ.)", answer:"գա" },
+    { type:"single_choice", text:"Ճ. «Ե. ժ. ___, կ.»", options:["ու.","ու. 2","ու.","ու. ե."], correct:2 },
+    { type:"fill_blank", text:"Լ. «Ե. կ., ե. ___ գ.» (դ.)", answer:"դու" },
+    { type:"single_choice", text:"Ո՞ ր ն. կ. ս.", options:["Ե. գ.","Ն. գ.","Ն. գ. ե.","Գ."], correct:1 },
+    { type:"fill_blank", text:"Լ. «Ն. ա., որ ___ կ.» (ի.)", answer:"ինքը" },
+  ],
+  B2: [
+    { type:"single_choice", text:"Ճ. «Ե. ___ կ.»", options:["ծ.","ծ. ե.","ծ. լ.","ծ. կ."], correct:2 },
+    { type:"fill_blank", text:"Լ. «Չ. ___ ն. ու.» (ս.)", answer:"սպասված" },
+    { type:"single_choice", text:"«Ն. ա. կ.» — ձ.", options:["Ու. ե.","Ան. ե.","Հ.","Հ. 4"], correct:1 },
+    { type:"fill_blank", text:"Լ. «Ե. ___ կ., ե. ժ. ու.» (ա.)", answer:"ավելի" },
+    { type:"single_choice", text:"Ճ. ե. կ.", options:["Ե. կ.","Ե. ու.","Ե. կ. 3","Ե. ու. ե."], correct:2 },
+  ],
+  C1: [
+    { type:"fill_blank", text:"Լ. «Ոս. ___ ու.» (ձ.)", answer:"ձեռքեր" },
+    { type:"single_choice", text:"Ոճ. ճ.", options:["Ե.","Կ.","Կ. ձ.","Կ. 4"], correct:2 },
+    { type:"fill_blank", text:"Լ. «Թ. ___, շ. կ.» (հ.)", answer:"հոգնած" },
+    { type:"single_choice", text:"Ճ. «Ժ. տ. ու.»", options:["ժ. կ.","ժ. ու.","ժ. ե.","ժ. ն."], correct:0 },
+    { type:"fill_blank", text:"Լ. «___ ու. խ.» (ե.)", answer:"ելույթ" },
+  ],
+  C2: [
+    { type:"single_choice", text:"Ճ. կ.", options:["Ով ջ.","Ով ջ. հ.","Ան. ջ.","Ան. հ."], correct:0 },
+    { type:"fill_blank", text:"Լ. «Ե. ա. կ. ___ ա. բ. կ.» (ի.)", answer:"կիմանայի" },
+    { type:"single_choice", text:"Ձ. — ո՞ ժ", options:["Ն.","Ան. կ.","Ն. կ.","Ան. ան."], correct:1 },
+    { type:"fill_blank", text:"Լ. «___ չ., ով բ. հ.» (մ.)", answer:"մարդ" },
+    { type:"single_choice", text:"Ճ. «Ի. ա. ___ ոս.»", options:["ն. բ.","ան. բ.","փ. բ.","գ. բ."], correct:1 },
+  ],
+};
+
+// ── VOCABULARY (multi_choice A1-A2; multi_select B1-C2) ──────────────────────
+const VOCABULARY = {
+  A1: [
+    { type:"multi_choice", text:"Ո՞ ր բ. են թ.", options:["Երկ.","Կ.","Հ.","Մ.","Ու."], correct:[0,2,4] },
+    { type:"multi_choice", text:"Ո՞ ր բ. են գ.", options:["Կ.","Վ.","Կ. 3","Ա.","Կ. 5"], correct:[0,2,4] },
+    { type:"multi_choice", text:"Ո՞ ր բ. են մ. մ.", options:["Ձ.","Տ.","Ո.","Դ.","Գ."], correct:[0,2,4] },
+    { type:"multi_choice", text:"Ո՞ ր բ. են շ. օ.", options:["Ե.","Հ.","Ու.","Ձ.","Կ."], correct:[0,2,4] },
+    { type:"multi_choice", text:"Ո՞ ր բ. են կ.", options:["Կ.","Ծ.","Շ.","Ծ. 4","Ձ."], correct:[0,2,4] },
+  ],
+  A2: [
+    { type:"multi_choice", text:"Ո՞ ր բ. են ըն.", options:["Մ.","Ս.","Հ.","Լ.","Ք."], correct:[0,2,4] },
+    { type:"multi_choice", text:"Ո՞ ր բ. են ու. / կ.", options:["Հ.","Ա.","Ջ.","Ու.","Կ."], correct:[0,2] },
+    { type:"multi_choice", text:"Ո՞ ր բ. ցուցաբ. գ.", options:["Ամ.","Ձ.","Ըն.","Ն.","Ա."], correct:[0,1,4] },
+    { type:"multi_choice", text:"Ո՞ ր բ. են ու. / ճ.", options:["Ձ.","Ա.","Ն.","Պ.","Փ."], correct:[0,1,3,4] },
+    { type:"multi_choice", text:"Ո՞ ր բ. կ. կ.", options:["Ա.","Ա. 2","Կ.","Ե."], correct:[1] },
+  ],
+  B1: [
+    { type:"multi_select", text:"Ո՞ ր բ. կ. «ե.»-ի հ.", options:["Ա.","Բ.","Ան.","Ձ.","Գ.","Ք."], correct:[0,2,3,5] },
+    { type:"multi_select", text:"Ո՞ ր բ. «ուր.»-ի հ.", options:["Ու.","Տ.","Ե.","Հ.","Ե. 5","Ծ."], correct:[0,2,4] },
+    { type:"multi_select", text:"Ո՞ ր բ. «հ.»-ի ա.", options:["Ա.","Ն.","Ծ.","Ս.","Ք.","Ն. 6"], correct:[0,2,4] },
+    { type:"multi_select", text:"Ո՞ ր բ. «ա.»-ի հ.", options:["Ու.","Ա.","Ֆ.","Ռ.","Ն.","Ր."], correct:[0,1,3] },
+    { type:"multi_select", text:"Ո՞ ր բ. «կ.»-ի ա.", options:["Ե.","Ջ.","Ա.","Ա. ջ.","Ն.","Ց."], correct:[1,3] },
+  ],
+  B2: [
+    { type:"multi_select", text:"Ո՞ ր բ. կ. «ճ.»-ի հ.", options:["Ի.","Բ.","Կ.","Ճ.","Դ.","Ան."], correct:[0,2,3,5] },
+    { type:"multi_select", text:"Ո՞ ր բ. «ն.»-ի հ.", options:["Ա.","Ու.","Ն.","Ն. կ.","Ն. 5","Ն. 6"], correct:[0,1,2] },
+    { type:"multi_select", text:"Ո՞ ր բ. «ղ.»-ի", options:["Հ.","Ա.","Ան.","Կ.","Ղ. 5","Ղ. 6"], correct:[0,1,2] },
+    { type:"multi_select", text:"Ո՞ ր բ. «ա.»-ի", options:["Ի.","Ք.","Ն.","Ֆ.","Ա.","Ն. 6"], correct:[0,2,4] },
+    { type:"multi_select", text:"Ո՞ ր բ. «բ.»-ի հ.", options:["Ա.","Ն.","Ա. 3","Ն. 4","Ն. 5","Ն. 6"], correct:[0,2] },
+  ],
+  C1: [
+    { type:"multi_select", text:"Ո՞ ր բ. բ. ոճ", options:["Ա.","Ու.","Հ.","Ա. 4","Հ. 5","Ճ."], correct:[0,2,4] },
+    { type:"multi_select", text:"Ո՞ ր բ. «ե.»-ի հ.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4","Ն. 5","Ն. 6"], correct:[0,2,4] },
+    { type:"multi_select", text:"Ո՞ ր բ. «ա.»-ի", options:["Ա.","Ն.","Ն. 3","Ն. 4","Ն. 5","Ն. 6"], correct:[0,1] },
+    { type:"multi_select", text:"Ո՞ ր բ. գ. ոճ", options:["Ն.","Ն. 2","Ն. 3","Ն. 4","Ն. 5","Ն. 6"], correct:[1,3,5] },
+    { type:"multi_select", text:"Ո՞ ր ա. բ. ոճ", options:["Ա.","Ա. 2","Ա. 3","Ա. 4","Ա. 5","Ա. 6"], correct:[0,2,4] },
+  ],
+  C2: [
+    { type:"multi_select", text:"Ո՞ ր բ. ա.", options:["Շ.","Ո.","Յ.","Ն.","Ա.","Ե."], correct:[2] },
+    { type:"multi_select", text:"Ո՞ ր ա. փ. ի.", options:["Ս. կ.","Ջ. խ.","Ձ. մ.","Հ. ու."], correct:[0,2] },
+    { type:"multi_select", text:"Ո՞ ր բ. ա. 2", options:["Ն.","Ն. 2","Ն. 3","Ն. 4","Ն. 5","Ն. 6"], correct:[1,3] },
+    { type:"multi_select", text:"Ո՞ ր ա. ա.", options:["Ա.","Ա. 2","Ա. 3","Ա. 4","Ա. 5","Ա. 6"], correct:[0,2,4] },
+    { type:"multi_select", text:"Ո՞ ր բ. փ. ի.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4","Ն. 5","Ն. 6"], correct:[0,3] },
+  ],
+};
+
+// ── WRITING (fill_blank A1-B1; writing B2-C2) ─────────────────────────────────
+const WRITING = {
+  A1: [
+    { type:"fill_blank", text:"Լ. «Ես ___ եմ» (ուր.)", answer:"ուրախ" },
+    { type:"fill_blank", text:"Լ. «Ն. ___ է» (ուս.)", answer:"ուսուցիչ" },
+    { type:"fill_blank", text:"Լ. «Ես ___ ե. ս.» (հ.)", answer:"հայրենիք" },
+    { type:"fill_blank", text:"Լ. «Մ. ___ է» (բ.)", answer:"բժիշկ" },
+    { type:"fill_blank", text:"Լ. «Ես ___ ու.» (ըն.)", answer:"ընտանիք" },
+  ],
+  A2: [
+    { type:"fill_blank", text:"Լ. «Ն. ամ. ___ ու.» (ն.)", answer:"նախաճաշ" },
+    { type:"fill_blank", text:"Լ. «Ես ___ ե. գ.» (շ.)", answer:"շուկա" },
+    { type:"fill_blank", text:"Լ. «Ն. ___ ե. հ.» (հ.)", answer:"հագուստ" },
+    { type:"fill_blank", text:"Լ. «Ես ___ ե. ու.» (ջ.)", answer:"ջուր" },
+    { type:"fill_blank", text:"Լ. «Ն. ___ ե. խ.» (ֆ.)", answer:"ֆուտբոլ" },
+  ],
+  B1: [
+    { type:"fill_blank", text:"Լ. «Ե. ան. ___, կ. մ.» (գ.)", answer:"գա" },
+    { type:"fill_blank", text:"Լ. «Ն. ___ շ. ա.» (կ.)", answer:"կատ." },
+    { type:"fill_blank", text:"Լ. «Ն. ա., ի. ___ կ.» (ի.)", answer:"ինք" },
+    { type:"fill_blank", text:"Լ. «Ն. ___ ա.» (արդ.)", answer:"արդ." },
+    { type:"fill_blank", text:"Լ. «Ն. ___ ու.» (ժ.)", answer:"ժամ." },
+  ],
+  B2: [
+    { type:"writing", text:"Գ. 80-100 բ. «Ի. կ. փ. ք.»", minWords:80, maxWords:120 },
+    { type:"writing", text:"Գ. 80-100 բ. «Ն. ն. ու. ձ.»", minWords:80, maxWords:120 },
+    { type:"writing", text:"Գ. 80-100 բ. «Ի. կ. փ. ա.»", minWords:80, maxWords:120 },
+    { type:"writing", text:"Գ. 80-100 բ. «Ն. կ. բ.»", minWords:80, maxWords:120 },
+    { type:"writing", text:"Գ. 80-100 բ. «Ի. կ. ըն.»", minWords:80, maxWords:120 },
+  ],
+  C1: [
+    { type:"writing", text:"Գ. 120-150 բ. «Ժ. հ. մ.»", minWords:120, maxWords:180 },
+    { type:"writing", text:"Գ. 120-150 բ. «Լ. դ. ա.»", minWords:120, maxWords:180 },
+    { type:"writing", text:"Գ. 120-150 բ. «Ա. ի. ե.»", minWords:120, maxWords:180 },
+    { type:"writing", text:"Գ. 120-150 բ. «Ա. ու. ի.»", minWords:120, maxWords:180 },
+    { type:"writing", text:"Գ. 120-150 բ. «Ե. ու. ի.»", minWords:120, maxWords:180 },
+  ],
+  C2: [
+    { type:"writing", text:"Գ. 150-200 բ. «Գ. դ. ազ.»", minWords:150, maxWords:220 },
+    { type:"writing", text:"Գ. 150-200 բ. «Հ. լ. ա.»", minWords:150, maxWords:220 },
+    { type:"writing", text:"Գ. 150-200 բ. «Ա. ն. ի.»", minWords:150, maxWords:220 },
+    { type:"writing", text:"Գ. 150-200 բ. «Ք. ու. ի.»", minWords:150, maxWords:220 },
+    { type:"writing", text:"Գ. 150-200 բ. «Ե. ու. ղ.»", minWords:150, maxWords:220 },
+  ],
+};
+
+// ── LISTENING (single_choice, text-based) ────────────────────────────────────
+const LISTENING = {
+  A1: [
+    { text:"Ա. ողջ. — ե՞ ն ա.", options:["Բ. լ.","Ց.","Կ.","Շ."], correct:0 },
+    { text:"«Բ. գ.» ե՞ ր ա.", options:["Ե.","Կ.","Ա.","Գ."], correct:2 },
+    { text:"Ի՞ ն ա. «կ.» ռ-ն", options:["Ա.","Ն.","Ք.","Ն. 4"], correct:1 },
+    { text:"«Ա.» = ?", options:["Good morning","Goodbye","Thank you","Please"], correct:0 },
+    { text:"Ի՞ ն ա. «ջ.» ռ-ն", options:["Water","Fire","Earth","Air"], correct:0 },
+  ],
+  A2: [
+    { text:"«Ն. ա. ամ.» — ե՞ ն ա.", options:["Ձ.","Ա.","Ն.","Ե."], correct:1 },
+    { text:"Ի՞ ն կ. «8 ժ. ե. ք.»", options:["Ն. ա. ե.","Ն. ա. ե. 8 ժ.","Ն. 3","Ն. 4"], correct:1 },
+    { text:"«Ն. կ. ֆ.» — ի՞ ն ա.", options:["Ն. բ.","Ն. ֆ.","Ն. ե.","Ն. մ."], correct:1 },
+    { text:"Ի՞ ն ա. «ու.»", options:["To drink","To eat","To sleep","To run"], correct:1 },
+    { text:"«Ն. ա. ե. շ.» — ե՞ ն ա.", options:["Ե. ա.","Ն. ա.","Ե. 3","Ն. 4"], correct:0 },
+  ],
+  B1: [
+    { text:"Ի՞ ն ա. «ն. ա. ե. ա.»", options:["Ն. կ.","Ն. ա.","Ն. 3","Ն. 4"], correct:1 },
+    { text:"Ի՞ ն կ. «ն. ա. ե. ա. ու.»", options:["Ն. ա.","Ն. 2","Ն. 3","Ն. 4"], correct:2 },
+    { text:"«30 ա. ա.» — ե՞ ն ա.", options:["Ե.","Ն.","30","4"], correct:2 },
+    { text:"Ի՞ ն ա. «ու. լ.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:0 },
+    { text:"Ի՞ ն կ. «ա.»", options:["Ա.","Ա. 2","Ա. 3","Ա. 4"], correct:3 },
+  ],
+  B2: [
+    { text:"Ի՞ ն կ. «ու.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:1 },
+    { text:"Ի՞ ն ա. «ա. ու.»", options:["Ա.","Ա. 2","Ա. 3","Ա. 4"], correct:0 },
+    { text:"Ի՞ ն ա. «ու. լ.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:1 },
+    { text:"Ի՞ ն կ. «ն. ա.»", options:["Ա.","Ա. 2","Ա. 3","Ա. 4"], correct:2 },
+    { text:"Ի՞ ն ա. «ն. ա. ա.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:3 },
+  ],
+  C1: [
+    { text:"Ի՞ ն ա. «ան. լ.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:1 },
+    { text:"«Ա. լ.» = ?", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:2 },
+    { text:"Ի՞ ն ա. «ա. դ.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:0 },
+    { text:"Ի՞ ն կ. «ն. ա.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:3 },
+    { text:"Ի՞ ն ա. «3 ա.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:0 },
+  ],
+  C2: [
+    { text:"Ի՞ ն ա. «ϲ. ն.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:2 },
+    { text:"Ի՞ ն կ. «ա. ϲ.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:1 },
+    { text:"Ի՞ ն ա. «ան.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:3 },
+    { text:"Ի՞ ն ա. «ն.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:0 },
+    { text:"Ի՞ ն կ. «ϲ.»", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:2 },
+  ],
+};
+
+// ── SPEAKING (voice) ──────────────────────────────────────────────────────────
+const SPEAKING = {
+  A1:[
+    { text:"Ձ. 10-30 վ. «Ն. ք.»",           maxSeconds:30,  minSeconds:10, maxAttempts:3 },
+    { text:"Ձ. 10-30 վ. «Ն. ք. ըն.»",        maxSeconds:30,  minSeconds:10, maxAttempts:3 },
+    { text:"Ձ. 10-30 վ. «Ն. ք. ս.»",         maxSeconds:30,  minSeconds:10, maxAttempts:3 },
+    { text:"Ձ. 10-30 վ. «Ն. ք. գ.»",         maxSeconds:30,  minSeconds:10, maxAttempts:3 },
+    { text:"Ձ. 10-30 վ. «Ն. ք. բ.»",         maxSeconds:30,  minSeconds:10, maxAttempts:3 },
+  ],
+  A2:[
+    { text:"Ձ. 15-45 վ. «Ն. ք. ա.»",         maxSeconds:45,  minSeconds:15, maxAttempts:3 },
+    { text:"Ձ. 15-45 վ. «Ն. ք. հ.»",         maxSeconds:45,  minSeconds:15, maxAttempts:3 },
+    { text:"Ձ. 15-45 վ. «Ն. ք. ե.»",         maxSeconds:45,  minSeconds:15, maxAttempts:3 },
+    { text:"Ձ. 15-45 վ. «Ն. ք. օ.»",         maxSeconds:45,  minSeconds:15, maxAttempts:3 },
+    { text:"Ձ. 15-45 վ. «Ն. ք. տ.»",         maxSeconds:45,  minSeconds:15, maxAttempts:3 },
+  ],
+  B1:[
+    { text:"Ձ. 30-60 վ. «Ն. ս. տ.»",         maxSeconds:60,  minSeconds:30, maxAttempts:2 },
+    { text:"Ձ. 30-60 վ. «Ն. ս. ժ.»",         maxSeconds:60,  minSeconds:30, maxAttempts:2 },
+    { text:"Ձ. 30-60 վ. «Ն. ս. կ.»",         maxSeconds:60,  minSeconds:30, maxAttempts:2 },
+    { text:"Ձ. 30-60 վ. «Ն. ս. ա.»",         maxSeconds:60,  minSeconds:30, maxAttempts:2 },
+    { text:"Ձ. 30-60 վ. «Ն. ս. ե.»",         maxSeconds:60,  minSeconds:30, maxAttempts:2 },
+  ],
+  B2:[
+    { text:"Ձ. 45-90 վ. «Ա. ե. ե.»",         maxSeconds:90,  minSeconds:45, maxAttempts:2 },
+    { text:"Ձ. 45-90 վ. «Կ. ե.»",            maxSeconds:90,  minSeconds:45, maxAttempts:2 },
+    { text:"Ձ. 45-90 վ. «Բ. ե.»",            maxSeconds:90,  minSeconds:45, maxAttempts:2 },
+    { text:"Ձ. 45-90 վ. «Ղ. ե.»",            maxSeconds:90,  minSeconds:45, maxAttempts:2 },
+    { text:"Ձ. 45-90 վ. «Ն. ե.»",            maxSeconds:90,  minSeconds:45, maxAttempts:2 },
+  ],
+  C1:[
+    { text:"Ձ. 60-120 վ. «Ժ. հ. մ.»",        maxSeconds:120, minSeconds:60, maxAttempts:2 },
+    { text:"Ձ. 60-120 վ. «Լ. դ. ա.»",        maxSeconds:120, minSeconds:60, maxAttempts:2 },
+    { text:"Ձ. 60-120 վ. «Ա. ի. ե.»",        maxSeconds:120, minSeconds:60, maxAttempts:2 },
+    { text:"Ձ. 60-120 վ. «Ա. ու. ի.»",       maxSeconds:120, minSeconds:60, maxAttempts:2 },
+    { text:"Ձ. 60-120 վ. «Ե. ու. ի.»",       maxSeconds:120, minSeconds:60, maxAttempts:2 },
+  ],
+  C2:[
+    { text:"Ձ. 90-180 վ. «Գ. դ. ա.»",        maxSeconds:180, minSeconds:90, maxAttempts:1 },
+    { text:"Ձ. 90-180 վ. «Հ. ի. ն.»",        maxSeconds:180, minSeconds:90, maxAttempts:1 },
+    { text:"Ձ. 90-180 վ. «Ա. ն. ի.»",        maxSeconds:180, minSeconds:90, maxAttempts:1 },
+    { text:"Ձ. 90-180 վ. «Ք. ու. ի.»",       maxSeconds:180, minSeconds:90, maxAttempts:1 },
+    { text:"Ձ. 90-180 վ. «Ե. ու. ղ.»",       maxSeconds:180, minSeconds:90, maxAttempts:1 },
+  ],
+};
+
+// ── LISTENING / WATCHING (single_choice) ─────────────────────────────────────
+const WATCHING = {
+  A1:[
+    { text:"Ն. ն. ու. — ի՞ ն կ.", options:["Ա.","Ն.","Բ.","Ը."], correct:0 },
+    { text:"Ն. ն. ա. — ո՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:1 },
+    { text:"Ն. ն. ս. — ի՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:2 },
+    { text:"Ն. ն. ե. — ո՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:3 },
+    { text:"Ն. ն. բ. — ի՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:0 },
+  ],
+  A2:[
+    { text:"Ն. ն. հ. — ի՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:1 },
+    { text:"Ն. ն. ժ. — ո՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:2 },
+    { text:"Ն. ն. ո. — ի՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:3 },
+    { text:"Ն. ն. ն. — ո՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:0 },
+    { text:"Ն. ն. ե. — ի՞ ն ա.", options:["Ն.","Ն. 2","Ն. 3","Ն. 4"], correct:1 },
+  ],
+  B1:[
+    { text:"Ն. ն. ա. բ. — ի՞ ն ա.", options:["Բ.","Ա.","Գ.","Դ."], correct:0 },
+    { text:"Ն. ն. ա. — ո՞ ն ա.",    options:["Ա.","Բ.","Գ.","Դ."], correct:1 },
+    { text:"Ն. ն. ե. — ի՞ ն ա.",    options:["Ա.","Բ.","Գ.","Դ."], correct:2 },
+    { text:"Ն. ն. կ. — ո՞ ն ա.",    options:["Ա.","Բ.","Գ.","Դ."], correct:3 },
+    { text:"Ն. ն. ն. — ի՞ ն ա.",    options:["Ա.","Բ.","Գ.","Դ."], correct:0 },
+  ],
+  B2:[
+    { text:"Ն. ն. բ. — ի՞ ն ա.", options:["Բ.","Ա.","Կ.","Մ."], correct:0 },
+    { text:"Ն. ն. տ. — ո՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:1 },
+    { text:"Ն. ն. կ. — ի՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:2 },
+    { text:"Ն. ն. մ. — ո՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:3 },
+    { text:"Ն. ն. ա. — ի՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:0 },
+  ],
+  C1:[
+    { text:"Ն. ն. ա. — ի՞ ն ա.", options:["Լ. պ.","Տ.","Կ.","Մ."], correct:0 },
+    { text:"Ն. ն. հ. — ո՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:1 },
+    { text:"Ն. ն. ե. — ի՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:2 },
+    { text:"Ն. ն. կ. — ո՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:3 },
+    { text:"Ն. ն. ն. — ի՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:0 },
+  ],
+  C2:[
+    { text:"Ն. ն. ա. — ի՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:2 },
+    { text:"Ն. ն. հ. — ո՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:1 },
+    { text:"Ն. ն. ե. — ի՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:3 },
+    { text:"Ն. ն. կ. — ո՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:0 },
+    { text:"Ն. ն. ն. — ի՞ ն ա.", options:["Ա.","Բ.","Կ.","Մ."], correct:2 },
+  ],
+};
+
+// ── FREE WRITING (writing) ────────────────────────────────────────────────────
+const FREE_WRITING = {
+  A1:[ { text:"Գ. 15-25 բ. «Ն. ք.»",         minWords:15, maxWords:30 },
+       { text:"Գ. 15-25 բ. «Ի. ե.»",          minWords:15, maxWords:30 },
+       { text:"Գ. 15-25 բ. «Ն. ք. ըն.»",      minWords:15, maxWords:30 },
+       { text:"Գ. 15-25 բ. «Ն. ք. տ.»",       minWords:15, maxWords:30 },
+       { text:"Գ. 15-25 բ. «Ն. ք. ս.»",       minWords:15, maxWords:30 } ],
+  A2:[ { text:"Գ. 40-60 բ. «Ի. ե.»",          minWords:40, maxWords:70 },
+       { text:"Գ. 40-60 բ. «Ն. ա. օ.»",       minWords:40, maxWords:70 },
+       { text:"Գ. 40-60 բ. «Ն. ք. հ.»",       minWords:40, maxWords:70 },
+       { text:"Գ. 40-60 բ. «Ն. ք. ե.»",       minWords:40, maxWords:70 },
+       { text:"Գ. 40-60 բ. «Ի. ս. ե.»",       minWords:40, maxWords:70 } ],
+  B1:[ { text:"Գ. 70-90 բ. «Ի. կ. ե.»",       minWords:70, maxWords:100 },
+       { text:"Գ. 70-90 բ. «Ն. կ. ա.»",       minWords:70, maxWords:100 },
+       { text:"Գ. 70-90 բ. «Ն. կ. ե.»",       minWords:70, maxWords:100 },
+       { text:"Գ. 70-90 բ. «Ի. կ. ն.»",       minWords:70, maxWords:100 },
+       { text:"Գ. 70-90 բ. «Ն. կ. բ.»",       minWords:70, maxWords:100 } ],
+  B2:[ { text:"Գ. 80-100 բ. «Ի. կ. փ. ք.»",   minWords:80, maxWords:120 },
+       { text:"Գ. 80-100 բ. «Ն. կ. ա. ե.»",   minWords:80, maxWords:120 },
+       { text:"Գ. 80-100 բ. «Ի. կ. ն.»",      minWords:80, maxWords:120 },
+       { text:"Գ. 80-100 բ. «Ի. կ. ա.»",      minWords:80, maxWords:120 },
+       { text:"Գ. 80-100 բ. «Ա. ե. ի.»",      minWords:80, maxWords:120 } ],
+  C1:[ { text:"Գ. 120-150 բ. «Ժ. հ. մ.»",     minWords:120, maxWords:180 },
+       { text:"Գ. 120-150 բ. «Լ. դ. ա.»",     minWords:120, maxWords:180 },
+       { text:"Գ. 120-150 բ. «Ա. ի. ե.»",     minWords:120, maxWords:180 },
+       { text:"Գ. 120-150 բ. «Ա. ու. ի.»",    minWords:120, maxWords:180 },
+       { text:"Գ. 120-150 բ. «Ե. ու. ի.»",    minWords:120, maxWords:180 } ],
+  C2:[ { text:"Գ. 150-200 բ. «Գ. դ. ազ.»",    minWords:150, maxWords:220 },
+       { text:"Գ. 150-200 բ. «Հ. լ. ա.»",     minWords:150, maxWords:220 },
+       { text:"Գ. 150-200 բ. «Ա. ն. ի.»",     minWords:150, maxWords:220 },
+       { text:"Գ. 150-200 բ. «Ք. ու. ի.»",    minWords:150, maxWords:220 },
+       { text:"Գ. 150-200 բ. «Ե. ու. ղ.»",    minWords:150, maxWords:220 } ],
+};
+
+// ─── Assemble QUESTIONS array ─────────────────────────────────────────────────
+const QUESTIONS = [];
+const LEVELS = ["A1","A2","B1","B2","C1","C2"];
+
+for (const lvl of LEVELS) {
+  const pts = PTS[lvl];
+  for (const q of READING[lvl])       QUESTIONS.push({ type:"single_choice", level:lvl, section:"Reading",            points:pts, ...q });
+  for (const q of GRAMMAR[lvl])       QUESTIONS.push({ level:lvl, section:"Grammar",           points:pts, ...q });
+  for (const q of VOCABULARY[lvl])    QUESTIONS.push({ level:lvl, section:"Vocabulary",         points:pts, ...q });
+  for (const q of WRITING[lvl])       QUESTIONS.push({ level:lvl, section:"Writing",            points:pts, ...q });
+  for (const q of LISTENING[lvl])     QUESTIONS.push({ type:"single_choice", level:lvl, section:"Listening",          points:pts, ...q });
+  for (const q of SPEAKING[lvl])      QUESTIONS.push({ type:"voice",         level:lvl, section:"Speaking",           points:pts, ...q });
+  for (const q of WATCHING[lvl])      QUESTIONS.push({ type:"single_choice", level:lvl, section:"Listening / Watching", points:pts, ...q });
+  for (const q of FREE_WRITING[lvl])  QUESTIONS.push({ type:"writing",       level:lvl, section:"Free Writing",       points:pts, ...q });
+}
+
+// ─── CITIES & CENTERS ────────────────────────────────────────────────────────
+const CITIES_DATA = [
+  { name:"Երևան",  center:{ name:"ArmExam Կ. Երևան",   address:"Բաղրամյան 24, Երևան 0019",  phone:"+374 10 123456",  email:"yerevan@armexam.am" } },
+  { name:"Գյումրի",center:{ name:"ArmExam Կ. Գյումրի", address:"Արևմտյան 1, Գյումրի 3101",  phone:"+374 312 12345",  email:"gyumri@armexam.am"  } },
+  { name:"Վանաձոր",center:{ name:"ArmExam Կ. Վանաձոր", address:"Կիրովի 5, Վանաձոր 2001",   phone:"+374 322 12345",  email:"vanadzor@armexam.am"} },
 ];
 
+// ─── PLACEMENT TEMPLATE ───────────────────────────────────────────────────────
+const PLACEMENT_TEMPLATE = [
+  { level:"A1", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }] },
+  { level:"A2", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Vocabulary", count:2 }] },
+  { level:"B1", pointsEach:2, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Grammar", count:1 }] },
+  { level:"B2", pointsEach:2, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }] },
+  { level:"C1", pointsEach:3, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }] },
+  { level:"C2", pointsEach:3, subpools:[{ section:"Reading", count:2 },{ section:"Grammar", count:2 },{ section:"Writing", count:1 }] },
+];
+const PLACEMENT_THRESHOLDS = { A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 };
+
+// ─── STUDENTS (10, mix of genders & countries) ────────────────────────────────
+const STUDENTS_DATA = [
+  { name:"Անի Հակոբյան",      email:"ani@example.am",     gender:"female", country:"Armenia", documentType:"passport", documentNumber:"AA123456" },
+  { name:"Արամ Պետրոսյան",    email:"aram@example.am",    gender:"male",   country:"Armenia", documentType:"id_card",  documentNumber:"ID789012" },
+  { name:"Մարինե Գրիգորյան",  email:"marine@example.am",  gender:"female", country:"Georgia", documentType:"passport", documentNumber:"GE345678" },
+  { name:"Դավիթ Սարգսյան",    email:"davit@example.am",   gender:"male",   country:"Armenia", documentType:"passport", documentNumber:"AA001234" },
+  { name:"Նատաշա Կ.",          email:"natasha@example.am", gender:"female", country:"Russia",  documentType:"passport", documentNumber:"RU998877" },
+  { name:"Հայկ Ավագյան",      email:"hayk@example.am",    gender:"male",   country:"Armenia", documentType:"id_card",  documentNumber:"ID111222" },
+  { name:"Սոֆյա Ադամյան",     email:"sofia@example.am",   gender:"female", country:"France",  documentType:"passport", documentNumber:"FR556677" },
+  { name:"Արտուր Մկրտչյան",   email:"artur@example.am",   gender:"male",   country:"Armenia", documentType:"passport", documentNumber:"AA333444" },
+  { name:"Ալինա Ն.",           email:"alina@example.am",   gender:"female", country:"USA",     documentType:"passport", documentNumber:"US223344" },
+  { name:"Կարեն Հ.",           email:"karen@example.am",   gender:"male",   country:"Armenia", documentType:"id_card",  documentNumber:"ID667788" },
+];
+
+function randPin(used) {
+  let p;
+  do { p = String(Math.floor(100000 + Math.random() * 900000)); } while (used.has(p));
+  used.add(p);
+  return p;
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log("Seeding database...");
+  console.log("🌱 Seeding database...");
 
   await prisma.result.deleteMany();
   await prisma.examAssignment.deleteMany();
@@ -96,153 +435,58 @@ async function main() {
   await prisma.city.deleteMany();
 
   // Questions
-  for (const q of QUESTIONS) {
-    await prisma.question.create({ data: q });
-  }
-  console.log(`Created ${QUESTIONS.length} questions`);
-
-  // Students (password for all: "demo1234")
-  const students = [];
-  for (const s of STUDENTS) {
-    const student = await prisma.student.create({
-      data: { ...s, passwordHash: hashPassword("demo1234", s.email) },
-    });
-    students.push(student);
-  }
-  console.log(`Created ${students.length} students`);
+  for (const q of QUESTIONS) await prisma.question.create({ data: q });
+  console.log(`✅ ${QUESTIONS.length} questions (5 × 8 sections × 6 levels)`);
 
   // Cities & Centers
-  const citiesData = [
-    {
-      name: "Երևան",
-      centers: ["ArmExam Կենտրոն Երևան", "Երևան Հյուսիս", "Երևան Հարավ"],
-    },
-    {
-      name: "Գյումրի",
-      centers: ["ArmExam Կենտրոն Գյումրի"],
-    },
-    {
-      name: "Վանաձոր",
-      centers: ["ArmExam Կենտրոն Վանաձոր"],
-    },
-  ];
-
-  const cities = [];
-  for (const { name, centers } of citiesData) {
+  const centers = [];
+  for (const { name, center } of CITIES_DATA) {
     const city = await prisma.city.create({
-      data: {
-        name,
-        centers: { create: centers.map(n => ({ name: n })) },
-      },
+      data: { name, centers: { create: [center] } },
       include: { centers: true },
     });
-    cities.push(city);
+    centers.push(city.centers[0]);
   }
-  console.log(`Created ${cities.length} cities`);
+  console.log(`✅ ${CITIES_DATA.length} cities, ${centers.length} centers`);
 
-  const allCenters = cities.flatMap(c => c.centers);
-
-  // Exams
-  const exams = [
-    {
-      title: "Summer B1 Examination",
-      examType: "fixed",
-      level: "B1",
-      duration: 45,
-      passingScore: 70,
-      shuffle: true,
-      showResults: true,
-      showQuestionLevel: true,
-      showQuestionPoints: true,
-      subpools: [{ section:"Reading", count:3 },{ section:"Grammar", count:2 },{ section:"Vocabulary", count:2 }],
-      status: "active",
-      isOpen: true,
-      examCenterId: allCenters[0].id,
-      startDate: new Date("2026-06-01"),
-      endDate: new Date("2026-09-30"),
-      assignedTo: [0,1,6],
-    },
-    {
-      title: "A2 Entrance Test",
-      examType: "fixed",
-      level: "A2",
-      duration: 30,
-      passingScore: 60,
-      shuffle: false,
-      showResults: true,
-      showQuestionLevel: true,
-      showQuestionPoints: true,
-      subpools: [{ section:"Reading", count:3 },{ section:"Grammar", count:2 }],
-      status: "active",
-      isOpen: true,
-      examCenterId: allCenters[1].id,
-      startDate: new Date("2026-07-01"),
-      endDate: new Date("2026-09-30"),
-      assignedTo: [1,6],
-    },
-    {
-      title: "C1–C2 Final Examination",
-      examType: "fixed",
-      level: "C1",
-      duration: 60,
-      passingScore: 80,
-      shuffle: true,
-      showResults: true,
-      showQuestionLevel: true,
-      showQuestionPoints: true,
-      subpools: [{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }],
-      status: "active",
-      isOpen: false,
-      examCenterId: allCenters[2].id,
-      startDate: new Date("2026-04-10"),
-      endDate: new Date("2026-12-31"),
-      assignedTo: [2,3,7],
-    },
-    {
-      title: "Language Placement Test",
-      examType: "placement",
-      level: null,
-      duration: 60,
-      passingScore: null,
-      shuffle: true,
-      showResults: true,
-      showQuestionLevel: true,
-      showQuestionPoints: true,
-      status: "active",
-      isOpen: true,
-      examCenterId: allCenters[3].id,
-      startDate: new Date("2026-09-01"),
-      endDate: new Date("2026-12-31"),
-      placementTemplate: [
-        { level:"A1", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }] },
-        { level:"A2", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Vocabulary", count:2 }] },
-        { level:"B1", pointsEach:2, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Grammar", count:1 }] },
-        { level:"B2", pointsEach:2, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }] },
-        { level:"C1", pointsEach:3, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }] },
-        { level:"C2", pointsEach:3, subpools:[{ section:"Reading", count:2 },{ section:"Grammar", count:2 },{ section:"Writing", count:1 }] },
-      ],
-      placementThresholds: { A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 },
-      showPlacementThreshold: true,
-      assignedTo: [0,1,2,3,4,5,6,7],
-    },
-  ];
-
-  for (const { assignedTo, ...examData } of exams) {
-    await prisma.exam.create({
+  // Placement exams (one per center)
+  const examTitles = ["Placement Test — Երևան", "Placement Test — Գյումրի", "Placement Test — Վանաձոր"];
+  const exams = [];
+  for (let i = 0; i < centers.length; i++) {
+    const exam = await prisma.exam.create({
       data: {
-        ...examData,
-        assignedStudents: {
-          create: assignedTo.map((i) => ({
-            studentId: students[i].id,
-            pin: String(Math.floor(100000 + Math.random() * 900000)),
-          })),
-        },
+        title: examTitles[i], examType:"placement", level:null,
+        duration:60, passingScore:null, shuffle:true,
+        showResults:true, showQuestionLevel:true, showQuestionPoints:true,
+        placementTemplate:PLACEMENT_TEMPLATE, placementThresholds:PLACEMENT_THRESHOLDS,
+        showPlacementThreshold:true,
+        status:"active", isOpen:true,
+        examCenterId:centers[i].id,
+        startDate:new Date("2026-01-01"), endDate:new Date("2026-12-31"),
       },
     });
+    exams.push(exam);
   }
-  console.log(`Created ${exams.length} exams`);
+  console.log(`✅ ${exams.length} placement exams`);
 
-  console.log("Seed complete!");
+  // Students with PINs
+  const usedPins = new Set();
+  for (let i = 0; i < STUDENTS_DATA.length; i++) {
+    const s   = STUDENTS_DATA[i];
+    const exam = exams[i % exams.length];
+    const pin  = randPin(usedPins);
+    await prisma.student.create({
+      data: {
+        ...s,
+        passwordHash: hashPassword("demo1234", s.email),
+        status:"active",
+        exams: { create: [{ examId:exam.id, pin }] },
+      },
+    });
+    console.log(`  👤 ${s.name.padEnd(22)} → ${exam.title} | PIN: ${pin}`);
+  }
+  console.log(`✅ ${STUDENTS_DATA.length} students`);
+  console.log("\n🎉 Seed complete! Password for all: demo1234");
 }
 
 main()

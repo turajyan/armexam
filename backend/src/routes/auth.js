@@ -13,7 +13,7 @@ export default async function authRoutes(fastify) {
 
   // POST /api/auth/register
   fastify.post("/api/auth/register", async (req, reply) => {
-    const { name, email, password, phone, country, documentType, documentNumber } = req.body ?? {};
+    const { name, email, password, phone, country, documentType, documentNumber, gender } = req.body ?? {};
 
     if (!name || !email || !password || !country || !documentType || !documentNumber) {
       return reply.code(400).send({ error: "Все обязательные поля должны быть заполнены" });
@@ -42,6 +42,7 @@ export default async function authRoutes(fastify) {
         country: country.trim(),
         documentType,
         documentNumber: documentNumber.trim(),
+        gender: gender || "",
         sessionToken,
       },
     });

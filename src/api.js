@@ -22,10 +22,19 @@ export const api = {
   me:       ()     => req('/auth/me'),
   logout:   ()     => req('/auth/logout',   { method: 'POST' }),
 
-  // Cities & Centers (public)
-  getCities:       ()    => req('/cities'),
-  getCenters:      (cityId) => req(`/cities/${cityId}/centers`),
-  getCenterExams:  (centerId) => req(`/centers/${centerId}/exams`),
+  // Cities (admin CRUD)
+  getCities:    ()         => req('/cities'),
+  createCity:   (data)     => req('/cities',     { method: 'POST',   body: JSON.stringify(data) }),
+  updateCity:   (id, data) => req(`/cities/${id}`, { method: 'PUT',  body: JSON.stringify(data) }),
+  deleteCity:   (id)       => req(`/cities/${id}`, { method: 'DELETE' }),
+
+  // Centers (admin CRUD)
+  getCenters:   (p = {})   => req('/centers' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  getCenter:    (id)        => req(`/centers/${id}`),
+  createCenter: (data)      => req('/centers',      { method: 'POST',  body: JSON.stringify(data) }),
+  updateCenter: (id, data)  => req(`/centers/${id}`, { method: 'PUT',  body: JSON.stringify(data) }),
+  deleteCenter: (id)        => req(`/centers/${id}`, { method: 'DELETE' }),
+  getCenterExams: (id)      => req(`/centers/${id}/exams`),
 
   // User exam registration (authenticated)
   registerForExam: (examId) => req('/user/register-exam', { method: 'POST', body: JSON.stringify({ examId }) }),
@@ -54,7 +63,9 @@ export const api = {
   createResult: (data)   => req('/results', { method: 'POST', body: JSON.stringify(data) }),
 
   // Analytics
-  getSummary: () => req('/analytics/summary'),
+  getSummary:      ()   => req('/analytics/summary'),
+  getByCity:       ()   => req('/analytics/by-city'),
+  getByCenter:     (id) => req(`/analytics/by-center/${id}`),
 
   // PIN lookup (kiosk)
   getByPin: (pin) => req(`/register/pin/${pin}`),

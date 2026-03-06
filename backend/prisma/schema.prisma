@@ -55,6 +55,7 @@ model Student {
   country        String   @default("")
   documentType   String   @default("passport")  // passport | id_card
   documentNumber String   @default("")
+  gender         String   @default("")   // male | female | other
   level          String?  // detected level
   status         String   @default("active")
   sessionToken   String?  @unique
@@ -72,11 +73,14 @@ model City {
 }
 
 model ExamCenter {
-  id     Int    @id @default(autoincrement())
-  name   String
-  cityId Int
-  city   City   @relation(fields: [cityId], references: [id])
-  exams  Exam[]
+  id      Int    @id @default(autoincrement())
+  name    String
+  address String @default("")
+  phone   String @default("")
+  email   String @default("")
+  cityId  Int
+  city    City   @relation(fields: [cityId], references: [id])
+  exams   Exam[]
 }
 
 model Exam {

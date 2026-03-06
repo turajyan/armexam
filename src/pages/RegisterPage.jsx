@@ -14,7 +14,7 @@ const DOC_TYPES = [
 export default function RegisterPage({ theme: T, onSuccess }) {
   const [form, setForm] = useState({
     name: "", email: "", password: "", phone: "",
-    country: "", documentType: "passport", documentNumber: "",
+    country: "", documentType: "passport", documentNumber: "", gender: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]     = useState("");
@@ -45,6 +45,7 @@ export default function RegisterPage({ theme: T, onSuccess }) {
         country:        form.country,
         documentType:   form.documentType,
         documentNumber: form.documentNumber.trim(),
+        gender:         form.gender || undefined,
       });
       localStorage.setItem("armexam_token", token);
       setDone(true);
@@ -114,12 +115,22 @@ export default function RegisterPage({ theme: T, onSuccess }) {
                   placeholder="+374 99 123456" style={inputSt(T)} />
               </Field>
 
-              <Field label="Страна проживания *" T={T}>
-                <select value={form.country} onChange={e => set("country", e.target.value)} style={inputSt(T)}>
-                  <option value="">— выберите страну —</option>
-                  {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </Field>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Страна проживания *" T={T}>
+                  <select value={form.country} onChange={e => set("country", e.target.value)} style={inputSt(T)}>
+                    <option value="">— выберите —</option>
+                    {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </Field>
+                <Field label="Пол" T={T}>
+                  <select value={form.gender} onChange={e => set("gender", e.target.value)} style={inputSt(T)}>
+                    <option value="">— выберите —</option>
+                    <option value="male">Мужской</option>
+                    <option value="female">Женский</option>
+                    <option value="other">Другой</option>
+                  </select>
+                </Field>
+              </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <Field label="Тип документа *" T={T}>

@@ -14,7 +14,7 @@ export default async function studentsRoutes(fastify) {
       select: {
         id: true, name: true, email: true, phone: true,
         country: true, documentType: true, documentNumber: true,
-        level: true, status: true, createdAt: true,
+        gender: true, level: true, status: true, createdAt: true,
       },
     });
   });
@@ -56,7 +56,7 @@ export default async function studentsRoutes(fastify) {
 }
 
 function sanitize(body) {
-  const allowed = ["name","email","phone","country","documentType","documentNumber","level","status"];
+  const allowed = ["name","email","phone","country","documentType","documentNumber","gender","level","status"];
   return Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   );

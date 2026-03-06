@@ -4,6 +4,7 @@ import AdminQuestions        from "./pages/AdminQuestions";
 import AdminExams            from "./pages/AdminExams";
 import AdminStudents         from "./pages/AdminStudents";
 import AdminAnalytics        from "./pages/AdminAnalytics";
+import AdminCenters          from "./pages/AdminCenters";
 import AdminMedia            from "./pages/AdminMedia";
 import AdminSettings         from "./pages/AdminSettings";
 import RegisterPage          from "./pages/RegisterPage";
@@ -20,6 +21,7 @@ const NAV = [
   { id:"questions", icon:"📋", label:"Questions" },
   { id:"exams",     icon:"🗂",  label:"Exams"     },
   { id:"students",  icon:"👤", label:"Students"  },
+  { id:"centers",   icon:"🏛",  label:"Centers"   },
   { id:"analytics", icon:"📊", label:"Analytics" },
   { id:"media",     icon:"📁", label:"Media"     },
   { id:"settings",  icon:"⚙️",  label:"Settings"  },
@@ -30,6 +32,7 @@ const PAGE_MAP = {
   questions: AdminQuestions,
   exams:     AdminExams,
   students:  AdminStudents,
+  centers:   AdminCenters,
   analytics: AdminAnalytics,
   media:     AdminMedia,
   settings:  AdminSettings,
