@@ -17,14 +17,14 @@ import { api } from "./api.js";
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
 
 const NAV = [
-  { id:"exam",      icon:"🎓", label:"Exam"      },
-  { id:"questions", icon:"📋", label:"Questions" },
-  { id:"exams",     icon:"🗂",  label:"Exams"     },
-  { id:"students",  icon:"👤", label:"Students"  },
-  { id:"centers",   icon:"🏛",  label:"Centers"   },
-  { id:"analytics", icon:"📊", label:"Analytics" },
-  { id:"media",     icon:"📁", label:"Media"     },
-  { id:"settings",  icon:"⚙️",  label:"Settings"  },
+  { id:"exam",      glyph:"✦",  label:"Exam"      },
+  { id:"questions", glyph:"Q",  label:"Questions" },
+  { id:"exams",     glyph:"E",  label:"Exams"     },
+  { id:"students",  glyph:"S",  label:"Students"  },
+  { id:"centers",   glyph:"C",  label:"Centers"   },
+  { id:"analytics", glyph:"∑",  label:"Analytics" },
+  { id:"media",     glyph:"M",  label:"Media"     },
+  { id:"settings",  glyph:"⚙",  label:"Settings"  },
 ];
 
 const PAGE_MAP = {
@@ -181,20 +181,24 @@ export default function App() {
         <aside style={{ width:72, background:T.sidebarBg, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column", alignItems:"center", paddingTop:14, gap:3, flexShrink:0 }}>
           <div style={{ width:40, height:40, borderRadius:10, background:`linear-gradient(135deg,${T.gold},${T.goldDim})`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Cormorant Garamond',serif", fontWeight:700, fontSize:20, color:"white", marginBottom:18 }}>Հ</div>
 
-          {NAV.map(n => (
-            <button key={n.id} onClick={()=>setPage(n.id)} title={n.label}
-              style={{ width:50, height:50, borderRadius:12, background:page===n.id?T.gold+"22":"transparent", border:`1px solid ${page===n.id?T.gold+"66":"transparent"}`, cursor:"pointer", fontSize:19, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, transition:"all .15s" }}>
-              {n.icon}
-              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:page===n.id?T.gold:T.muted, letterSpacing:.2 }}>{n.label}</span>
-            </button>
-          ))}
+          {NAV.map(n => {
+            const active = page === n.id;
+            const ic = active ? T.gold : T.muted;
+            return (
+              <button key={n.id} onClick={()=>setPage(n.id)} title={n.label}
+                style={{ width:50, height:50, borderRadius:12, background:active?T.gold+"22":"transparent", border:`1px solid ${active?T.gold+"66":"transparent"}`, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, transition:"all .15s" }}>
+                <div style={{ width:26, height:26, borderRadius:7, background:ic+"20", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, fontFamily:"'DM Sans',sans-serif", color:ic, transition:"color .15s, background .15s" }}>{n.glyph}</div>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:ic, letterSpacing:.2, transition:"color .15s" }}>{n.label}</span>
+              </button>
+            );
+          })}
 
           <div style={{ flex:1 }} />
 
           {/* User portal link */}
           <a href="#login" title="Портал для студентов"
-            style={{ width:50, height:50, borderRadius:12, background:"transparent", border:`1px solid ${T.border}`, cursor:"pointer", fontSize:19, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, textDecoration:"none", marginBottom:4 }}>
-            🧑‍🎓
+            style={{ width:50, height:50, borderRadius:12, background:"transparent", border:`1px solid ${T.border}`, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, textDecoration:"none", marginBottom:4 }}>
+            <div style={{ width:26, height:26, borderRadius:7, background:T.info+"20", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, fontFamily:"'DM Sans',sans-serif", color:T.info }}>P</div>
             <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:T.muted, letterSpacing:.2 }}>Portal</span>
           </a>
 
@@ -215,13 +219,13 @@ export default function App() {
         <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
           {/* Top bar */}
           <div style={{ background:T.topbarBg, backdropFilter:"blur(12px)", borderBottom:`1px solid ${T.border}`, padding:"10px 24px", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-            <span style={{ fontSize:18 }}>{current?.icon}</span>
+            <div style={{ width:24, height:24, borderRadius:6, background:T.gold+"20", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, fontFamily:"'DM Sans',sans-serif", color:T.gold }}>{current?.glyph}</div>
             <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:T.text, fontWeight:600 }}>ArmExam</span>
             <span style={{ color:T.border2, fontSize:16 }}>·</span>
             <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.muted }}>{current?.label}</span>
             <div style={{ flex:1 }} />
             <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted, opacity:.5 }}>{T.label}</span>
-            <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${T.border2},${T.dim})`, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>👤</div>
+            <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${T.gold}33,${T.gold}11)`, border:`1px solid ${T.gold}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, fontFamily:"'DM Sans',sans-serif", color:T.gold }}>A</div>
           </div>
 
           {/* Content */}

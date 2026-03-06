@@ -133,7 +133,7 @@ function StepBar({ steps, current }) {
 // ── Exam Wizard ───────────────────────────────────────────────────────────────
 const WIZARD_STEPS = ["General","Questions","Students","Schedule"];
 
-function ExamWizard({ initial, onSave, onCancel, students = [] }) {
+function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] }) {
   const isEdit = !!initial;
   const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true,
     subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }],
@@ -870,7 +870,7 @@ function ExamsPage() {
       {/* Wizard Modal */}
       {(modal==="create"||modal==="edit") && (
         <Modal title={modal==="edit"?"Edit Exam":"New Exam"} subtitle="4-step wizard" onClose={()=>{setModal(null);setEditing(null)}} wide>
-          <ExamWizard initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} students={students} />
+          <ExamWizard initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} students={students} sections={sections} />
         </Modal>
       )}
 
