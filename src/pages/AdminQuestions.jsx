@@ -716,7 +716,7 @@ function QuestionsPage() {
     if (filterType!=="all" && q.type!==filterType) return false;
     if (filterLevel!=="all" && q.level!==filterLevel) return false;
     if (filterStatus!=="all" && q.status!==filterStatus) return false;
-    if (search && !q.text.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !q.text.toLowerCase().includes(search.toLowerCase()) && !String(q.id).includes(search)) return false;
     return true;
   });
 
