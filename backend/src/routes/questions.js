@@ -1,5 +1,9 @@
+import { requireAdmin, requireRole } from "../middleware/adminAuth.js";
+
 export default async function questionsRoutes(fastify) {
   const { prisma } = fastify;
+  const adminHook     = requireAdmin(prisma);
+  const moderatorHook = requireRole("super_admin", "center_admin", "moderator")(prisma);
 
   // Flatten: replace sectionId + section relation with section name string
   function fmt(q) {
@@ -15,7 +19,7 @@ export default async function questionsRoutes(fastify) {
   }
 
   // GET /api/questions?level=B1&section=Reading&type=single_choice
-  fastify.get("/api/questions", async (req) => {
+  fastify.get("/api/questions", { preHandler: adminHook }, async (req) => {
     const { level, section, type, status } = req.query;
     const where = {};
     if (level)  where.level  = level;
@@ -35,7 +39,7 @@ export default async function questionsRoutes(fastify) {
   });
 
   // GET /api/questions/:id
-  fastify.get("/api/questions/:id", async (req, reply) => {
+  fastify.get("/api/questions/:id", { preHandler: adminHook }, async (req, reply) => {
     const q = await prisma.question.findUnique({
       where: { id: Number(req.params.id) },
       include: { section: true },
@@ -45,7 +49,7 @@ export default async function questionsRoutes(fastify) {
   });
 
   // POST /api/questions
-  fastify.post("/api/questions", async (req, reply) => {
+  fastify.post("/api/questions", { preHandler: moderatorHook }, async (req, reply) => {
     const { type, level, section, text } = req.body ?? {};
     if (!type || !level || !section || !text) {
       return reply.code(400).send({ error: "type, level, section, text are required" });
@@ -60,7 +64,7 @@ export default async function questionsRoutes(fastify) {
   });
 
   // PUT /api/questions/:id
-  fastify.put("/api/questions/:id", async (req, reply) => {
+  fastify.put("/api/questions/:id", { preHandler: moderatorHook }, async (req, reply) => {
     const data = sanitize(req.body);
     if (req.body.section) {
       const sectionId = await resolveSectionId(req.body.section, reply);
@@ -76,7 +80,7 @@ export default async function questionsRoutes(fastify) {
   });
 
   // DELETE /api/questions/:id
-  fastify.delete("/api/questions/:id", async (req, reply) => {
+  fastify.delete("/api/questions/:id", { preHandler: moderatorHook }, async (req, reply) => {
     await prisma.question.delete({ where: { id: Number(req.params.id) } });
     return reply.code(204).send();
   });

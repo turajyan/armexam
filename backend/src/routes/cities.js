@@ -1,8 +1,13 @@
+import { requireAdmin, requireSuperAdmin } from "../middleware/adminAuth.js";
+
 export default async function citiesRoutes(fastify) {
   const { prisma } = fastify;
+  const adminHook      = requireAdmin(prisma);
+  const superAdminHook = requireSuperAdmin(prisma);
 
   // ── Cities ──────────────────────────────────────────────────────────────────
 
+  // Public — needed for student exam registration flow
   fastify.get("/api/cities", async () => {
     return prisma.city.findMany({
       orderBy: { name: "asc" },
@@ -10,7 +15,7 @@ export default async function citiesRoutes(fastify) {
     });
   });
 
-  fastify.post("/api/cities", async (req, reply) => {
+  fastify.post("/api/cities", { preHandler: superAdminHook }, async (req, reply) => {
     const { name } = req.body ?? {};
     if (!name?.trim()) return reply.code(400).send({ error: "Название города обязательно" });
     try {
@@ -21,13 +26,13 @@ export default async function citiesRoutes(fastify) {
     }
   });
 
-  fastify.put("/api/cities/:id", async (req, reply) => {
+  fastify.put("/api/cities/:id", { preHandler: superAdminHook }, async (req, reply) => {
     const { name } = req.body ?? {};
     if (!name?.trim()) return reply.code(400).send({ error: "Название города обязательно" });
     return prisma.city.update({ where: { id: Number(req.params.id) }, data: { name: name.trim() } });
   });
 
-  fastify.delete("/api/cities/:id", async (req, reply) => {
+  fastify.delete("/api/cities/:id", { preHandler: superAdminHook }, async (req, reply) => {
     await prisma.city.delete({ where: { id: Number(req.params.id) } });
     return reply.code(204).send();
   });
@@ -43,7 +48,7 @@ export default async function citiesRoutes(fastify) {
 
   // ── Centers ─────────────────────────────────────────────────────────────────
 
-  fastify.get("/api/centers", async () => {
+  fastify.get("/api/centers", { preHandler: adminHook }, async () => {
     return prisma.examCenter.findMany({
       orderBy: { name: "asc" },
       include: {
@@ -54,7 +59,7 @@ export default async function citiesRoutes(fastify) {
     });
   });
 
-  fastify.get("/api/centers/:id", async (req, reply) => {
+  fastify.get("/api/centers/:id", { preHandler: adminHook }, async (req, reply) => {
     const c = await prisma.examCenter.findUnique({
       where: { id: Number(req.params.id) },
       include: {
@@ -66,7 +71,7 @@ export default async function citiesRoutes(fastify) {
     return c;
   });
 
-  fastify.post("/api/centers", async (req, reply) => {
+  fastify.post("/api/centers", { preHandler: superAdminHook }, async (req, reply) => {
     const { name, address, phone, email, cityId } = req.body ?? {};
     if (!name?.trim() || !cityId) return reply.code(400).send({ error: "Название и город обязательны" });
     const center = await prisma.examCenter.create({
@@ -76,7 +81,7 @@ export default async function citiesRoutes(fastify) {
     return reply.code(201).send(center);
   });
 
-  fastify.put("/api/centers/:id", async (req, reply) => {
+  fastify.put("/api/centers/:id", { preHandler: superAdminHook }, async (req, reply) => {
     const { name, address, phone, email, cityId } = req.body ?? {};
     if (!name?.trim()) return reply.code(400).send({ error: "Название обязательно" });
     return prisma.examCenter.update({
@@ -86,7 +91,7 @@ export default async function citiesRoutes(fastify) {
     });
   });
 
-  fastify.delete("/api/centers/:id", async (req, reply) => {
+  fastify.delete("/api/centers/:id", { preHandler: superAdminHook }, async (req, reply) => {
     await prisma.examCenter.delete({ where: { id: Number(req.params.id) } });
     return reply.code(204).send();
   });

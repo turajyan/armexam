@@ -141,6 +141,53 @@ export default async function authRoutes(fastify) {
     };
   });
 
+  // PUT /api/auth/profile — update personal info (requires Bearer token)
+  fastify.put("/api/auth/profile", async (req, reply) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
+    const student = await prisma.student.findUnique({ where: { sessionToken: token } });
+    if (!student) return reply.code(401).send({ error: "Недействительный токен" });
+
+    const allowed = ["name", "phone", "country", "documentType", "documentNumber", "gender"];
+    const data = Object.fromEntries(
+      Object.entries(req.body ?? {}).filter(([k]) => allowed.includes(k))
+    );
+    if (data.name) data.name = data.name.trim();
+
+    const updated = await prisma.student.update({ where: { id: student.id }, data });
+    return {
+      id: updated.id, name: updated.name, email: updated.email,
+      phone: updated.phone, country: updated.country,
+      documentType: updated.documentType, documentNumber: updated.documentNumber,
+      gender: updated.gender, level: updated.level,
+    };
+  });
+
+  // PUT /api/auth/password — change password (requires Bearer token)
+  fastify.put("/api/auth/password", async (req, reply) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
+    const student = await prisma.student.findUnique({ where: { sessionToken: token } });
+    if (!student) return reply.code(401).send({ error: "Недействительный токен" });
+
+    const { currentPassword, newPassword } = req.body ?? {};
+    if (!currentPassword || !newPassword) {
+      return reply.code(400).send({ error: "currentPassword и newPassword обязательны" });
+    }
+    if (newPassword.length < 6) {
+      return reply.code(400).send({ error: "Новый пароль должен содержать минимум 6 символов" });
+    }
+    const currentHash = hashPassword(currentPassword, student.email);
+    if (currentHash !== student.passwordHash) {
+      return reply.code(401).send({ error: "Текущий пароль неверен" });
+    }
+    await prisma.student.update({
+      where: { id: student.id },
+      data: { passwordHash: hashPassword(newPassword, student.email) },
+    });
+    return { success: true };
+  });
+
   // POST /api/auth/logout
   fastify.post("/api/auth/logout", async (req, reply) => {
     const token = req.headers.authorization?.replace("Bearer ", "");

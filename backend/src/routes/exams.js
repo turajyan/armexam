@@ -1,8 +1,11 @@
+import { requireAdmin } from "../middleware/adminAuth.js";
+
 export default async function examsRoutes(fastify) {
   const { prisma } = fastify;
+  const adminHook = requireAdmin(prisma);
 
   // GET /api/exams?status=active&level=B1
-  fastify.get("/api/exams", async (req) => {
+  fastify.get("/api/exams", { preHandler: adminHook }, async (req) => {
     const { status, level, examType } = req.query;
     const where = {};
     if (status)   where.status   = status;
@@ -19,7 +22,7 @@ export default async function examsRoutes(fastify) {
   });
 
   // GET /api/exams/:id
-  fastify.get("/api/exams/:id", async (req, reply) => {
+  fastify.get("/api/exams/:id", { preHandler: adminHook }, async (req, reply) => {
     const exam = await prisma.exam.findUnique({
       where: { id: Number(req.params.id) },
       include: { assignedStudents: { select: { studentId: true, pin: true } } },
@@ -29,7 +32,7 @@ export default async function examsRoutes(fastify) {
   });
 
   // POST /api/exams
-  fastify.post("/api/exams", async (req, reply) => {
+  fastify.post("/api/exams", { preHandler: adminHook }, async (req, reply) => {
     const { assignedTo, ...rest } = req.body;
 
     let assignedStudentsData = {};
@@ -50,7 +53,7 @@ export default async function examsRoutes(fastify) {
   });
 
   // PUT /api/exams/:id
-  fastify.put("/api/exams/:id", async (req, reply) => {
+  fastify.put("/api/exams/:id", { preHandler: adminHook }, async (req, reply) => {
     const id = Number(req.params.id);
     const { assignedTo, ...rest } = req.body;
 
@@ -89,13 +92,13 @@ export default async function examsRoutes(fastify) {
   });
 
   // DELETE /api/exams/:id
-  fastify.delete("/api/exams/:id", async (req, reply) => {
+  fastify.delete("/api/exams/:id", { preHandler: adminHook }, async (req, reply) => {
     await prisma.exam.delete({ where: { id: Number(req.params.id) } });
     return reply.code(204).send();
   });
 
   // GET /api/exams/:id/assignments — returns students with their PINs
-  fastify.get("/api/exams/:id/assignments", async (req, reply) => {
+  fastify.get("/api/exams/:id/assignments", { preHandler: adminHook }, async (req, reply) => {
     const id = Number(req.params.id);
     const assignments = await prisma.examAssignment.findMany({
       where: { examId: id },

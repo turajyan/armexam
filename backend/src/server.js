@@ -10,6 +10,9 @@ import resultsRoutes   from "./routes/results.js";
 import registerRoutes  from "./routes/register.js";
 import authRoutes      from "./routes/auth.js";
 import citiesRoutes    from "./routes/cities.js";
+import adminAuthRoutes from "./routes/adminAuth.js";
+import adminsRoutes    from "./routes/admins.js";
+import gradingRoutes   from "./routes/grading.js";
 
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -32,6 +35,9 @@ await fastify.register(resultsRoutes);
 await fastify.register(registerRoutes);
 await fastify.register(authRoutes);
 await fastify.register(citiesRoutes);
+await fastify.register(adminAuthRoutes);
+await fastify.register(adminsRoutes);
+await fastify.register(gradingRoutes);
 
 // Health check
 fastify.get("/health", async () => ({ ok: true }));

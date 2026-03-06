@@ -584,7 +584,7 @@ function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] })
 }
 
 // ── Exam Card ─────────────────────────────────────────────────────────────────
-function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, allStudents = [] }) {
+function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, onPreview, allStudents = [] }) {
   const sm = STATUS_META[exam.status]||STATUS_META.draft;
   const lc = LEVEL_COLORS[exam.level]||"#94a3b8";
   const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
@@ -676,6 +676,9 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, allStudents
       {/* Actions */}
       <div style={{ display:"flex",gap:8,paddingTop:4 }}>
         <Btn small onClick={()=>onEdit(exam)} style={{ flex:1 }}>✎ Edit</Btn>
+        <Btn small onClick={()=>onPreview(exam)} style={{ flex:1 }} variant="solid" color={C.purple+"22"}>
+          <span style={{ color:C.purple }}>▶ Preview</span>
+        </Btn>
         <Btn small onClick={()=>onAssign(exam)} style={{ flex:1 }} variant="solid" color={C.info+"22"}>
           <span style={{ color:C.info }}>+ Assign</span>
         </Btn>
@@ -685,6 +688,147 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, allStudents
           </Btn>
         )}
         <Btn small variant="danger" onClick={()=>onDelete(exam.id)}>✕</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── Exam Preview (moderator: frontend-only test run, no DB save) ──────────────
+function ExamPreview({ exam, questions, onClose }) {
+  const [answers,  setAnswers]  = useState({});
+  const [current,  setCurrent]  = useState(0);
+  const [finished, setFinished] = useState(false);
+  const [score,    setScore]    = useState(null);
+
+  const q = questions[current];
+
+  const setAnswer = (qId, val) => setAnswers(a => ({ ...a, [qId]: val }));
+
+  const calcScore = () => {
+    let earned = 0, total = 0;
+    for (const q of questions) {
+      total += q.points;
+      const ans = answers[q.id];
+      if (q.type === "single_choice") {
+        if (Number(ans) === q.correct) earned += q.points;
+      } else if (q.type === "multi_choice" || q.type === "multi_select") {
+        const correct = Array.isArray(q.correct) ? q.correct : [q.correct];
+        const given   = Array.isArray(ans) ? ans : [];
+        if (correct.length === given.length && correct.every(c => given.includes(c))) earned += q.points;
+      } else if (q.type === "fill_blank") {
+        if ((ans||"").trim().toLowerCase() === (q.answer||"").trim().toLowerCase()) earned += q.points;
+      } else if (q.type === "writing" || q.type === "voice") {
+        // manual — count as 0 in preview
+      }
+    }
+    setScore({ earned, total, pct: total > 0 ? Math.round(earned/total*100) : 0 });
+    setFinished(true);
+  };
+
+  if (finished && score) {
+    return (
+      <div style={{ fontFamily:"'DM Sans',sans-serif",textAlign:"center",padding:"20px 0" }}>
+        <div style={{ fontSize:48,marginBottom:12 }}>{score.pct >= 60 ? "🎉" : "📝"}</div>
+        <div style={{ fontSize:28,fontWeight:700,color:C.gold,marginBottom:8 }}>{score.pct}%</div>
+        <div style={{ color:C.muted,fontSize:14,marginBottom:4 }}>
+          Набрано: {score.earned} / {score.total} баллов
+        </div>
+        <div style={{ color:C.muted,fontSize:12,marginBottom:20 }}>
+          ⚠ Это тестовый прогон — результаты НЕ сохраняются в базу данных
+        </div>
+        <button onClick={()=>{setFinished(false);setAnswers({});setCurrent(0);setScore(null)}} style={{ background:C.gold+"22",border:`1px solid ${C.gold}44`,borderRadius:10,padding:"10px 24px",color:C.gold,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",marginRight:10 }}>
+          Пройти снова
+        </button>
+        <button onClick={onClose} style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 24px",color:C.text,fontWeight:500,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
+          Закрыть
+        </button>
+      </div>
+    );
+  }
+
+  if (!q) return <div style={{ color:C.muted,fontFamily:"'DM Sans',sans-serif" }}>Нет вопросов</div>;
+
+  const isMulti  = q.type === "multi_choice" || q.type === "multi_select";
+  const selected = answers[q.id] ?? (isMulti ? [] : null);
+
+  const toggleOpt = (idx) => {
+    if (!isMulti) { setAnswer(q.id, idx); return; }
+    const arr = Array.isArray(selected) ? selected : [];
+    setAnswer(q.id, arr.includes(idx) ? arr.filter(x=>x!==idx) : [...arr, idx]);
+  };
+
+  return (
+    <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
+      {/* Progress */}
+      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:18 }}>
+        <span style={{ color:C.muted,fontSize:13 }}>Вопрос {current+1} / {questions.length}</span>
+        <div style={{ flex:1,height:4,background:C.border,borderRadius:2 }}>
+          <div style={{ width:`${((current+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s" }} />
+        </div>
+        <span style={{ color:C.muted,fontSize:11 }}>{q.points} балл · {q.level}</span>
+      </div>
+
+      {/* Question text */}
+      <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 20px",marginBottom:16,fontSize:15,color:C.text,lineHeight:1.6 }}>
+        {q.text}
+      </div>
+
+      {/* Answer input */}
+      {(q.type === "single_choice" || q.type === "multi_choice" || q.type === "multi_select") && (
+        <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:20 }}>
+          {(q.options||[]).map((opt,i)=>{
+            const sel = isMulti ? (Array.isArray(selected)&&selected.includes(i)) : selected===i;
+            return (
+              <button key={i} onClick={()=>toggleOpt(i)} style={{
+                padding:"10px 16px",borderRadius:10,textAlign:"left",
+                background:sel?C.gold+"22":"transparent",
+                border:`1.5px solid ${sel?C.gold:C.border}`,
+                color:sel?C.gold:C.text,fontSize:14,cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif",
+              }}>{opt}</button>
+            );
+          })}
+        </div>
+      )}
+      {q.type === "fill_blank" && (
+        <input
+          value={answers[q.id]||""}
+          onChange={e=>setAnswer(q.id,e.target.value)}
+          placeholder="Введите ответ..."
+          style={{ width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,fontSize:14,outline:"none",fontFamily:"'DM Sans',sans-serif",marginBottom:20 }}
+        />
+      )}
+      {(q.type === "writing") && (
+        <textarea
+          rows={5}
+          value={answers[q.id]||""}
+          onChange={e=>setAnswer(q.id,e.target.value)}
+          placeholder={`Напишите ответ (${q.minWords||0}–${q.maxWords||999} слов)...`}
+          style={{ width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,fontSize:14,outline:"none",fontFamily:"'DM Sans',sans-serif",marginBottom:20,resize:"vertical" }}
+        />
+      )}
+      {q.type === "voice" && (
+        <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:16,marginBottom:20,color:C.muted,fontSize:13 }}>
+          🎤 Запись голоса — в режиме предпросмотра недоступна
+        </div>
+      )}
+
+      {/* Nav buttons */}
+      <div style={{ display:"flex",justifyContent:"space-between",gap:10 }}>
+        <button
+          disabled={current===0}
+          onClick={()=>setCurrent(c=>c-1)}
+          style={{ padding:"9px 20px",borderRadius:10,background:C.card,border:`1px solid ${C.border}`,color:current===0?C.muted:C.text,cursor:current===0?"not-allowed":"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:14 }}
+        >← Назад</button>
+        {current < questions.length - 1 ? (
+          <button onClick={()=>setCurrent(c=>c+1)} style={{ padding:"9px 20px",borderRadius:10,background:`linear-gradient(135deg,${C.gold},${C.goldDim})`,border:"none",color:"white",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
+            Далее →
+          </button>
+        ) : (
+          <button onClick={calcScore} style={{ padding:"9px 24px",borderRadius:10,background:`linear-gradient(135deg,${C.success},#16a34a)`,border:"none",color:"white",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
+            Завершить
+          </button>
+        )}
       </div>
     </div>
   );
@@ -801,6 +945,8 @@ function ExamsPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterLevel, setFilterLevel] = useState("all");
   const [search, setSearch] = useState("");
+  const [previewing, setPreviewing] = useState(null);   // { exam, questions }
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([api.getExams(), api.getStudents(), api.getSections()]).then(([e, s, secs]) => {
@@ -834,6 +980,17 @@ function ExamsPage() {
     const updated = await api.updateExam(assigning.id, { assignedTo: ids });
     setExams(es=>es.map(e=>e.id===assigning.id?updated:e));
     setAssigning(null);
+  };
+  const handlePreview = async (exam) => {
+    setPreviewLoading(true);
+    try {
+      const questions = await api.getExamQuestions(exam.id);
+      setPreviewing({ exam, questions });
+    } catch (e) {
+      alert("Ошибка загрузки вопросов: " + e.message);
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   const statCounts = Object.fromEntries(Object.keys(STATUS_META).map(s=>[s,exams.filter(e=>e.status===s).length]));
@@ -886,6 +1043,7 @@ function ExamsPage() {
               onDelete={id=>setDeleteId(id)}
               onAssign={e=>setAssigning(e)}
               onViewResults={e=>setViewingResults(e)}
+              onPreview={handlePreview}
             />
           ))}
         </div>
@@ -912,6 +1070,18 @@ function ExamsPage() {
             <Btn onClick={()=>setDeleteId(null)}>Cancel</Btn>
             <Btn variant="danger" onClick={()=>handleDelete(deleteId)}>✕ Delete</Btn>
           </div>
+        </Modal>
+      )}
+
+      {/* Preview Modal — loads questions without saving to DB */}
+      {previewLoading && (
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999 }}>
+          <div style={{ color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:16 }}>Загрузка вопросов...</div>
+        </div>
+      )}
+      {previewing && (
+        <Modal title={`Preview: ${previewing.exam.title}`} subtitle={`${previewing.questions.length} вопросов — только для просмотра, не сохраняется`} onClose={()=>setPreviewing(null)} wide>
+          <ExamPreview exam={previewing.exam} questions={previewing.questions} onClose={()=>setPreviewing(null)} />
         </Modal>
       )}
     </div>

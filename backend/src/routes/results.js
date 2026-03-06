@@ -1,8 +1,11 @@
+import { requireAdmin } from "../middleware/adminAuth.js";
+
 export default async function resultsRoutes(fastify) {
   const { prisma } = fastify;
+  const adminHook = requireAdmin(prisma);
 
   // GET /api/results?examId=1&studentId=2
-  fastify.get("/api/results", async (req) => {
+  fastify.get("/api/results", { preHandler: adminHook }, async (req) => {
     const { examId, studentId } = req.query;
     const where = {};
     if (examId)    where.examId    = Number(examId);
@@ -18,7 +21,7 @@ export default async function resultsRoutes(fastify) {
   });
 
   // GET /api/results/:id
-  fastify.get("/api/results/:id", async (req, reply) => {
+  fastify.get("/api/results/:id", { preHandler: adminHook }, async (req, reply) => {
     const r = await prisma.result.findUnique({
       where: { id: Number(req.params.id) },
       include: {
@@ -48,7 +51,7 @@ export default async function resultsRoutes(fastify) {
   // ── Analytics ────────────────────────────────────────────────────────────────
 
   // GET /api/analytics/summary
-  fastify.get("/api/analytics/summary", async () => {
+  fastify.get("/api/analytics/summary", { preHandler: adminHook }, async () => {
     const [totalStudents, totalExams, totalResults, passedResults, totalCenters, totalCities] = await Promise.all([
       prisma.student.count(),
       prisma.exam.count(),
@@ -79,7 +82,7 @@ export default async function resultsRoutes(fastify) {
   });
 
   // GET /api/analytics/by-city  — stats grouped by city → center
-  fastify.get("/api/analytics/by-city", async () => {
+  fastify.get("/api/analytics/by-city", { preHandler: adminHook }, async () => {
     const cities = await prisma.city.findMany({
       orderBy: { name: "asc" },
       include: {
@@ -148,7 +151,7 @@ export default async function resultsRoutes(fastify) {
   });
 
   // GET /api/analytics/by-center/:id  — detailed stats for one center
-  fastify.get("/api/analytics/by-center/:id", async (req, reply) => {
+  fastify.get("/api/analytics/by-center/:id", { preHandler: adminHook }, async (req, reply) => {
     const center = await prisma.examCenter.findUnique({
       where: { id: Number(req.params.id) },
       include: {

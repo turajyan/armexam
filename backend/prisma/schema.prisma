@@ -79,6 +79,20 @@ model City {
   centers ExamCenter[]
 }
 
+model Admin {
+  id           Int         @id @default(autoincrement())
+  name         String
+  email        String      @unique
+  passwordHash String
+  role         String      @default("moderator") // super_admin | center_admin | moderator | examiner
+  centerId     Int?
+  center       ExamCenter? @relation(fields: [centerId], references: [id], onDelete: SetNull)
+  sessionToken String?     @unique
+  status       String      @default("active")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
 model ExamCenter {
   id      Int    @id @default(autoincrement())
   name    String
@@ -88,6 +102,7 @@ model ExamCenter {
   cityId  Int
   city    City   @relation(fields: [cityId], references: [id])
   exams   Exam[]
+  admins  Admin[]
 }
 
 model Exam {
@@ -141,7 +156,7 @@ model Result {
   id             Int      @id @default(autoincrement())
   examId         Int
   studentId      Int
-  score          Int      // earned points
+  score          Int      // earned points (auto + manual)
   totalPoints    Int
   pct            Int      // 0-100
   passed         Boolean?
@@ -149,6 +164,12 @@ model Result {
   detectedLevel  String?  // for placement exams
   levelStats     Json?    // for placement: { A1: { earned, maxPts, pct }, ... }
   submittedAt    DateTime @default(now())
+
+  // Manual grading (writing / speaking)
+  gradingStatus  String   @default("auto")  // auto | pending | graded
+  manualGrades   Json?    // { [questionId]: { earnedPoints, maxPoints, status: "approved"|"partial"|"declined", notes } }
+  gradedById     Int?
+  gradedAt       DateTime?
 
   exam    Exam    @relation(fields: [examId], references: [id])
   student Student @relation(fields: [studentId], references: [id])

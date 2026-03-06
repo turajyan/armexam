@@ -1,8 +1,11 @@
+import { requireAdmin } from "../middleware/adminAuth.js";
+
 export default async function studentsRoutes(fastify) {
   const { prisma } = fastify;
+  const adminHook = requireAdmin(prisma);
 
   // GET /api/students?level=B1&status=active&country=Armenia
-  fastify.get("/api/students", async (req) => {
+  fastify.get("/api/students", { preHandler: adminHook }, async (req) => {
     const { level, status, country } = req.query;
     const where = {};
     if (level)   where.level   = level;
@@ -20,7 +23,7 @@ export default async function studentsRoutes(fastify) {
   });
 
   // GET /api/students/:id
-  fastify.get("/api/students/:id", async (req, reply) => {
+  fastify.get("/api/students/:id", { preHandler: adminHook }, async (req, reply) => {
     const s = await prisma.student.findUnique({
       where: { id: Number(req.params.id) },
       include: { results: true },
@@ -30,7 +33,7 @@ export default async function studentsRoutes(fastify) {
   });
 
   // POST /api/students
-  fastify.post("/api/students", async (req, reply) => {
+  fastify.post("/api/students", { preHandler: adminHook }, async (req, reply) => {
     const { name, email } = req.body ?? {};
     if (!name || !email) {
       return reply.code(400).send({ error: "name and email are required" });
@@ -40,7 +43,7 @@ export default async function studentsRoutes(fastify) {
   });
 
   // PUT /api/students/:id
-  fastify.put("/api/students/:id", async (req, reply) => {
+  fastify.put("/api/students/:id", { preHandler: adminHook }, async (req, reply) => {
     const s = await prisma.student.update({
       where: { id: Number(req.params.id) },
       data: sanitize(req.body),
@@ -49,7 +52,7 @@ export default async function studentsRoutes(fastify) {
   });
 
   // DELETE /api/students/:id
-  fastify.delete("/api/students/:id", async (req, reply) => {
+  fastify.delete("/api/students/:id", { preHandler: adminHook }, async (req, reply) => {
     await prisma.student.delete({ where: { id: Number(req.params.id) } });
     return reply.code(204).send();
   });

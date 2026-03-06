@@ -439,6 +439,7 @@ async function main() {
   await prisma.student.deleteMany();
   await prisma.question.deleteMany();
   await prisma.section.deleteMany();
+  await prisma.admin.deleteMany();
   await prisma.examCenter.deleteMany();
   await prisma.city.deleteMany();
 
@@ -506,7 +507,20 @@ async function main() {
     console.log(`  👤 ${s.name.padEnd(22)} → ${exam.title} | PIN: ${pin}`);
   }
   console.log(`✅ ${STUDENTS_DATA.length} students`);
-  console.log("\n🎉 Seed complete! Password for all: demo1234");
+
+  // Default super_admin
+  await prisma.admin.create({
+    data: {
+      name:         "Super Admin",
+      email:        "admin@armexam.am",
+      passwordHash: hashPassword("admin1234", "admin@armexam.am"),
+      role:         "super_admin",
+      status:       "active",
+    },
+  });
+  console.log("✅ super_admin  admin@armexam.am / admin1234");
+
+  console.log("\n🎉 Seed complete! Password for all students: demo1234");
 }
 
 main()

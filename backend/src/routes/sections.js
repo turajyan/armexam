@@ -1,13 +1,17 @@
+import { requireAdmin, requireRole } from "../middleware/adminAuth.js";
+
 export default async function sectionsRoutes(fastify) {
   const { prisma } = fastify;
+  const adminHook     = requireAdmin(prisma);
+  const moderatorHook = requireRole("super_admin", "center_admin", "moderator")(prisma);
 
   // GET /api/sections
-  fastify.get("/api/sections", async () => {
+  fastify.get("/api/sections", { preHandler: adminHook }, async () => {
     return prisma.section.findMany({ orderBy: { name: "asc" } });
   });
 
   // POST /api/sections
-  fastify.post("/api/sections", async (req, reply) => {
+  fastify.post("/api/sections", { preHandler: moderatorHook }, async (req, reply) => {
     const { name } = req.body ?? {};
     if (!name?.trim()) return reply.code(400).send({ error: "name is required" });
     try {
@@ -20,7 +24,7 @@ export default async function sectionsRoutes(fastify) {
   });
 
   // PUT /api/sections/:id  — rename, also patches exam JSON blobs
-  fastify.put("/api/sections/:id", async (req, reply) => {
+  fastify.put("/api/sections/:id", { preHandler: moderatorHook }, async (req, reply) => {
     const id = Number(req.params.id);
     const { name } = req.body ?? {};
     if (!name?.trim()) return reply.code(400).send({ error: "name is required" });
@@ -65,7 +69,7 @@ export default async function sectionsRoutes(fastify) {
   });
 
   // DELETE /api/sections/:id
-  fastify.delete("/api/sections/:id", async (req, reply) => {
+  fastify.delete("/api/sections/:id", { preHandler: moderatorHook }, async (req, reply) => {
     const id = Number(req.params.id);
     const count = await prisma.question.count({ where: { sectionId: id } });
     if (count > 0) {
