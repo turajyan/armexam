@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
+import { formatDateTime } from "../dateUtils.js";
 
 const STATUS_LABEL = { approved: "Принято", partial: "Частично", declined: "Отклонено" };
 const STATUS_COLOR = { approved: "#4cc98a", partial: "#c9a84c", declined: "#c94c6f" };
@@ -238,7 +239,7 @@ export default function ExaminerDashboard({ theme: T }) {
               {r.student?.name} · {r.student?.email}
             </div>
             <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
-              Сдано: {new Date(r.submittedAt).toLocaleString("ru")}
+              Сдано: {formatDateTime(r.submittedAt)}
             </div>
           </div>
           <button onClick={() => openResult(r)} style={primaryBtn(T)}>

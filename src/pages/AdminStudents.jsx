@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../api.js";
+import { formatDate } from "../dateUtils.js";
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
@@ -171,7 +172,7 @@ function StudentProfile({ student, onClose, onEdit }) {
   const contactRows = [
     ["📧", student.email],
     ["📞", student.phone],
-    ["📅", student.joined ? new Date(student.joined).toLocaleDateString("hy-AM", { year:"numeric", month:"long", day:"numeric" }) : null],
+    ["📅", student.joined ? formatDate(student.joined) : null],
     ["👥", student.group],
   ].filter(([, val]) => val);
 
@@ -237,7 +238,7 @@ function StudentProfile({ student, onClose, onEdit }) {
                     </div>
                     {r.completedAt && (
                       <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,marginTop:3 }}>
-                        {new Date(r.completedAt).toLocaleDateString("hy-AM", { year:"numeric", month:"short", day:"numeric" })}
+                        {formatDate(r.completedAt)}
                       </div>
                     )}
                   </div>

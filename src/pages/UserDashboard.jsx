@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
+import { formatDate } from "../dateUtils.js";
 
 const DOC_LABELS = { passport: "Паспорт", id_card: "ID карта" };
 const GENDER_LABELS = { male: "Мужской", female: "Женский", other: "Другой" };
@@ -324,10 +325,7 @@ function Tag({ color, children }) {
   );
 }
 
-function fmtDate(d) {
-  if (!d) return "";
-  return new Date(d).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" });
-}
+function fmtDate(d) { return d ? formatDate(d) : ""; }
 
 function inputSt(T) {
   return {

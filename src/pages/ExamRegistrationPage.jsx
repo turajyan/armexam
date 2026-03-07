@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
+import { formatDate } from "../dateUtils.js";
 
 // Steps: city → center → exam → pin
 export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
@@ -304,7 +305,4 @@ function Empty({ T, text }) {
   );
 }
 
-function fmtDate(d) {
-  if (!d) return "";
-  return new Date(d).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" });
-}
+function fmtDate(d) { return d ? formatDate(d) : ""; }
