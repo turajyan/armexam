@@ -378,7 +378,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
                 "Europe/London","America/New_York","America/Los_Angeles","Asia/Dubai",
               ].map(z=>({value:z,label:z}))} />
             <Select label="Default Interface Language" value={general.language} onChange={v=>setG("language",v)}
-              options={[{value:"hy",label:"Հայerен"},{value:"ru",label:"Русский"},{value:"en",label:"English"}]} />
+              options={[{value:"hy",label:"Հայերեն"},{value:"ru",label:"Русский"},{value:"en",label:"English"}]} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
             <Select label="Date Format" value={general.dateFormat} onChange={v=>setG("dateFormat",v)}
