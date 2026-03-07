@@ -103,7 +103,7 @@ export default async function authRoutes(fastify) {
 
   // GET /api/auth/me — requires Authorization: Bearer <token>
   fastify.get("/api/auth/me", async (req, reply) => {
-    const token = req.headers.authorization?.replace("Bearer ", "");
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
     if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
 
     const student = await prisma.student.findUnique({
@@ -143,7 +143,7 @@ export default async function authRoutes(fastify) {
 
   // PUT /api/auth/profile — update personal info (requires Bearer token)
   fastify.put("/api/auth/profile", async (req, reply) => {
-    const token = req.headers.authorization?.replace("Bearer ", "");
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
     if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
     const student = await prisma.student.findUnique({ where: { sessionToken: token } });
     if (!student) return reply.code(401).send({ error: "Недействительный токен" });
@@ -165,7 +165,7 @@ export default async function authRoutes(fastify) {
 
   // PUT /api/auth/password — change password (requires Bearer token)
   fastify.put("/api/auth/password", async (req, reply) => {
-    const token = req.headers.authorization?.replace("Bearer ", "");
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
     if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
     const student = await prisma.student.findUnique({ where: { sessionToken: token } });
     if (!student) return reply.code(401).send({ error: "Недействительный токен" });
@@ -190,7 +190,7 @@ export default async function authRoutes(fastify) {
 
   // POST /api/auth/logout
   fastify.post("/api/auth/logout", async (req, reply) => {
-    const token = req.headers.authorization?.replace("Bearer ", "");
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
     if (token) {
       await prisma.student.updateMany({
         where: { sessionToken: token },

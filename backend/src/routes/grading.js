@@ -60,7 +60,10 @@ export default async function gradingRoutes(fastify) {
       return reply.code(400).send({ error: "grades объект обязателен" });
     }
 
-    const result = await prisma.result.findUnique({ where: { id: resultId } });
+    const result = await prisma.result.findUnique({
+      where: { id: resultId },
+      include: { exam: { select: { passingScore: true } } },
+    });
     if (!result) return reply.code(404).send({ error: "Результат не найден" });
 
     // Fetch questions to validate points
@@ -101,8 +104,8 @@ export default async function gradingRoutes(fastify) {
         gradedAt:      new Date(),
         score:         newScore,
         pct:           newPct,
-        passed:        result.totalPoints > 0 && result.passed !== null
-          ? newPct >= (result.pct > 0 ? Math.round((result.score / result.totalPoints) * 100 - result.pct + newPct) : newPct)
+        passed:        result.totalPoints > 0
+          ? newPct >= (result.exam.passingScore ?? 0)
           : result.passed,
       },
       include: {

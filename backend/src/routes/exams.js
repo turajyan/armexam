@@ -149,7 +149,7 @@ function sanitize(body) {
     "title","examType","level","duration","passingScore",
     "shuffle","showResults","showQuestionLevel","showQuestionPoints",
     "subpools","placementTemplate","placementThresholds","showPlacementThreshold",
-    "status","startDate","endDate",
+    "status","startDate","endDate","examCenterId",
   ];
   return Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))

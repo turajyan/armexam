@@ -33,17 +33,30 @@ export default async function resultsRoutes(fastify) {
     return r;
   });
 
-  // POST /api/results
+  // POST /api/results  — requires student Bearer token
   fastify.post("/api/results", async (req, reply) => {
-    const { examId, studentId, score, totalPoints, pct, passed, answers, detectedLevel, levelStats } = req.body ?? {};
-    if (examId == null || studentId == null || score == null || totalPoints == null || pct == null) {
-      return reply.code(400).send({ error: "examId, studentId, score, totalPoints, pct are required" });
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
+    if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
+
+    const student = await prisma.student.findUnique({ where: { sessionToken: token } });
+    if (!student) return reply.code(401).send({ error: "Недействительный токен" });
+
+    const { examId, score, totalPoints, pct, passed, answers, detectedLevel, levelStats } = req.body ?? {};
+    if (examId == null || score == null || totalPoints == null || pct == null) {
+      return reply.code(400).send({ error: "examId, score, totalPoints, pct are required" });
     }
+
+    // Verify student is assigned to this exam
+    const assignment = await prisma.examAssignment.findFirst({
+      where: { examId: Number(examId), studentId: student.id },
+    });
+    if (!assignment) return reply.code(403).send({ error: "Студент не назначен на этот экзамен" });
+
     const result = await prisma.result.create({
-      data: { examId, studentId, score, totalPoints, pct, passed, answers, detectedLevel, levelStats },
+      data: { examId: Number(examId), studentId: student.id, score, totalPoints, pct, passed, answers, detectedLevel, levelStats },
     });
     if (detectedLevel) {
-      await prisma.student.update({ where: { id: studentId }, data: { level: detectedLevel } });
+      await prisma.student.update({ where: { id: student.id }, data: { level: detectedLevel } });
     }
     return reply.code(201).send(result);
   });
@@ -131,7 +144,6 @@ export default async function resultsRoutes(fastify) {
         };
       });
 
-      const cityStudents = new Set(centersStats.flatMap(c => []));
       const cityTotalStudents = centersStats.reduce((a, c) => a + c.totalStudents, 0);
       const cityTotalResults  = centersStats.reduce((a, c) => a + c.totalResults,  0);
       const cityPassRate       = cityTotalResults > 0
@@ -188,7 +200,6 @@ export default async function resultsRoutes(fastify) {
         totalResults++;
         if (r.passed) passedResults++;
         pctSum += r.pct;
-        if (r.detectedLevel) levelCount[r.detectedLevel] = (levelCount[r.detectedLevel] || 0) + 1;
       }
     }
 
