@@ -37,4 +37,11 @@ i18n
     },
   });
 
+window.addEventListener('armexam:langchange', () => {
+  try {
+    const settings = JSON.parse(localStorage.getItem('armexam_general_settings') || '{}');
+    if (settings.language) i18n.changeLanguage(settings.language);
+  } catch {}
+});
+
 export default i18n;
