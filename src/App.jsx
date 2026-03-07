@@ -16,7 +16,7 @@ import UserDashboard         from "./pages/UserDashboard";
 import ExamRegistrationPage  from "./pages/ExamRegistrationPage";
 import { THEMES, DEFAULT_THEME, THEME_KEY } from "./theme.js";
 import { api } from "./api.js";
-import { t } from "./translations.js";
+import { t, getLang } from "./translations.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -63,6 +63,12 @@ export default function App() {
   const [themeId, setThemeId] = useState(
     () => { try { return localStorage.getItem(THEME_KEY) || DEFAULT_THEME; } catch { return DEFAULT_THEME; } }
   );
+  const [lang, setLang] = useState(() => getLang());
+  useEffect(() => {
+    const handler = () => setLang(getLang());
+    window.addEventListener("armexam:langchange", handler);
+    return () => window.removeEventListener("armexam:langchange", handler);
+  }, []);
   const [hash, setHash] = useState(() => window.location.hash);
   useEffect(() => {
     const onHash = () => setHash(window.location.hash);
@@ -246,7 +252,7 @@ export default function App() {
     <>
       <style>{FONTS}{globalStyle}</style>
 
-      <div style={{ display:"flex", height:"100vh", overflow:"hidden", background:T.bg }}>
+      <div key={lang} style={{ display:"flex", height:"100vh", overflow:"hidden", background:T.bg }}>
 
         {/* Sidebar */}
         <aside style={{ width:72, background:T.sidebarBg, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column", alignItems:"center", paddingTop:14, gap:3, flexShrink:0 }}>

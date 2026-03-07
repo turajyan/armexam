@@ -348,6 +348,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
   const handleSave  = () => {
     setSaved(true);
     try { localStorage.setItem("armexam_general_settings", JSON.stringify(general)); } catch {}
+    window.dispatchEvent(new Event("armexam:langchange"));
     showToast("✓ Settings saved successfully!");
   };
   const handleReset = () => { setSaved(true); showToast("↺ Reset to last saved state", C.warning); };
