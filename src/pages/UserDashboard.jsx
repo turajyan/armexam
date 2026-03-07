@@ -96,6 +96,7 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
 
 // ── Exams tab ──────────────────────────────────────────────────────────────────
 function ExamsTab({ T, user, onRegisterExam }) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Register CTA */}
@@ -167,6 +168,7 @@ function ExamsTab({ T, user, onRegisterExam }) {
 
 // ── Profile tab ────────────────────────────────────────────────────────────────
 function ProfileTab({ T, user, onUserUpdate }) {
+  const { t } = useTranslation();
   const [form,    setForm]    = useState({
     name:           user.name           || "",
     phone:          user.phone          || "",
@@ -248,6 +250,7 @@ function ProfileTab({ T, user, onUserUpdate }) {
 
 // ── Password tab ───────────────────────────────────────────────────────────────
 function PasswordTab({ T }) {
+  const { t } = useTranslation();
   const [form,    setForm]    = useState({ currentPassword: "", newPassword: "", confirm: "" });
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState("");
