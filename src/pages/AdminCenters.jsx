@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
-import { t } from "../translations.js";
+import { useTranslation } from "react-i18next";
 
 export default function AdminCenters({ theme: T }) {
+  const { t } = useTranslation();
   const C = T;
 
   const [cities,   setCities]   = useState([]);

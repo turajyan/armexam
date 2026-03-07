@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { t } from "../translations.js";
+import { useTranslation } from "react-i18next";
 
 export default function LoginPage({ theme: T, onSuccess, onRegister }) {
+  const { t } = useTranslation();
   const [form, setForm]       = useState({ email: "", password: "" });
   const [submitting, setSubm] = useState(false);
   const [error, setError]     = useState("");

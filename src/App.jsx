@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import ExamPage              from "./pages/ExamPage";
 import AdminQuestions        from "./pages/AdminQuestions";
 import AdminExams            from "./pages/AdminExams";
@@ -16,7 +17,6 @@ import UserDashboard         from "./pages/UserDashboard";
 import ExamRegistrationPage  from "./pages/ExamRegistrationPage";
 import { THEMES, DEFAULT_THEME, THEME_KEY } from "./theme.js";
 import { api } from "./api.js";
-import { t, getLang } from "./translations.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -45,13 +45,6 @@ const PAGE_MAP = {
   settings:  AdminSettings,
 };
 
-const ROLE_LABELS = {
-  super_admin:  t("role.super_admin"),
-  center_admin: t("role.center_admin"),
-  moderator:    t("role.moderator"),
-  examiner:     t("role.examiner"),
-};
-
 const ROLE_COLORS = {
   super_admin:  "#c9a84c",
   center_admin: "#4c9ac9",
@@ -60,15 +53,16 @@ const ROLE_COLORS = {
 };
 
 export default function App() {
+  const { t, i18n } = useTranslation();
   const [themeId, setThemeId] = useState(
     () => { try { return localStorage.getItem(THEME_KEY) || DEFAULT_THEME; } catch { return DEFAULT_THEME; } }
   );
-  const [lang, setLang] = useState(() => getLang());
+  const [lang, setLang] = useState(() => i18n.language || 'en');
   useEffect(() => {
-    const handler = () => setLang(getLang());
-    window.addEventListener("armexam:langchange", handler);
-    return () => window.removeEventListener("armexam:langchange", handler);
-  }, []);
+    const handler = () => setLang(i18n.language);
+    i18n.on('languageChanged', handler);
+    return () => i18n.off('languageChanged', handler);
+  }, [i18n]);
   const [hash, setHash] = useState(() => window.location.hash);
   useEffect(() => {
     const onHash = () => setHash(window.location.hash);
@@ -107,6 +101,13 @@ export default function App() {
     () => { try { return localStorage.getItem("armexam_admin_page") || "exams"; } catch { return "exams"; } }
   );
   const gotoPage = (p) => { setPage(p); try { localStorage.setItem("armexam_admin_page", p); } catch {} };
+
+  const ROLE_LABELS = {
+    super_admin:  t("role.super_admin"),
+    center_admin: t("role.center_admin"),
+    moderator:    t("role.moderator"),
+    examiner:     t("role.examiner"),
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("armexam_admin_token");

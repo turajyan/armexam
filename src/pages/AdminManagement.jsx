@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
-import { t } from "../translations.js";
+import { useTranslation } from "react-i18next";
 
 const ROLE_COLORS = {
   super_admin:  "#c9a84c",
@@ -12,6 +12,7 @@ const ROLE_COLORS = {
 const EMPTY_FORM = { name: "", email: "", password: "", role: "moderator", centerId: "", status: "active" };
 
 export default function AdminManagement({ theme: T }) {
+  const { t } = useTranslation();
   const [admins,  setAdmins]  = useState([]);
   const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(true);

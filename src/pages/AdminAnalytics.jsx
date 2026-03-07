@@ -1,5 +1,5 @@
-import { t } from "../translations.js";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../api.js";
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
@@ -205,6 +205,7 @@ function TopStudentsTable({ students, results }) {
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function AdminAnalytics({ theme }) {
+  const { t } = useTranslation();
   if (theme) C = theme;
 
   const [summary,    setSummary]    = useState(null);

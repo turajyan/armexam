@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { formatDate } from "../dateUtils.js";
-import { t } from "../translations.js";
+import { useTranslation } from "react-i18next";
 
 const LEVEL_COLORS = {
   A1: "#4ade80", A2: "#86efac", B1: "#60a5fa",
@@ -9,6 +9,7 @@ const LEVEL_COLORS = {
 };
 
 export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout, onUserUpdate }) {
+  const { t } = useTranslation();
   const [tab,  setTab]  = useState(0);
   const initials = user.name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 

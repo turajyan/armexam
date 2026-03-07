@@ -1,4 +1,4 @@
-import { t } from "../translations.js";
+import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
 import { formatDateTime } from "../dateUtils.js";
@@ -7,6 +7,7 @@ const STATUS_LABEL = { approved: t("adm.e.approved"), partial: t("adm.e.partial"
 const STATUS_COLOR = { approved: "#4cc98a", partial: "#c9a84c", declined: "#c94c6f" };
 
 export default function ExaminerDashboard({ theme: T }) {
+  const { t } = useTranslation();
   const [stats,    setStats]    = useState(null);
   const [pending,  setPending]  = useState([]);
   const [selected, setSelected] = useState(null); // full result for grading

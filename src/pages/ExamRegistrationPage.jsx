@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
 import { formatDate } from "../dateUtils.js";
-import { t } from "../translations.js";
+import { useTranslation } from "react-i18next";
 
 // Steps: city → center → exam → pin
 export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
+  const { t } = useTranslation();
   const [step, setStep]       = useState(1); // 1=city, 2=center, 3=exams, 4=pin
   const [cities, setCities]   = useState([]);
   const [centers, setCenters] = useState([]);

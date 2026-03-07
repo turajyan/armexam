@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { t } from "../translations.js";
+import { useTranslation } from "react-i18next";
 
 const COUNTRIES = [
   "Armenia", "Russia", "USA", "France", "Germany", "Georgia", "Ukraine",
@@ -8,6 +8,7 @@ const COUNTRIES = [
 ];
 
 export default function RegisterPage({ theme: T, onSuccess }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     name: "", email: "", password: "", phone: "",
     country: "", documentType: "passport", documentNumber: "", gender: "",
