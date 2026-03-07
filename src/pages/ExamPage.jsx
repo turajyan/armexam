@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { LEVELS, LEVEL_COLORS, computePlacementLevel } from "../data.js";
 import { SETTINGS_KEY } from "../theme.js";
 import { api } from "../api.js";
@@ -79,6 +80,7 @@ function Timer({ seconds, onExpire }) {
 
 // ── Audio Player ─────────────────────────────────────────────────────────────
 function AudioQuestion({ question, value, onChange }) {
+  const { t } = useTranslation();
   const [plays,       setPlays]     = useState(0);
   const [phase,       setPhase]     = useState("idle"); // idle | playing | pause | done
   const [pauseLeft,   setPauseLeft] = useState(0);
@@ -127,11 +129,11 @@ function AudioQuestion({ question, value, onChange }) {
   };
 
   const btnDisabled = phase !== "idle";
-  const btnLabel = phase === "done"    ? "✓ Ավарт ват"
-                 : phase === "pause"   ? `⏳ ${pauseLeft}с...`
-                 : phase === "playing" ? "▶ Играет..."
-                 : plays === 0        ? "▶ Послушать"
-                 :                      `▶ Ещё раз (${maxPlays - plays})`;
+  const btnLabel = phase === "done"    ? t("exam.audio.done")
+                 : phase === "pause"   ? t("exam.audio.pause", { n: pauseLeft })
+                 : phase === "playing" ? t("exam.audio.playing")
+                 : plays === 0        ? t("exam.audio.listen")
+                 :                      t("exam.audio.again", { n: maxPlays - plays });
 
   return (
     <div>
@@ -199,10 +201,10 @@ function AudioQuestion({ question, value, onChange }) {
             )}
             <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>
               {phase==="done"
-                ? `Прослушано ${maxPlays}/${maxPlays}`
+                ? t("exam.audio.listened", { n: maxPlays, total: maxPlays })
                 : plays > 0
-                ? `Осталось: ${maxPlays-plays}/${maxPlays}`
-                : `${maxPlays}× прослушивание`}
+                ? t("exam.audio.remaining", { n: maxPlays - plays, total: maxPlays })
+                : t("exam.audio.max_plays", { n: maxPlays })}
             </div>
           </div>
         </div>
@@ -216,6 +218,7 @@ function AudioQuestion({ question, value, onChange }) {
 // ── Video Question ────────────────────────────────────────────────────────────
 // ── Video Question ────────────────────────────────────────────────────────────
 function VideoQuestion({ question, value, onChange }) {
+  const { t } = useTranslation();
   const [plays, setPlays] = useState(0);
   const videoRef = useRef(null);
   const exhausted = plays >= question.maxPlays;
@@ -243,7 +246,7 @@ function VideoQuestion({ question, value, onChange }) {
               preload="metadata"
             />
           : <div style={{ aspectRatio:"16/9", display:"flex", alignItems:"center", justifyContent:"center", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>
-              Видео не указано
+              {t("exam.video.no_src")}
             </div>
         }
         {exhausted && (
@@ -253,15 +256,15 @@ function VideoQuestion({ question, value, onChange }) {
           }}>
             <div style={{ fontSize:40 }}>🔒</div>
             <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:"white", fontWeight:600 }}>
-              Դիтумн авартвад э
+              {t("exam.video.locked_title")}
             </div>
           </div>
         )}
       </div>
       <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:exhausted ? C.muted : C.textSub, marginBottom:16 }}>
         {exhausted
-          ? `✓ Дител ek ${question.maxPlays}/${question.maxPlays} անгам`
-          : `▶ Karogh ек дител ${question.maxPlays - plays} անгам евс`}
+          ? t("exam.video.watched", { n: plays, total: question.maxPlays })
+          : t("exam.video.can_watch", { n: question.maxPlays - plays })}
       </div>
       <SingleChoiceOptions options={question.options} value={value} onChange={onChange} />
     </div>
@@ -386,6 +389,7 @@ function FillBlankQuestion({ question, value = "", onChange }) {
 }
 
 function WritingQuestion({ question, value = "", onChange }) {
+  const { t } = useTranslation();
   const words = value.trim() ? value.trim().split(/\s+/).length : 0;
   const pct = Math.min(words / question.minWords, 1);
   const overMax = words > question.maxWords;
@@ -394,7 +398,7 @@ function WritingQuestion({ question, value = "", onChange }) {
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder="Գրի՛ր այստեղ..."
+        placeholder={t("exam.writing.placeholder")}
         style={{
           width: "100%", minHeight: 220,
           background: C.bg,
@@ -420,7 +424,7 @@ function WritingQuestion({ question, value = "", onChange }) {
           fontFamily: "'DM Sans', sans-serif", fontSize: 12,
           color: overMax ? C.danger : words >= question.minWords ? "#4ade80" : C.muted,
         }}>
-          {words}/{question.minWords}–{question.maxWords} բառ
+          {t("exam.writing.words", { words, min: question.minWords, max: question.maxWords })}
         </span>
       </div>
     </div>
@@ -432,6 +436,7 @@ function WritingQuestion({ question, value = "", onChange }) {
 // ── Fill in the Blank — Word Bank (Drag & Drop) ───────────────────────────────
 // value = { [blankId]: word } — map of blank index -> placed word
 function FillWordBankQuestion({ question, value = {}, onChange }) {
+  const { t } = useTranslation();
   // dragState: which word is being dragged and from where
   const [dragWord, setDragWord]     = useState(null);   // the word string
   const [dragFrom, setDragFrom]     = useState(null);   // "bank" | blankId (number)
@@ -547,7 +552,7 @@ function FillWordBankQuestion({ question, value = {}, onChange }) {
                 </span>
               ) : (
                 <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.dim }}>
-                  {isOver ? "drop here" : `_____`}
+                  {isOver ? t("exam.wordbank.drop") : t("exam.wordbank.blank")}
                 </span>
               )}
             </span>
@@ -558,7 +563,7 @@ function FillWordBankQuestion({ question, value = {}, onChange }) {
       {/* ── Word bank ── */}
       <div>
         <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>
-          Word Bank — drag words into the blanks above
+          {t("exam.wordbank.header")}
         </div>
         <div
           onDragOver={onDragOver(setOverBank, true)}
@@ -575,7 +580,7 @@ function FillWordBankQuestion({ question, value = {}, onChange }) {
         >
           {inBank.length === 0 && (
             <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.dim, alignSelf:"center" }}>
-              All words placed ✓
+              {t("exam.wordbank.all_placed")}
             </span>
           )}
           {inBank.map(word => (
@@ -602,13 +607,13 @@ function FillWordBankQuestion({ question, value = {}, onChange }) {
           ))}
         </div>
         <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.dim, marginTop:8 }}>
-          {placed.filter(Boolean).length} / {question.segments.filter(s=>s.type==="blank").length} blanks filled
+          {t("exam.wordbank.filled", { n: placed.filter(Boolean).length, total: question.segments.filter(s=>s.type==="blank").length })}
           {placed.filter(Boolean).length > 0 && (
             <button
               onClick={() => onChange({})}
               style={{ marginLeft:12, background:"transparent", border:"none", color:C.muted, fontSize:11, cursor:"pointer", textDecoration:"underline" }}
             >
-              Clear all
+              {t("exam.wordbank.clear")}
             </button>
           )}
         </div>
@@ -619,6 +624,7 @@ function FillWordBankQuestion({ question, value = {}, onChange }) {
 
 // ── Voice Recording Question ──────────────────────────────────────────────────
 function VoiceQuestion({ question, value, onChange }) {
+  const { t } = useTranslation();
   // value = { blob, url, duration, attemptsDone } | null
   const [phase, setPhase] = useState("idle"); // idle | recording | review | submitted
   const [duration, setDuration] = useState(0);
@@ -719,9 +725,9 @@ function VoiceQuestion({ question, value, onChange }) {
     return (
       <div style={{ background:"#f8717114", border:"1px solid #f8717140", borderRadius:14, padding:"24px", textAlign:"center" }}>
         <div style={{ fontSize:36, marginBottom:12 }}>🎤</div>
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.danger, fontWeight:600, marginBottom:8 }}>Microphone Access Required</div>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.danger, fontWeight:600, marginBottom:8 }}>{t("exam.voice.mic_required")}</div>
         <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.textSub, lineHeight:1.6 }}>
-          Please allow microphone access in your browser settings and reload the page.
+          {t("exam.voice.mic_desc")}
         </div>
       </div>
     );
@@ -743,10 +749,10 @@ function VoiceQuestion({ question, value, onChange }) {
         </div>
         <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color: attemptsLeft > 0 ? C.textSub : C.danger }}>
           {phase === "submitted"
-            ? "✓ Answer submitted"
+            ? t("exam.voice.answered")
             : attemptsLeft > 0
-              ? `${attemptsLeft} attempt${attemptsLeft !== 1 ? "s" : ""} remaining`
-              : "No attempts left"}
+              ? t("exam.voice.attempts_left", { n: attemptsLeft })
+              : t("exam.voice.no_attempts")}
         </span>
       </div>
 
@@ -765,8 +771,8 @@ function VoiceQuestion({ question, value, onChange }) {
           <>
             <div style={{ fontSize:48, opacity:.7 }}>🎤</div>
             <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, textAlign:"center" }}>
-              Press <strong style={{ color:GLD }}>Start Recording</strong> when ready.<br/>
-              Max duration: {fmtTime(question.maxSeconds)} · Minimum: {fmtTime(question.minSeconds)}
+              {t("exam.voice.idle_desc")}<br/>
+              {t("exam.voice.dur_hint", { max: fmtTime(question.maxSeconds), min: fmtTime(question.minSeconds) })}
             </div>
             {attemptsLeft > 0 && (
               <button onClick={startRecording} style={{
@@ -780,8 +786,8 @@ function VoiceQuestion({ question, value, onChange }) {
               </button>
             )}
             {attemptsLeft > 0
-              ? <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>Tap to start recording</span>
-              : <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.danger }}>All attempts used</span>
+              ? <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>{t("exam.voice.tap_start")}</span>
+              : <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.danger }}>{t("exam.voice.all_used")}</span>
             }
           </>
         )}
@@ -818,12 +824,12 @@ function VoiceQuestion({ question, value, onChange }) {
               cursor:"pointer", display:"flex", alignItems:"center", gap:8,
               boxShadow:`0 4px 16px ${REC}44`,
             }}>
-              ⏹ Stop Recording
+              {t("exam.voice.stop")}
             </button>
 
             {duration < question.minSeconds && (
               <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.warning }}>
-                Keep speaking — minimum {fmtTime(question.minSeconds)}
+                {t("exam.voice.min_warn", { min: fmtTime(question.minSeconds) })}
               </span>
             )}
           </>
@@ -834,7 +840,7 @@ function VoiceQuestion({ question, value, onChange }) {
           <>
             <div style={{ fontSize:40 }}>🎙</div>
             <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.textSub }}>
-              Recording ready · {fmtTime(value.duration || duration)}
+              {t("exam.voice.ready", { dur: fmtTime(value.duration || duration) })}
             </div>
 
             {/* Audio playback */}
@@ -866,7 +872,7 @@ function VoiceQuestion({ question, value, onChange }) {
                 fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
                 cursor:"pointer", display:"flex", alignItems:"center", gap:8,
               }}>
-                {playing ? "⏹ Stop" : "▶ Play Back"}
+                {playing ? t("exam.voice.stop_play") : t("exam.voice.play")}
               </button>
             </div>
 
@@ -879,7 +885,7 @@ function VoiceQuestion({ question, value, onChange }) {
                   color:C.danger, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
                   cursor:"pointer",
                 }}>
-                  🗑 Delete & Re-record
+                  {t("exam.voice.delete")}
                 </button>
               )}
               <button onClick={submitRecording} disabled={duration > 0 && duration < question.minSeconds} style={{
@@ -890,13 +896,13 @@ function VoiceQuestion({ question, value, onChange }) {
                 opacity: duration > 0 && duration < question.minSeconds ? .5 : 1,
                 boxShadow:"0 4px 14px #22c55e44",
               }}>
-                ✓ Submit This Recording
+                {t("exam.voice.submit")}
               </button>
             </div>
 
             {attemptsLeft > 0 && (
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center" }}>
-                Not happy with it? Delete and re-record. {attemptsLeft} attempt{attemptsLeft!==1?"s":""} left.
+                {t("exam.voice.not_happy", { n: attemptsLeft })}
               </div>
             )}
           </>
@@ -907,10 +913,10 @@ function VoiceQuestion({ question, value, onChange }) {
           <>
             <div style={{ fontSize:48 }}>✅</div>
             <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.success, fontWeight:600 }}>
-              Answer Submitted
+              {t("exam.voice.submitted_title")}
             </div>
             <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, textAlign:"center" }}>
-              Your voice recording has been saved.<br/>You can still listen back below.
+              {t("exam.voice.submitted_note")}
             </div>
             {value?.url && (
               <audio controls src={value.url} style={{
@@ -940,6 +946,7 @@ function VoiceQuestion({ question, value, onChange }) {
 
 // ── Question Card ─────────────────────────────────────────────────────────────
 function QuestionCard({ question, index, total, value, onChange, onNext, onPrev, isLast, showQuestionLevel=true, showQuestionPoints=true }) {
+  const { t } = useTranslation();
   const renderBody = () => {
     switch (question.type) {
       case "single_choice":
@@ -966,15 +973,15 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
   };
 
   const typeLabels = {
-    single_choice: "Single Choice",
-    multi_choice: "Multiple Correct",
-    multi_select: "Select All That Apply",
-    audio: "Listening",
-    video: "Video",
-    fill_blank: "Fill in the Blank",
-    fill_wordbank: "🧩 Word Bank",
-    writing: "Writing",
-    voice: "🎤 Voice Recording",
+    single_choice: t("exam.type.single_choice"),
+    multi_choice: t("exam.type.multi_choice"),
+    multi_select: t("exam.type.multi_select"),
+    audio: t("exam.type.audio"),
+    video: t("exam.type.video"),
+    fill_blank: t("exam.type.fill_blank"),
+    fill_wordbank: t("exam.type.fill_wordbank"),
+    writing: t("exam.type.writing"),
+    voice: t("exam.type.voice"),
   };
 
   return (
@@ -1014,7 +1021,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted }}>
-            Հարց {index + 1} / {total}
+            {t("exam.q.progress", { n: index + 1, total })}
           </span>
         </div>
         <ProgressBar current={index + 1} total={total} />
@@ -1043,7 +1050,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
           cursor: index === 0 ? "not-allowed" : "pointer",
           transition: "all 0.2s",
         }}>
-          ← Նախորդ
+          {t("exam.q.prev")}
         </button>
         <button onClick={onNext} style={{
           background: isLast
@@ -1057,7 +1064,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
           boxShadow: isLast ? "0 4px 16px #10b98144" : "0 4px 16px #c8a96e44",
           transition: "all 0.2s",
         }}>
-          {isLast ? "✓ Ավարտել" : "Հաջորդ →"}
+          {isLast ? t("exam.q.finish") : t("exam.q.next")}
         </button>
       </div>
     </div>
@@ -1066,6 +1073,7 @@ function QuestionCard({ question, index, total, value, onChange, onNext, onPrev,
 
 // ── Sidebar nav ───────────────────────────────────────────────────────────────
 function QuestionNav({ questions, current, answers, onJump }) {
+  const { t } = useTranslation();
   return (
     <div style={{
       background: C.panel,
@@ -1076,7 +1084,7 @@ function QuestionNav({ questions, current, answers, onJump }) {
       flexShrink: 0,
     }}>
       <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.muted, letterSpacing: 1, textTransform: "uppercase", marginBottom: 14 }}>
-        Հարցեր
+        {t("exam.nav.title")}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {questions.map((q, i) => {
@@ -1104,11 +1112,11 @@ function QuestionNav({ questions, current, answers, onJump }) {
       <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #1e293b" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
           <div style={{ width: 10, height: 10, borderRadius: 2, background: "#22c55e22", border: "1px solid #22c55e44" }} />
-          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.muted }}>Պատասխանված</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.muted }}>{t("exam.nav.answered")}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 10, height: 10, borderRadius: 2, background: "#c8a96e22", border: "1px solid #c8a96e" }} />
-          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.muted }}>Ընթացիկ</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.muted }}>{t("exam.nav.current")}</span>
         </div>
       </div>
     </div>
@@ -1142,6 +1150,7 @@ function scoreQuestion(q, a) {
 }
 
 function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
+  const { t } = useTranslation();
   const [showDetails, setShowDetails] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -1190,7 +1199,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
     }).catch(() => {});
   }, []);
   const GLD = C.gold;
-  const typeLabels = { single_choice:"Choice", multi_choice:"Multi", multi_select:"Select", audio:"Audio", video:"Video", fill_blank:"Fill", fill_wordbank:"Word Bank", writing:"Writing", voice:"Voice" };
+  const typeLabels = { single_choice:t("exam.type.single_choice_short"), multi_choice:t("exam.type.multi_choice_short"), multi_select:t("exam.type.multi_select_short"), audio:t("exam.type.audio_short"), video:t("exam.type.video_short"), fill_blank:t("exam.type.fill_blank_short"), fill_wordbank:t("exam.type.fill_wordbank_short"), writing:t("exam.type.writing_short"), voice:t("exam.type.voice_short") };
 
   return (
     <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:20, animation:"fadeSlideIn .4s ease" }}>
@@ -1203,7 +1212,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
         <div style={{ width:140, height:140, borderRadius:"50%", margin:"0 auto 24px", background:`conic-gradient(${isPlacement?C.purple:passed?GLD:C.danger} ${pct*3.6}deg, ${C.dim} 0deg)`, display:"flex", alignItems:"center", justifyContent:"center" }}>
           <div style={{ width:112, height:112, borderRadius:"50%", background:C.panel, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:2 }}>
             <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color:isPlacement?C.purple:passed?GLD:C.danger, lineHeight:1 }}>{pct}%</span>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:1 }}>SCORE</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:1 }}>{t("exam.result.score_lbl")}</span>
           </div>
         </div>
 
@@ -1211,7 +1220,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
         {isPlacement ? (
           <>
             <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:C.text, margin:"0 0 10px", fontWeight:600 }}>
-              Placement Complete ✓
+              {t("exam.result.placement_complete")}
             </h2>
 
             {hasPending ? (
@@ -1219,18 +1228,18 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
               <div style={{ display:"inline-flex", flexDirection:"column", alignItems:"center", gap:10, background:C.warning+"14", border:`1px solid ${C.warning}44`, borderRadius:16, padding:"20px 32px", marginBottom:20 }}>
                 <span style={{ fontSize:32 }}>⏳</span>
                 <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.text, fontWeight:600 }}>
-                  Շնորհակալություն!
+                  {t("exam.result.pending_title")}
                 </span>
                 <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.warning, textAlign:"center", lineHeight:1.5 }}>
-                  {pendingCount} {pendingCount === 1 ? "պատասխան" : "պատասխան"} սպասում {pendingCount === 1 ? "է" : "են"} ստուգման։<br/>
-                  <span style={{ color:C.textSub, fontSize:12 }}>Ձեր մակարդակը կհայտնվի ստուգումից հետո։</span>
+                  {t("exam.result.pending_msg", { count: pendingCount })}<br/>
+                  <span style={{ color:C.textSub, fontSize:12 }}>{t("exam.result.pending_sub")}</span>
                 </span>
               </div>
             ) : showLevel ? (
               /* ── Detected level badge ── */
               <>
                 <div style={{ display:"inline-flex", alignItems:"center", gap:12, background:C.purple+"14", border:`1px solid ${C.purple}44`, borderRadius:16, padding:"14px 28px", marginBottom:20 }}>
-                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.purple }}>Detected Language Level</span>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.purple }}>{t("exam.result.detected_level")}</span>
                   <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color: LEVEL_COLORS[detectedLevel] || C.purple, lineHeight:1 }}>
                     {detectedLevel}
                   </span>
@@ -1268,7 +1277,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
                       );
                     })}
                     <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center", marginTop:4 }}>
-                      Vertical line = threshold per level · Must pass each level consecutively
+                      {t("exam.result.level_hint")}
                     </div>
                   </div>
                 )}
@@ -1290,17 +1299,17 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
             ) : (
               /* ── showResults=false: generic message ── */
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.textSub, marginBottom:20 }}>
-                Ձեր արդյունքները կհայտնվեն ստուգումից հետո։
+                {t("exam.result.no_results")}
               </div>
             )}
           </>
         ) : (
           <>
             <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:C.text, margin:"0 0 6px", fontWeight:600 }}>
-              {passed ? "Քննությունն անցված է ✓" : "Քննությունն ավարտված է"}
+              {t(passed ? "exam.result.passed_title" : "exam.result.finished_title")}
             </h2>
             <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, marginBottom:28 }}>
-              {passed ? `Congratulations — passed! (threshold: ${passingPct}%)` : `Exam completed — score below ${passingPct}% threshold`}
+              {passed ? t("exam.result.congrats", { pct: passingPct }) : t("exam.result.below_threshold", { pct: passingPct })}
             </p>
           </>
         )}
@@ -1308,13 +1317,13 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
         {/* Stats row */}
         <div style={{ display:"flex", gap:12, justifyContent:"center", marginBottom:28, flexWrap:"wrap" }}>
           {[
-            { label:"Score",     value:`${score}/${maxScore}`, color:GLD },
+            { label:t("exam.result.score"),     value:`${score}/${maxScore}`, color:GLD },
             ...(isPlacement
-              ? (showLevel ? [{ label:"Level", value:detectedLevel, color:LEVEL_COLORS[detectedLevel]||C.purple }] : [])
-              : [{ label:passed?"Passed":"Failed", value:passed?"✓":"✗", color:passed?C.success:C.danger }]
+              ? (showLevel ? [{ label:t("exam.result.level"), value:detectedLevel, color:LEVEL_COLORS[detectedLevel]||C.purple }] : [])
+              : [{ label:passed?t("exam.result.passed"):t("exam.result.failed"), value:passed?"✓":"✗", color:passed?C.success:C.danger }]
             ),
-            { label:"Correct",   value:qResults.filter(r=>r.isCorrect).length+"/"+qResults.filter(r=>r.isAuto).length, color:C.success },
-            { label:"Unanswered",value:qResults.filter(r=>!r.answered).length, color:C.warning },
+            { label:t("exam.result.correct"),   value:qResults.filter(r=>r.isCorrect).length+"/"+qResults.filter(r=>r.isAuto).length, color:C.success },
+            { label:t("exam.result.unanswered"),value:qResults.filter(r=>!r.answered).length, color:C.warning },
           ].map(s=>(
             <div key={s.label} style={{ background:C.panel, borderRadius:14, padding:"16px 22px", border:"1px solid #1e293b", minWidth:90, textAlign:"center" }}>
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, marginBottom:5, letterSpacing:.8, textTransform:"uppercase" }}>{s.label}</div>
@@ -1325,10 +1334,10 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
 
         <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
           <button onClick={()=>setShowDetails(d=>!d)} style={{ background:C.dim, border:"1px solid #334155", borderRadius:12, padding:"12px 28px", color:C.textSub, fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:500, cursor:"pointer" }}>
-            {showDetails ? "▲ Hide Details" : "▼ Review Answers"}
+            {showDetails ? t("exam.result.hide_details") : t("exam.result.show_details")}
           </button>
           <button onClick={onRestart} style={{ background:`linear-gradient(135deg,${GLD},#a07840)`, border:"none", borderRadius:12, padding:"12px 28px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 20px ${GLD}44` }}>
-            ↺ Choose Another Exam
+            {t("exam.result.restart")}
           </button>
         </div>
       </div>
@@ -1336,7 +1345,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
       {/* ── Question breakdown ── */}
       {showDetails && (
         <div style={{ display:"flex", flexDirection:"column", gap:10, animation:"fadeSlideIn .3s ease" }}>
-          <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.text, fontWeight:600, margin:0 }}>Answer Review</h3>
+          <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.text, fontWeight:600, margin:0 }}>{t("exam.result.answer_review")}</h3>
           {qResults.map(({ q, a, earned, isCorrect, isPartial, answered, isAuto }, i) => {
             const lc = LEVEL_COLORS[q.level] || C.textSub;
             const statusColor = !answered ? C.muted : !isAuto ? C.warning : isCorrect ? C.success : isPartial ? C.warning : C.danger;
@@ -1362,7 +1371,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
                     <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                       {/* User answer */}
                       <div style={{ background:C.panel, border:`1px solid ${isCorrect?"#22c55e33":"#f8717133"}`, borderRadius:8, padding:"6px 12px", flex:1, minWidth:120 }}>
-                        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:C.muted, letterSpacing:.8, marginBottom:3 }}>YOUR ANSWER</div>
+                        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:C.muted, letterSpacing:.8, marginBottom:3 }}>{t("exam.result.your_answer")}</div>
                         <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:isCorrect?C.success:C.danger }}>
                           {q.type==="fill_blank" || q.type==="fill_wordbank"
                             ? (q.type==="fill_blank" ? (a||"—") : Object.values(a||{}).join(", ")||"—")
@@ -1375,7 +1384,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
                       {/* Correct answer (only if wrong) */}
                       {!isCorrect && (
                         <div style={{ background:C.panel, border:"1px solid #22c55e33", borderRadius:8, padding:"6px 12px", flex:1, minWidth:120 }}>
-                          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:C.muted, letterSpacing:.8, marginBottom:3 }}>CORRECT ANSWER</div>
+                          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:C.muted, letterSpacing:.8, marginBottom:3 }}>{t("exam.result.correct_answer")}</div>
                           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.success }}>
                             {q.type==="fill_blank" ? q.answer
                               : q.type==="fill_wordbank" ? (q.correct||[]).join(", ")
@@ -1390,12 +1399,12 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
                   )}
                   {!isAuto && answered && (
                     <div style={{ background:"#f59e0b0d", border:"1px solid #f59e0b33", borderRadius:8, padding:"6px 12px" }}>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.warning }}>✦ Requires manual grading by examiner</span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.warning }}>✦ {t("exam.result.manual_grading")}</span>
                     </div>
                   )}
                   {!answered && (
                     <div style={{ background:C.dim, border:"1px solid #334155", borderRadius:8, padding:"6px 12px" }}>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>Not answered</span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>{t("exam.result.not_answered")}</span>
                     </div>
                   )}
                 </div>
@@ -1410,6 +1419,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
 
 // ── Start Screen ──────────────────────────────────────────────────────────────
 function StartScreen({ onStart }) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(null);
   const [activeExams, setActiveExams] = useState([]);
   const [loadingExams, setLoadingExams] = useState(true);
@@ -1428,10 +1438,10 @@ function StartScreen({ onStart }) {
       {/* Header */}
       <div>
         <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, color:C.text, margin:"0 0 6px", fontWeight:600 }}>
-          Հայոց Լեզվի Քննություններ
+          {t("exam.title")}
         </h1>
         <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:0 }}>
-          Armenian Language Examinations · Select an exam to begin
+          {t("exam.subtitle")}
         </p>
       </div>
 
@@ -1439,11 +1449,11 @@ function StartScreen({ onStart }) {
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
         {loadingExams ? (
           <div style={{ textAlign:"center", padding:"48px 0", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
-            Loading exams…
+            {t("exam.loading")}
           </div>
         ) : activeExams.length === 0 && (
           <div style={{ textAlign:"center", padding:"48px 0", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
-            No active exams available
+            {t("exam.no_exams")}
           </div>
         )}
         {activeExams.map(exam => {
@@ -1471,17 +1481,17 @@ function StartScreen({ onStart }) {
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
                   {isPlacement
-                    ? <span style={{ background:C.purple+"18",color:C.purple,border:"1px solid #a78bfa33",borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>📊 Placement</span>
+                    ? <span style={{ background:C.purple+"18",color:C.purple,border:"1px solid #a78bfa33",borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>📊 {t("exam.placement_badge")}</span>
                     : <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{exam.level}</span>
                   }
-                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.success,background:"#22c55e18",border:"1px solid #22c55e33",borderRadius:5,padding:"1px 8px" }}>Active</span>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.success,background:"#22c55e18",border:"1px solid #22c55e33",borderRadius:5,padding:"1px 8px" }}>{t("exam.status_active")}</span>
                 </div>
                 <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:C.text,fontWeight:600,marginBottom:4 }}>{exam.title}</div>
                 <div style={{ display:"flex", gap:16 }}>
-                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>📋 {qCount} questions</span>
-                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>⏱ {exam.duration} min</span>
-                  {!isPlacement && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>🎯 Pass: {exam.passingScore}%</span>}
-                  {isPlacement  && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.purple }}>🎚 All levels · auto-detect</span>}
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>📋 {t("exam.questions_count", { n: qCount })}</span>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>⏱ {t("exam.duration_min", { n: exam.duration })}</span>
+                  {!isPlacement && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>🎯 {t("exam.pass_pct", { pct: exam.passingScore })}</span>}
+                  {isPlacement  && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.purple }}>🎚 {t("exam.all_levels")}</span>}
                 </div>
               </div>
               {/* Select indicator */}
@@ -1504,7 +1514,7 @@ function StartScreen({ onStart }) {
           {selected.examType==="placement" ? (
             <div style={{ marginBottom:20 }}>
               <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:"0 0 14px", lineHeight:1.6 }}>
-                This is a <strong style={{color:C.purple}}>Placement Exam</strong>. Questions from all levels are selected automatically. To reach a level you must score the threshold on that level <em>and all lower levels</em> (no gaps).
+                <Trans i18nKey="exam.placement_info" components={[null, <strong style={{color:C.purple}} key="1" />, <em key="2" />]} />
               </p>
               {/* Template + threshold per level */}
               <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
@@ -1522,7 +1532,7 @@ function StartScreen({ onStart }) {
                       </span>
                       {(selected.showPlacementThreshold ?? true) && (
                         <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:lc,fontWeight:600 }}>
-                          need ≥{thresh}%
+                          {t("exam.need_pct", { n: thresh })}
                         </span>
                       )}
                     </div>
@@ -1532,7 +1542,7 @@ function StartScreen({ onStart }) {
             </div>
           ) : (
             <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted, margin:"0 0 20px", lineHeight:1.6 }}>
-              Level <strong style={{color:LEVEL_COLORS[selected.level]||C.textSub}}>{selected.level}</strong> · {(selected.subpools||[]).reduce((s,sp)=>s+sp.count,0)} questions · {selected.duration} minutes · Pass score: {selected.passingScore}%
+              {t("exam.result.level")} <strong style={{color:LEVEL_COLORS[selected.level]||C.textSub}}>{selected.level}</strong> · {t("exam.questions_count", { n: (selected.subpools||[]).reduce((s,sp)=>s+sp.count,0) })} · {t("exam.duration_min", { n: selected.duration })} · {t("exam.pass_pct", { pct: selected.passingScore })}
             </p>
           )}
           <button onClick={() => onStart(selected)} style={{
@@ -1542,7 +1552,7 @@ function StartScreen({ onStart }) {
             fontSize:16, fontWeight:600, cursor:"pointer",
             boxShadow:`0 8px 32px ${C.gold}44`, letterSpacing:.5, transition:"all .2s",
           }}>
-            Սկսել Քննությունը →
+            {t("exam.start_btn")}
           </button>
         </div>
       )}
@@ -1553,6 +1563,7 @@ function StartScreen({ onStart }) {
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function ArmExam({ theme }) {
   if (theme) C = theme;
+  const { t } = useTranslation();
   const [screen, setScreen]   = useState("start"); // start | exam | results
   const [activeExam, setActiveExam] = useState(null);   // selected exam object
   const [examQuestions, setExamQuestions] = useState([]); // built question list
@@ -1569,7 +1580,7 @@ export default function ArmExam({ theme }) {
       setAnswers({});
       setScreen("exam");
     } catch (err) {
-      alert("Cannot start exam:\n" + err.message);
+      alert(t("exam.cannot_start") + ":\n" + err.message);
     }
   };
 
@@ -1652,7 +1663,7 @@ export default function ArmExam({ theme }) {
                 color: C.muted, fontFamily: "'DM Sans', sans-serif",
                 fontSize: 13, cursor: "pointer",
               }}>
-                Ավարտել
+                {t("exam.finish_btn")}
               </button>
             </div>
           )}
@@ -1710,7 +1721,7 @@ export default function ArmExam({ theme }) {
           color: C.dim, borderTop: "1px solid #0f1f38",
           flexShrink: 0,
         }}>
-          ArmExam © 2025 · Armenian Language Testing Platform
+          {t("exam.footer")}
         </footer>
       </div>
     </>
