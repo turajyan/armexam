@@ -31,11 +31,15 @@ export default async function gradingRoutes(fastify) {
     const result = await prisma.result.findUnique({
       where: { id: resultId },
       include: {
-        exam:    { select: { id: true, title: true, examType: true, subpools: true, placementTemplate: true } },
+        exam:    { select: { id: true, title: true, examType: true, subpools: true, placementTemplate: true, examCenterId: true } },
         student: { select: { id: true, name: true, email: true } },
       },
     });
     if (!result) return reply.code(404).send({ error: "Результат не найден" });
+
+    if (req.admin.role === "center_admin" && result.exam.examCenterId !== req.admin.centerId) {
+      return reply.code(403).send({ error: "Нет доступа к результатам этого центра" });
+    }
 
     // Gather question IDs from answers that are manual types
     const answers = result.answers ?? {};
@@ -62,9 +66,13 @@ export default async function gradingRoutes(fastify) {
 
     const result = await prisma.result.findUnique({
       where: { id: resultId },
-      include: { exam: { select: { passingScore: true } } },
+      include: { exam: { select: { passingScore: true, examCenterId: true } } },
     });
     if (!result) return reply.code(404).send({ error: "Результат не найден" });
+
+    if (req.admin.role === "center_admin" && result.exam.examCenterId !== req.admin.centerId) {
+      return reply.code(403).send({ error: "Нет доступа к результатам этого центра" });
+    }
 
     // Fetch questions to validate points
     const questionIds = Object.keys(grades).map(Number);
