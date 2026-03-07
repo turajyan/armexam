@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
-
-const ROLE_LABELS = {
-  super_admin:  "Глобальный администратор",
-  center_admin: "Администратор центра",
-  moderator:    "Составитель тестов",
-  examiner:     "Экзаменатор",
-};
+import { t } from "../translations.js";
 
 export default function AdminLogin({ theme: T, onSuccess }) {
   const [form, setForm]   = useState({ email: "", password: "" });
@@ -16,7 +10,7 @@ export default function AdminLogin({ theme: T, onSuccess }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = async () => {
-    if (!form.email || !form.password) return setError("Введите email и пароль");
+    if (!form.email || !form.password) return setError(t("adm.login.err.empty"));
     setError(""); setL(true);
     try {
       const { token, admin } = await api.adminLogin({
@@ -26,11 +20,18 @@ export default function AdminLogin({ theme: T, onSuccess }) {
       localStorage.setItem("armexam_admin_token", token);
       onSuccess(admin);
     } catch (e) {
-      setError(e.message || "Ошибка входа");
+      setError(e.message || t("adm.login.err.failed"));
     } finally {
       setL(false);
     }
   };
+
+  const ROLE_LABELS = [
+    t("role.super_admin"),
+    t("role.center_admin"),
+    t("role.moderator"),
+    t("role.examiner"),
+  ];
 
   const onKey = (e) => { if (e.key === "Enter") handleSubmit(); };
 
@@ -54,7 +55,7 @@ export default function AdminLogin({ theme: T, onSuccess }) {
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: T.text, fontWeight: 700, marginBottom: 6 }}>
             ArmExam
           </h1>
-          <p style={{ color: T.muted, fontSize: 14 }}>Панель управления</p>
+          <p style={{ color: T.muted, fontSize: 14 }}>{t("adm.login.subtitle")}</p>
         </div>
 
         <div style={{
@@ -63,10 +64,10 @@ export default function AdminLogin({ theme: T, onSuccess }) {
           boxShadow: "0 8px 32px rgba(0,0,0,.18)",
         }}>
           <h2 style={{ fontSize: 17, color: T.text, fontWeight: 600, marginBottom: 6 }}>
-            Вход для администраторов
+            {t("adm.login.heading")}
           </h2>
           <p style={{ fontSize: 12, color: T.muted, marginBottom: 22 }}>
-            Доступно для: {Object.values(ROLE_LABELS).join(", ")}
+            {t("adm.login.available")} {ROLE_LABELS.join(", ")}
           </p>
 
           <div style={{ marginBottom: 14 }}>
@@ -82,7 +83,7 @@ export default function AdminLogin({ theme: T, onSuccess }) {
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 12, color: T.muted, marginBottom: 5, fontWeight: 500 }}>Пароль</label>
+            <label style={{ display: "block", fontSize: 12, color: T.muted, marginBottom: 5, fontWeight: 500 }}>{t("adm.login.password")}</label>
             <input
               type="password"
               value={form.password}
@@ -102,12 +103,12 @@ export default function AdminLogin({ theme: T, onSuccess }) {
           )}
 
           <button onClick={handleSubmit} disabled={loading} style={primaryBtn(T, loading)}>
-            {loading ? "Вход..." : "Войти"}
+            {loading ? t("adm.login.submitting") : t("adm.login.submit")}
           </button>
 
           <div style={{ textAlign: "center", marginTop: 20 }}>
             <a href="#login" style={{ color: T.muted, fontSize: 12, textDecoration: "none" }}>
-              Портал для студентов →
+              {t("adm.login.portal")}
             </a>
           </div>
         </div>

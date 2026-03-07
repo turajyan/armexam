@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
+import { t } from "../translations.js";
 
 export default function AdminCenters({ theme: T }) {
   const C = T;
@@ -34,20 +35,18 @@ export default function AdminCenters({ theme: T }) {
     } catch (e) { setErr(e.message); }
   };
 
-  const totalStudents = 0; // placeholder
-
   return (
     <div style={{ display:"flex", height:"100%", overflow:"hidden", fontFamily:"'DM Sans',sans-serif" }}>
 
       {/* Left: cities list */}
       <div style={{ width:260, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", flexShrink:0, background:C.sidebarBg }}>
         <div style={{ padding:"18px 16px 12px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, color:C.text }}>Города</span>
-          <Btn small onClick={() => setModal({ type:"city" })} C={C}>+ Город</Btn>
+          <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, color:C.text }}>{t("adm.c.cities")}</span>
+          <Btn small onClick={() => setModal({ type:"city" })} C={C}>{t("adm.c.add_city")}</Btn>
         </div>
         <div style={{ flex:1, overflowY:"auto", padding:"8px 8px" }}>
-          {loading && <Muted C={C}>Загрузка...</Muted>}
-          {!loading && cities.length === 0 && <Muted C={C}>Нет городов</Muted>}
+          {loading && <Muted C={C}>{t("adm.loading")}</Muted>}
+          {!loading && cities.length === 0 && <Muted C={C}>{t("adm.c.no_cities")}</Muted>}
           {cities.map(city => (
             <div key={city.id}
               onClick={() => setSelected(city.id === selected ? null : city.id)}
@@ -60,7 +59,7 @@ export default function AdminCenters({ theme: T }) {
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <div>
                   <div style={{ color:C.text, fontWeight:500, fontSize:14 }}>🏙 {city.name}</div>
-                  <div style={{ color:C.muted, fontSize:11, marginTop:2 }}>{city.centers.length} центр(ов)</div>
+                  <div style={{ color:C.muted, fontSize:11, marginTop:2 }}>{t("adm.c.centers_count", { n: city.centers.length })}</div>
                 </div>
                 <div style={{ display:"flex", gap:4 }}>
                   <IconBtn onClick={e => { e.stopPropagation(); setModal({ type:"city", data:city }); }} C={C}>✎</IconBtn>
@@ -73,8 +72,8 @@ export default function AdminCenters({ theme: T }) {
 
         {/* Summary */}
         <div style={{ padding:"12px 16px", borderTop:`1px solid ${C.border}`, display:"flex", gap:16 }}>
-          <StatChip label="Городов" value={cities.length} C={C} />
-          <StatChip label="Центров" value={allCenters.length} C={C} />
+          <StatChip label={t("adm.c.stat_cities")} value={cities.length} C={C} />
+          <StatChip label={t("adm.c.stat_centers")} value={allCenters.length} C={C} />
         </div>
       </div>
 
@@ -86,13 +85,13 @@ export default function AdminCenters({ theme: T }) {
             ? <><span style={{ color:C.muted, fontSize:13 }}>🏙</span>
                 <span style={{ color:C.text, fontWeight:600, fontSize:15 }}>{displayedCity.name}</span>
                 <span style={{ color:C.muted, fontSize:13 }}>·</span>
-                <span style={{ color:C.muted, fontSize:13 }}>{displayedCity.centers.length} центр(ов)</span>
+                <span style={{ color:C.muted, fontSize:13 }}>{t("adm.c.centers_count", { n: displayedCity.centers.length })}</span>
               </>
-            : <span style={{ color:C.text, fontWeight:600, fontSize:15 }}>Все центры ({allCenters.length})</span>
+            : <span style={{ color:C.text, fontWeight:600, fontSize:15 }}>{t("adm.c.all", { n: allCenters.length })}</span>
           }
           <div style={{ flex:1 }} />
           <Btn onClick={() => setModal({ type:"center", data: displayedCity ? { cityId: displayedCity.id } : {} })} C={C}>
-            + Добавить центр
+            {t("adm.c.add_center")}
           </Btn>
         </div>
 
@@ -113,7 +112,7 @@ export default function AdminCenters({ theme: T }) {
           ))}
           {!loading && (displayedCity ? displayedCity.centers : allCenters).length === 0 && (
             <div style={{ gridColumn:"1/-1", textAlign:"center", color:C.muted, padding:"60px 0", fontSize:14 }}>
-              Нет экзаменационных центров. Нажмите «+ Добавить центр»
+              {t("adm.c.no_centers")}
             </div>
           )}
         </div>
@@ -156,14 +155,14 @@ export default function AdminCenters({ theme: T }) {
       {delConf && (
         <div style={{ position:"fixed", inset:0, background:"#00000080", zIndex:99, display:"flex", alignItems:"center", justifyContent:"center" }}>
           <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:16, padding:28, width:360 }}>
-            <h3 style={{ color:C.text, fontSize:16, fontWeight:700, marginBottom:10 }}>Подтвердите удаление</h3>
+            <h3 style={{ color:C.text, fontSize:16, fontWeight:700, marginBottom:10 }}>{t("adm.confirm_delete")}</h3>
             <p style={{ color:C.muted, fontSize:13, marginBottom:20, lineHeight:1.5 }}>
-              Удалить {delConf.type === "city" ? "город" : "центр"} <strong style={{ color:C.text }}>«{delConf.name}»</strong>?
-              {delConf.type === "city" && " Все центры этого города также будут удалены."}
+              {delConf.type === "city" ? t("adm.c.del_city") : t("adm.c.del_center")} <strong style={{ color:C.text }}>«{delConf.name}»</strong>?
+              {delConf.type === "city" && " " + t("adm.c.del_warning")}
             </p>
             <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
-              <Btn small onClick={() => setDelConf(null)} C={C}>Отмена</Btn>
-              <Btn small danger onClick={handleDelete} C={C}>Удалить</Btn>
+              <Btn small onClick={() => setDelConf(null)} C={C}>{t("adm.cancel")}</Btn>
+              <Btn small danger onClick={handleDelete} C={C}>{t("adm.delete")}</Btn>
             </div>
           </div>
         </div>
@@ -194,14 +193,14 @@ function CenterCard({ center, cityName, C, onEdit, onDelete }) {
         {center.phone   && <InfoRow icon="📞" value={center.phone}   C={C} />}
         {center.email   && <InfoRow icon="✉️"  value={center.email}   C={C} />}
         {!center.address && !center.phone && !center.email &&
-          <span style={{ color:C.muted, fontSize:12, fontStyle:"italic" }}>Контактные данные не указаны</span>
+          <span style={{ color:C.muted, fontSize:12, fontStyle:"italic" }}>{t("adm.c.no_contacts")}</span>
         }
       </div>
 
       {center.exams && (
         <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:10 }}>
-          <div style={{ color:C.muted, fontSize:11, marginBottom:6 }}>Экзамены ({center.exams.length})</div>
-          {center.exams.length === 0 && <span style={{ color:C.muted, fontSize:12 }}>Нет экзаменов</span>}
+          <div style={{ color:C.muted, fontSize:11, marginBottom:6 }}>{t("adm.c.exams_count", { n: center.exams.length })}</div>
+          {center.exams.length === 0 && <span style={{ color:C.muted, fontSize:12 }}>{t("adm.c.no_exams")}</span>}
           {center.exams.slice(0, 3).map(e => (
             <div key={e.id} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
               <span style={{ width:7, height:7, borderRadius:"50%", background:e.isOpen ? "#22c55e" : "#475569", display:"inline-block", flexShrink:0 }} />
@@ -209,7 +208,7 @@ function CenterCard({ center, cityName, C, onEdit, onDelete }) {
               {e.isOpen && <span style={{ color:"#22c55e", fontSize:10, flexShrink:0 }}>Open</span>}
             </div>
           ))}
-          {center.exams.length > 3 && <span style={{ color:C.muted, fontSize:11 }}>+{center.exams.length - 3} ещё</span>}
+          {center.exams.length > 3 && <span style={{ color:C.muted, fontSize:11 }}>{t("adm.c.more", { n: center.exams.length - 3 })}</span>}
         </div>
       )}
     </div>
@@ -223,22 +222,22 @@ function CityModal({ C, initial, onClose, onSave }) {
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    if (!name.trim()) return setErr("Введите название города");
+    if (!name.trim()) return setErr(t("adm.c.city_err"));
     setBusy(true);
     try { await onSave(name.trim()); }
     catch (e) { setErr(e.message); setBusy(false); }
   };
 
   return (
-    <Modal C={C} title={initial?.id ? "Редактировать город" : "Новый город"} onClose={onClose}>
-      <Field label="Название города *" C={C}>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Ереван"
+    <Modal C={C} title={initial?.id ? t("adm.c.city_edit") : t("adm.c.city_new")} onClose={onClose}>
+      <Field label={t("adm.c.city_name")} C={C}>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder={t("adm.c.city_ph")}
           style={inputSt(C)} onKeyDown={e => e.key === "Enter" && submit()} autoFocus />
       </Field>
       {err && <p style={{ color:C.danger, fontSize:13, marginBottom:8 }}>{err}</p>}
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:16 }}>
-        <Btn small onClick={onClose} C={C}>Отмена</Btn>
-        <Btn small primary onClick={submit} disabled={busy} C={C}>{busy ? "Сохранение..." : "Сохранить"}</Btn>
+        <Btn small onClick={onClose} C={C}>{t("adm.cancel")}</Btn>
+        <Btn small primary onClick={submit} disabled={busy} C={C}>{busy ? t("adm.saving") : t("adm.save")}</Btn>
       </div>
     </Modal>
   );
@@ -260,28 +259,28 @@ function CenterModal({ C, cities, initial, onClose, onSave }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!form.name.trim()) return setErr("Введите название центра");
-    if (!form.cityId)      return setErr("Выберите город");
+    if (!form.name.trim()) return setErr(t("adm.c.center_err"));
+    if (!form.cityId)      return setErr(t("adm.c.city_sel_err"));
     setBusy(true);
     try { await onSave({ ...form, cityId: Number(form.cityId) }); }
     catch (e) { setErr(e.message); setBusy(false); }
   };
 
   return (
-    <Modal C={C} title={isEdit ? "Редактировать центр" : "Новый центр"} onClose={onClose} wide>
+    <Modal C={C} title={isEdit ? t("adm.c.center_edit") : t("adm.c.center_new")} onClose={onClose} wide>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 16px" }}>
-        <Field label="Название центра *" C={C} full>
-          <input value={form.name} onChange={e => set("name", e.target.value)} placeholder="ArmExam Центр" style={inputSt(C)} autoFocus />
+        <Field label={t("adm.c.center_name")} C={C} full>
+          <input value={form.name} onChange={e => set("name", e.target.value)} placeholder={t("adm.c.center_ph")} style={inputSt(C)} autoFocus />
         </Field>
-        <Field label="Город *" C={C} full>
+        <Field label={t("adm.c.city_sel")} C={C} full>
           <select value={form.cityId} onChange={e => set("cityId", e.target.value)} style={inputSt(C)}>
             {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </Field>
-        <Field label="Адрес" C={C} full>
-          <input value={form.address} onChange={e => set("address", e.target.value)} placeholder="ул. Пример 1" style={inputSt(C)} />
+        <Field label={t("adm.c.address")} C={C} full>
+          <input value={form.address} onChange={e => set("address", e.target.value)} placeholder="123 Example St" style={inputSt(C)} />
         </Field>
-        <Field label="Телефон" C={C}>
+        <Field label={t("adm.c.phone")} C={C}>
           <input value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="+374 10 123456" style={inputSt(C)} />
         </Field>
         <Field label="Email" C={C}>
@@ -290,8 +289,8 @@ function CenterModal({ C, cities, initial, onClose, onSave }) {
       </div>
       {err && <p style={{ color:C.danger, fontSize:13, marginBottom:8 }}>{err}</p>}
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:16 }}>
-        <Btn small onClick={onClose} C={C}>Отмена</Btn>
-        <Btn small primary onClick={submit} disabled={busy} C={C}>{busy ? "Сохранение..." : "Сохранить"}</Btn>
+        <Btn small onClick={onClose} C={C}>{t("adm.cancel")}</Btn>
+        <Btn small primary onClick={submit} disabled={busy} C={C}>{busy ? t("adm.saving") : t("adm.save")}</Btn>
       </div>
     </Modal>
   );

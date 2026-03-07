@@ -1,12 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
-
-const ROLES = [
-  { value: "super_admin",  label: "Глобальный администратор" },
-  { value: "center_admin", label: "Администратор центра" },
-  { value: "moderator",    label: "Составитель тестов" },
-  { value: "examiner",     label: "Экзаменатор" },
-];
+import { t } from "../translations.js";
 
 const ROLE_COLORS = {
   super_admin:  "#c9a84c",
@@ -22,11 +16,18 @@ export default function AdminManagement({ theme: T }) {
   const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
-  const [modal,   setModal]   = useState(null); // null | { mode: "create"|"edit", data }
+  const [modal,   setModal]   = useState(null);
   const [form,    setForm]    = useState(EMPTY_FORM);
   const [saving,  setSaving]  = useState(false);
   const [saveErr, setSaveErr] = useState("");
   const [deleting, setDel]    = useState(null);
+
+  const ROLES = [
+    { value: "super_admin",  label: t("role.super_admin") },
+    { value: "center_admin", label: t("role.center_admin") },
+    { value: "moderator",    label: t("role.moderator") },
+    { value: "examiner",     label: t("role.examiner") },
+  ];
 
   const load = async () => {
     try {
@@ -62,8 +63,8 @@ export default function AdminManagement({ theme: T }) {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.email) return setSaveErr("Имя и email обязательны");
-    if (modal.mode === "create" && !form.password) return setSaveErr("Пароль обязателен при создании");
+    if (!form.name || !form.email) return setSaveErr(t("adm.m.err.required"));
+    if (modal.mode === "create" && !form.password) return setSaveErr(t("adm.m.err.password"));
     setSaving(true); setSaveErr("");
     try {
       const payload = { ...form, centerId: form.centerId ? Number(form.centerId) : null };
@@ -96,7 +97,9 @@ export default function AdminManagement({ theme: T }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  if (loading) return <div style={{ padding: 40, color: T.muted, fontFamily: "'DM Sans',sans-serif" }}>Загрузка...</div>;
+  if (loading) return <div style={{ padding: 40, color: T.muted, fontFamily: "'DM Sans',sans-serif" }}>{t("adm.loading")}</div>;
+
+  const HEADERS = [t("adm.m.col.name"), "Email", t("adm.m.col.role"), t("adm.m.col.center"), t("adm.m.col.status"), ""];
 
   return (
     <div style={{ padding: 28, overflow: "auto", height: "100%", fontFamily: "'DM Sans',sans-serif" }}>
@@ -104,10 +107,10 @@ export default function AdminManagement({ theme: T }) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <h2 style={{ fontSize: 20, color: T.text, fontWeight: 600, marginBottom: 4 }}>Управление администраторами</h2>
-          <p style={{ fontSize: 13, color: T.muted }}>{admins.length} учётных записей</p>
+          <h2 style={{ fontSize: 20, color: T.text, fontWeight: 600, marginBottom: 4 }}>{t("adm.m.title")}</h2>
+          <p style={{ fontSize: 13, color: T.muted }}>{t("adm.m.accounts", { n: admins.length })}</p>
         </div>
-        <button onClick={openCreate} style={primaryBtn(T)}>+ Добавить</button>
+        <button onClick={openCreate} style={primaryBtn(T)}>{t("adm.m.add")}</button>
       </div>
 
       {error && <div style={errorBox(T)}>{error}</div>}
@@ -117,7 +120,7 @@ export default function AdminManagement({ theme: T }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: T.card }}>
-              {["Имя", "Email", "Роль", "Центр", "Статус", ""].map(h => (
+              {HEADERS.map(h => (
                 <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 12, color: T.muted, fontWeight: 600, borderBottom: `1px solid ${T.border}` }}>
                   {h}
                 </th>
@@ -148,13 +151,13 @@ export default function AdminManagement({ theme: T }) {
                     color: a.status === "active" ? T.success : T.danger,
                     borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600,
                   }}>
-                    {a.status === "active" ? "Активен" : "Заблокирован"}
+                    {a.status === "active" ? t("adm.m.active") : t("adm.m.blocked")}
                   </span>
                 </td>
                 <td style={{ padding: "12px 16px", textAlign: "right" }}>
                   <button onClick={() => openEdit(a)} style={iconBtn(T, T.gold)}>✎</button>
                   <button
-                    onClick={() => { if (confirm(`Удалить «${a.name}»?`)) handleDelete(a.id); }}
+                    onClick={() => { if (confirm(`Delete «${a.name}»?`)) handleDelete(a.id); }}
                     disabled={deleting === a.id}
                     style={iconBtn(T, T.danger)}
                   >✕</button>
@@ -164,7 +167,7 @@ export default function AdminManagement({ theme: T }) {
           </tbody>
         </table>
         {admins.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: T.muted }}>Нет администраторов</div>
+          <div style={{ padding: 40, textAlign: "center", color: T.muted }}>{t("adm.m.no_admins")}</div>
         )}
       </div>
 
@@ -173,13 +176,13 @@ export default function AdminManagement({ theme: T }) {
         <div style={overlay} onClick={() => setModal(null)}>
           <div style={modalBox(T)} onClick={e => e.stopPropagation()}>
             <h3 style={{ fontSize: 17, color: T.text, fontWeight: 600, marginBottom: 20 }}>
-              {modal.mode === "create" ? "Добавить администратора" : "Редактировать"}
+              {modal.mode === "create" ? t("adm.m.modal_add") : t("adm.m.modal_edit")}
             </h3>
 
             {[
-              { key: "name",  label: "Имя",   type: "text",     placeholder: "Иван Иванов" },
-              { key: "email", label: "Email",  type: "email",    placeholder: "ivan@armexam.am" },
-              { key: "password", label: modal.mode === "create" ? "Пароль" : "Новый пароль (оставьте пустым)", type: "password", placeholder: "••••••" },
+              { key: "name",     label: t("adm.m.col.name"), type: "text",     placeholder: "John Doe" },
+              { key: "email",    label: "Email",              type: "email",    placeholder: "john@armexam.am" },
+              { key: "password", label: modal.mode === "create" ? t("adm.login.password") : t("adm.m.pwd_edit"), type: "password", placeholder: "••••••" },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 14 }}>
                 <label style={labelSt(T)}>{f.label}</label>
@@ -194,7 +197,7 @@ export default function AdminManagement({ theme: T }) {
             ))}
 
             <div style={{ marginBottom: 14 }}>
-              <label style={labelSt(T)}>Роль</label>
+              <label style={labelSt(T)}>{t("adm.m.col.role")}</label>
               <select value={form.role} onChange={e => set("role", e.target.value)} style={inputSt(T)}>
                 {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
@@ -202,28 +205,28 @@ export default function AdminManagement({ theme: T }) {
 
             {(form.role === "center_admin") && (
               <div style={{ marginBottom: 14 }}>
-                <label style={labelSt(T)}>Центр</label>
+                <label style={labelSt(T)}>{t("adm.m.col.center")}</label>
                 <select value={form.centerId} onChange={e => set("centerId", e.target.value)} style={inputSt(T)}>
-                  <option value="">— не выбран —</option>
+                  <option value="">{t("adm.m.center_none")}</option>
                   {centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             )}
 
             <div style={{ marginBottom: 20 }}>
-              <label style={labelSt(T)}>Статус</label>
+              <label style={labelSt(T)}>{t("adm.m.col.status")}</label>
               <select value={form.status} onChange={e => set("status", e.target.value)} style={inputSt(T)}>
-                <option value="active">Активен</option>
-                <option value="inactive">Заблокирован</option>
+                <option value="active">{t("adm.m.active")}</option>
+                <option value="inactive">{t("adm.m.blocked")}</option>
               </select>
             </div>
 
             {saveErr && <div style={errorBox(T)}>{saveErr}</div>}
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setModal(null)} style={secondaryBtn(T)}>Отмена</button>
+              <button onClick={() => setModal(null)} style={secondaryBtn(T)}>{t("adm.cancel")}</button>
               <button onClick={handleSave} disabled={saving} style={{ ...primaryBtn(T), flex: 1 }}>
-                {saving ? "Сохранение..." : "Сохранить"}
+                {saving ? t("adm.saving") : t("adm.save")}
               </button>
             </div>
           </div>

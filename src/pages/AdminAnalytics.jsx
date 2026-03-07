@@ -1,3 +1,4 @@
+import { t } from "../translations.js";
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
 
@@ -24,7 +25,7 @@ function StatCard({ icon, label, value, sub, color }) {
 // ── Donut Chart ───────────────────────────────────────────────────────────────
 function DonutChart({ segments, size=120, label="" }) {
   const total = segments.reduce((a,s)=>a+s.value,0);
-  if (!total) return <div style={{ color:C.muted, fontSize:12, textAlign:"center", padding:"20px 0" }}>Нет данных</div>;
+  if (!total) return <div style={{ color:C.muted, fontSize:12, textAlign:"center", padding:"20px 0" }}>{t("adm.a.no_data")}</div>;
   const R=size/2-10, r=R*.54, cx=size/2, cy=size/2;
   let angle=-Math.PI/2;
   const paths = segments.map(seg => {
@@ -77,7 +78,7 @@ function HBar({ label, value, max, color, total }) {
 // ── City / Center Table ───────────────────────────────────────────────────────
 function CityStatsTable({ cities }) {
   const [expanded, setExpanded] = useState({});
-  if (!cities || cities.length === 0) return <div style={{ color:C.muted, fontSize:13, padding:"20px 0", textAlign:"center" }}>Нет данных</div>;
+  if (!cities || cities.length === 0) return <div style={{ color:C.muted, fontSize:13, padding:"20px 0", textAlign:"center" }}>{t("adm.a.no_data")}</div>;
   return (
     <div>
       {cities.map(city => (
@@ -87,10 +88,10 @@ function CityStatsTable({ cities }) {
             style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", background:C.panel, borderRadius:10, cursor:"pointer", border:`1px solid ${C.border}` }}>
             <span style={{ color:C.gold, fontSize:14 }}>{expanded[city.id] ? "▼" : "▶"}</span>
             <span style={{ color:C.text, fontWeight:600, fontSize:14, flex:1 }}>🏙 {city.name}</span>
-            <Chip label={`${city.totalStudents} студ.`} color={C.info} />
-            <Chip label={`${city.totalExams} экз.`} color={C.purple} />
-            <Chip label={`${city.totalResults} рез.`} color={C.muted} />
-            <Chip label={`${city.passRate}% сданы`} color={city.passRate >= 60 ? C.success : C.danger} />
+            <Chip label={t("adm.a.chip.students", { n: city.totalStudents })} color={C.info} />
+            <Chip label={t("adm.a.chip.exams", { n: city.totalExams })} color={C.purple} />
+            <Chip label={t("adm.a.chip.results", { n: city.totalResults })} color={C.muted} />
+            <Chip label={t("adm.a.chip.passed", { n: city.passRate })} color={city.passRate >= 60 ? C.success : C.danger} />
           </div>
           {expanded[city.id] && city.centers.map(ctr => (
             <div key={ctr.id} style={{ marginLeft:24, marginTop:4, padding:"10px 16px", background:C.card, borderRadius:10, border:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:14 }}>
@@ -99,9 +100,9 @@ function CityStatsTable({ cities }) {
                 <div style={{ color:C.text, fontSize:13, fontWeight:500 }}>{ctr.name}</div>
                 {ctr.address && <div style={{ color:C.muted, fontSize:11, marginTop:2 }}>📍 {ctr.address}</div>}
               </div>
-              <Chip label={`${ctr.totalStudents} студ.`} color={C.info} />
-              <Chip label={`${ctr.totalExams} экз.`} color={C.purple} />
-              <Chip label={`${ctr.passRate}% сданы`} color={ctr.passRate >= 60 ? C.success : C.danger} />
+              <Chip label={t("adm.a.chip.students", { n: ctr.totalStudents })} color={C.info} />
+              <Chip label={t("adm.a.chip.exams", { n: ctr.totalExams })} color={C.purple} />
+              <Chip label={t("adm.a.chip.passed", { n: ctr.passRate })} color={ctr.passRate >= 60 ? C.success : C.danger} />
               <Chip label={`avg ${ctr.avgScore}%`} color={C.gold} />
             </div>
           ))}
@@ -127,7 +128,7 @@ function ExamPerfTable({ exams, results }) {
           <span key={h} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:700, letterSpacing:.6, textTransform:"uppercase" }}>{h}</span>
         ))}
       </div>
-      {exams.length === 0 && <div style={{ padding:"20px 22px", color:C.muted, fontSize:13 }}>Нет экзаменов</div>}
+      {exams.length === 0 && <div style={{ padding:"20px 22px", color:C.muted, fontSize:13 }}>{t("adm.a.no_exams")}</div>}
       {exams.map(exam=>{
         const rs=results.filter(r=>r.examId===exam.id);
         const taken=rs.length, passed=rs.filter(r=>r.passed).length;
@@ -166,11 +167,11 @@ function TopStudentsTable({ students, results }) {
         <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, fontWeight:600 }}>Top Students</span>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"30px 1fr 60px 50px 50px 80px 100px", gap:12, padding:"10px 22px", borderBottom:`1px solid ${C.border}`, background:C.panel }}>
-        {["#","Student","Level","Пол","Exams","Pass","Avg"].map(h=>(
+        {["#","Student","Level",t("adm.a.col.gender"),"Exams","Pass","Avg"].map(h=>(
           <span key={h} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:700, letterSpacing:.6, textTransform:"uppercase" }}>{h}</span>
         ))}
       </div>
-      {rows.length === 0 && <div style={{ padding:"20px 22px", color:C.muted, fontSize:13 }}>Нет студентов</div>}
+      {rows.length === 0 && <div style={{ padding:"20px 22px", color:C.muted, fontSize:13 }}>{t("adm.a.no_students")}</div>}
       {rows.map((s,i)=>{
         const lc = LC[s.level]||"#94a3b8";
         const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
@@ -238,16 +239,16 @@ export default function AdminAnalytics({ theme }) {
   const byCountry = summary?.studentsByCountry ?? {};
 
   const genderSegs = [
-    { label:"Мужской",  value: byGender.male   || 0, color: C.info      },
-    { label:"Женский",  value: byGender.female  || 0, color: "#f472b6"  },
-    { label:"Другой",   value: byGender.other   || 0, color: C.muted    },
+    { label:t("adm.a.gender.male"),  value: byGender.male   || 0, color: C.info      },
+    { label:t("adm.a.gender.female"),  value: byGender.female  || 0, color: "#f472b6"  },
+    { label:t("adm.a.gender.other"),   value: byGender.other   || 0, color: C.muted    },
   ].filter(s => s.value > 0);
 
   const levelSegs = LEVELS.map((l, i) => ({ label: l, value: byLevel[l] || 0, color: LC[l] })).filter(s => s.value > 0);
   const countryEntries = Object.entries(byCountry).sort((a,b) => b[1]-a[1]).slice(0, 6);
   const maxCountry = countryEntries[0]?.[1] || 1;
 
-  const TABS = [["overview","📊 Обзор"],["cities","🏙 Города"],["students","👤 Студенты"]];
+  const TABS = [["overview", t("adm.a.tab.overview")],["cities", t("adm.a.tab.cities")],["students", t("adm.a.tab.students")]];
 
   return (
     <div style={{ flex:1, overflowY:"auto", minWidth:0 }}>
@@ -256,8 +257,8 @@ export default function AdminAnalytics({ theme }) {
         {/* Header */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
           <div>
-            <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:C.text, fontWeight:600, margin:0 }}>Аналитика</h1>
-            <p style={{ fontSize:13, color:C.muted, margin:"4px 0 0" }}>Статистика платформы</p>
+            <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:C.text, fontWeight:600, margin:0 }}>{t("adm.a.title")}</h1>
+            <p style={{ fontSize:13, color:C.muted, margin:"4px 0 0" }}>{t("adm.a.subtitle")}</p>
           </div>
           <div style={{ display:"flex", gap:4 }}>
             {TABS.map(([id, label]) => (
@@ -273,12 +274,12 @@ export default function AdminAnalytics({ theme }) {
 
         {/* KPIs */}
         <div style={{ display:"flex", gap:14, marginBottom:24, flexWrap:"wrap" }}>
-          <StatCard icon="👤" label="Студентов"  value={totalStudents}        color={C.info}    />
-          <StatCard icon="📝" label="Результатов" value={totalResults}         color={C.purple}  />
-          <StatCard icon="✅" label="Сданы"       value={`${passRate}%`}       color={C.success} />
-          <StatCard icon="⭐" label="Средний балл" value={`${avgScore}%`}      color={C.gold}    />
-          <StatCard icon="🏛" label="Центров"     value={totalCenters}         color={C.warning} sub={`${totalCities} городов`} />
-          <StatCard icon="📋" label="Экзаменов"   value={exams.length}         color={C.info}    />
+          <StatCard icon="👤" label={t("adm.a.students")}  value={totalStudents}        color={C.info}    />
+          <StatCard icon="📝" label={t("adm.a.results")} value={totalResults}         color={C.purple}  />
+          <StatCard icon="✅" label={t("adm.a.passed")}       value={`${passRate}%`}       color={C.success} />
+          <StatCard icon="⭐" label={t("adm.a.avg")} value={`${avgScore}%`}      color={C.gold}    />
+          <StatCard icon="🏛" label={t("adm.a.centers")}     value={totalCenters}         color={C.warning} sub={t("adm.a.cities_sub", { n: totalCities })} />
+          <StatCard icon="📋" label={t("adm.a.exams")}   value={exams.length}         color={C.info}    />
         </div>
 
         {/* ── Tab: Overview ─────────────────────────────────────────────────── */}
@@ -288,30 +289,30 @@ export default function AdminAnalytics({ theme }) {
 
               {/* Gender distribution */}
               <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px" }}>
-                <SectionTitle>Пол</SectionTitle>
-                <DonutChart segments={genderSegs} label="студ." />
+                <SectionTitle>{t("adm.a.gender")}</SectionTitle>
+                <DonutChart segments={genderSegs} label={t("adm.a.students").toLowerCase()} />
               </div>
 
               {/* Level distribution */}
               <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px" }}>
-                <SectionTitle>Уровень</SectionTitle>
-                <DonutChart segments={levelSegs} label="студ." />
+                <SectionTitle>{t("adm.a.level")}</SectionTitle>
+                <DonutChart segments={levelSegs} label={t("adm.a.students").toLowerCase()} />
               </div>
 
               {/* Pass / Fail */}
               <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px" }}>
-                <SectionTitle>Сдано / Не сдано</SectionTitle>
+                <SectionTitle>{t("adm.a.pass_fail")}</SectionTitle>
                 <DonutChart segments={[
-                  { label:"Сдано",    value:totalPassed,              color:C.success },
-                  { label:"Не сдано", value:totalResults - totalPassed, color:C.danger },
-                ].filter(s=>s.value>0)} label="рез." />
+                  { label:t("adm.a.passed_lbl"),    value:totalPassed,              color:C.success },
+                  { label:t("adm.a.failed_lbl"), value:totalResults - totalPassed, color:C.danger },
+                ].filter(s=>s.value>0)} label={t("adm.a.results").toLowerCase()} />
               </div>
             </div>
 
             {/* Country breakdown */}
             <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px", marginBottom:20 }}>
-              <SectionTitle>Студенты по странам</SectionTitle>
-              {countryEntries.length === 0 && <Muted>Нет данных</Muted>}
+              <SectionTitle>{t("adm.a.countries")}</SectionTitle>
+              {countryEntries.length === 0 && <Muted>{t("adm.a.no_data")}</Muted>}
               {countryEntries.map(([country, count], i) => (
                 <HBar key={country} label={country} value={count} max={maxCountry} total={totalStudents}
                   color={[C.info, C.gold, C.success, C.warning, C.purple, "#f472b6"][i % 6]} />
@@ -326,7 +327,7 @@ export default function AdminAnalytics({ theme }) {
         {/* ── Tab: Cities ───────────────────────────────────────────────────── */}
         {tab === "cities" && (
           <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"20px 22px" }}>
-            <SectionTitle>Статистика по городам и центрам</SectionTitle>
+            <SectionTitle>{t("adm.a.city_stats")}</SectionTitle>
             <CityStatsTable cities={cityStats} />
           </div>
         )}

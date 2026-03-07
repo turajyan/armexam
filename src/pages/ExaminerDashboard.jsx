@@ -1,8 +1,9 @@
+import { t } from "../translations.js";
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
 import { formatDateTime } from "../dateUtils.js";
 
-const STATUS_LABEL = { approved: "Принято", partial: "Частично", declined: "Отклонено" };
+const STATUS_LABEL = { approved: t("adm.e.approved"), partial: t("adm.e.partial"), declined: t("adm.e.declined") };
 const STATUS_COLOR = { approved: "#4cc98a", partial: "#c9a84c", declined: "#c94c6f" };
 
 export default function ExaminerDashboard({ theme: T }) {
@@ -70,7 +71,7 @@ export default function ExaminerDashboard({ theme: T }) {
     setGrades(prev => ({ ...prev, [qId]: { ...prev[qId], [field]: value } }));
   };
 
-  if (loading) return <Pad T={T}>Загрузка...</Pad>;
+  if (loading) return <Pad T={T}>{t("adm.loading")}</Pad>;
 
   // ── Result detail view ──────────────────────────────────────────────────────
   if (selected) {
@@ -85,14 +86,14 @@ export default function ExaminerDashboard({ theme: T }) {
             {selected.exam?.title}
           </h2>
           <p style={{ fontSize: 13, color: T.muted }}>
-            Студент: {selected.student?.name} ({selected.student?.email})
+            {t("adm.e.student")} {selected.student?.name} ({selected.student?.email})
           </p>
         </div>
 
         {error && <div style={errorBox(T)}>{error}</div>}
 
         {questions.length === 0 && (
-          <div style={{ color: T.muted, fontSize: 14 }}>Нет ответов, требующих ручной проверки.</div>
+          <div style={{ color: T.muted, fontSize: 14 }}>{t("adm.e.no_gradable")}</div>
         )}
 
         {questions.map((q, idx) => {
@@ -134,7 +135,7 @@ export default function ExaminerDashboard({ theme: T }) {
               {/* Grade controls */}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
                 <div style={{ flex: 1, minWidth: 120 }}>
-                  <label style={labelSt(T)}>Баллы (макс. {q.points})</label>
+                  <label style={labelSt(T)}>{t("adm.e.points", { n: q.points })}</label>
                   <input
                     type="number" min={0} max={q.points}
                     value={g.earnedPoints}
@@ -166,7 +167,7 @@ export default function ExaminerDashboard({ theme: T }) {
                     type="text"
                     value={g.notes}
                     onChange={e => setGrade(q.id, "notes", e.target.value)}
-                    placeholder="Необязательно..."
+                    placeholder=t("adm.e.optional")
                     style={inputSt(T)}
                   />
                 </div>
@@ -177,9 +178,9 @@ export default function ExaminerDashboard({ theme: T }) {
 
         {questions.length > 0 && (
           <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-            <button onClick={() => setSelected(null)} style={secondaryBtn(T)}>Отмена</button>
+            <button onClick={() => setSelected(null)} style={secondaryBtn(T)}>{t("adm.cancel")}</button>
             <button onClick={handleSubmit} disabled={saving} style={{ ...primaryBtn(T), flex: 1 }}>
-              {saving ? "Сохранение..." : "Сохранить оценки"}
+              {saving ? t("adm.saving") : t("adm.e.save")}
             </button>
           </div>
         )}
@@ -192,15 +193,15 @@ export default function ExaminerDashboard({ theme: T }) {
     <div style={{ padding: 24, overflow: "auto", height: "100%", fontFamily: "'DM Sans',sans-serif" }}>
 
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 20, color: T.text, fontWeight: 600, marginBottom: 12 }}>Кабинет экзаменатора</h2>
+        <h2 style={{ fontSize: 20, color: T.text, fontWeight: 600, marginBottom: 12 }}>{t("adm.e.title")}</h2>
 
         {/* Stats */}
         {stats && (
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
             {[
-              { label: "Ожидают проверки", value: stats.pending, color: T.gold },
-              { label: "Проверено",         value: stats.graded,  color: "#4cc98a" },
-              { label: "Автопроверка",      value: stats.auto,    color: T.muted },
+              { label: t("adm.e.pending"), value: stats.pending, color: T.gold },
+              { label: t("adm.e.graded"),         value: stats.graded,  color: "#4cc98a" },
+              { label: t("adm.e.auto"),      value: stats.auto,    color: T.muted },
             ].map(s => (
               <div key={s.label} style={{
                 background: T.panel, border: `1px solid ${T.border}`,
@@ -218,11 +219,11 @@ export default function ExaminerDashboard({ theme: T }) {
       {saveOk && <div style={{ ...errorBox(T), background: "#4cc98a18", borderColor: "#4cc98a44", color: "#4cc98a" }}>Оценки сохранены</div>}
 
       <h3 style={{ fontSize: 15, color: T.text, fontWeight: 600, marginBottom: 14 }}>
-        Требуют проверки ({pending.length})
+        {t("adm.e.pending_section", { n: pending.length })}
       </h3>
 
       {pending.length === 0 && (
-        <div style={{ color: T.muted, fontSize: 14, padding: "20px 0" }}>Нет работ, ожидающих проверки.</div>
+        <div style={{ color: T.muted, fontSize: 14, padding: "20px 0" }}>{t("adm.e.no_pending")}</div>
       )}
 
       {pending.map(r => (
@@ -239,7 +240,7 @@ export default function ExaminerDashboard({ theme: T }) {
               {r.student?.name} · {r.student?.email}
             </div>
             <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
-              Сдано: {formatDateTime(r.submittedAt)}
+              {t("adm.e.submitted")} {formatDateTime(r.submittedAt)}
             </div>
           </div>
           <button onClick={() => openResult(r)} style={primaryBtn(T)}>
