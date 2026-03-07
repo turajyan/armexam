@@ -24,6 +24,7 @@ function StatCard({ icon, label, value, sub, color }) {
 
 // ── Donut Chart ───────────────────────────────────────────────────────────────
 function DonutChart({ segments, size=120, label="" }) {
+  const { t } = useTranslation();
   const total = segments.reduce((a,s)=>a+s.value,0);
   if (!total) return <div style={{ color:C.muted, fontSize:12, textAlign:"center", padding:"20px 0" }}>{t("adm.a.no_data")}</div>;
   const R=size/2-10, r=R*.54, cx=size/2, cy=size/2;
@@ -77,6 +78,7 @@ function HBar({ label, value, max, color, total }) {
 
 // ── City / Center Table ───────────────────────────────────────────────────────
 function CityStatsTable({ cities }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState({});
   if (!cities || cities.length === 0) return <div style={{ color:C.muted, fontSize:13, padding:"20px 0", textAlign:"center" }}>{t("adm.a.no_data")}</div>;
   return (
@@ -118,6 +120,7 @@ function Chip({ label, color }) {
 
 // ── Exam Perf Table ───────────────────────────────────────────────────────────
 function ExamPerfTable({ exams, results }) {
+  const { t } = useTranslation();
   return (
     <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden" }}>
       <div style={{ padding:"16px 22px", borderBottom:`1px solid ${C.border}` }}>
@@ -156,6 +159,7 @@ function ExamPerfTable({ exams, results }) {
 
 // ── Top Students Table ────────────────────────────────────────────────────────
 function TopStudentsTable({ students, results }) {
+  const { t } = useTranslation();
   const rows = students.map(s => {
     const rs = results.filter(r => r.studentId === s.id);
     return { ...s, examCount:rs.length, avgPct:avg(rs.map(r=>r.pct)), passRate:pct2(rs.filter(r=>r.passed).length, rs.length) };
