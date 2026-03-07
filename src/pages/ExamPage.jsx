@@ -1160,9 +1160,15 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
 
   const pct = Math.round((score / maxScore) * 100);
 
+  // Count answered manual-grading questions (writing / voice)
+  const pendingCount = qResults.filter(r => !r.isAuto && r.answered).length;
+  const hasPending = isPlacement && pendingCount > 0;
+
   // Placement: compute detected level from thresholds
   const placement = isPlacement ? computePlacementLevel(exam, questions, answers) : null;
   const detectedLevel = placement?.detectedLevel || null;
+  // Show level only when no answers are pending manual grading AND admin enabled showResults
+  const showLevel = isPlacement && !hasPending && (exam?.showResults !== false);
 
   // Fixed: pass/fail based on exam's passingScore
   const passingPct = exam?.passingScore ?? 60;
@@ -1207,69 +1213,86 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
             <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:30, color:C.text, margin:"0 0 10px", fontWeight:600 }}>
               Placement Complete ✓
             </h2>
-            {/* Detected level badge */}
-            <div style={{ display:"inline-flex", alignItems:"center", gap:12, background:C.purple+"14", border:`1px solid ${C.purple}44`, borderRadius:16, padding:"14px 28px", marginBottom:20 }}>
-              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.purple }}>Detected Language Level</span>
-              <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color: LEVEL_COLORS[detectedLevel] || C.purple, lineHeight:1 }}>
-                {detectedLevel}
-              </span>
-            </div>
 
-            {/* Per-level breakdown */}
-            {placement?.levelStats && (
-              <div style={{ display:"flex", flexDirection:"column", gap:8, maxWidth:520, margin:"0 auto 24px", textAlign:"left" }}>
-                {["A1","A2","B1","B2","C1","C2"].filter(l => placement.levelStats[l]).map(l => {
-                  const lc = LEVEL_COLORS[l];
-                  const stat = placement.levelStats[l];
-                  const threshold = (exam?.placementThresholds||{})[l] ?? 60;
-                  const passed = stat.pct >= threshold;
-                  const isDetected = l === detectedLevel;
-                  return (
-                    <div key={l} style={{ display:"flex", alignItems:"center", gap:10,
-                      background: isDetected ? lc+"14" : C.panel,
-                      border:`1px solid ${isDetected ? lc+"55" : C.border}`,
-                      borderRadius:10, padding:"10px 14px", transition:"all .3s" }}>
-                      {/* Level badge */}
-                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:700,
-                        color:lc, background:lc+"18", border:`1px solid ${lc}33`,
-                        borderRadius:5, padding:"2px 8px", minWidth:32, textAlign:"center", flexShrink:0 }}>{l}</span>
-                      {/* Progress bar */}
-                      <div style={{ flex:1, height:8, background:C.dim, borderRadius:4, overflow:"hidden", position:"relative" }}>
-                        <div style={{ width:`${stat.pct}%`, height:"100%", background: passed ? lc : C.danger,
-                          borderRadius:4, transition:"width .6s ease" }} />
-                        {/* Threshold marker */}
-                        <div style={{ position:"absolute", top:0, left:`${threshold}%`, width:2, height:"100%",
-                          background:C.muted, opacity:.6 }} />
-                      </div>
-                      {/* Score */}
-                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:passed?lc:C.danger,
-                        fontWeight:600, minWidth:48, textAlign:"right", flexShrink:0 }}>
-                        {stat.pct}%
-                      </span>
-                      {/* Pass/fail */}
-                      <span style={{ fontSize:14, flexShrink:0 }}>{passed ? "✓" : "✗"}</span>
-                    </div>
-                  );
-                })}
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center", marginTop:4 }}>
-                  Vertical line = threshold per level · Must pass each level consecutively
+            {hasPending ? (
+              /* ── Pending manual review notice ── */
+              <div style={{ display:"inline-flex", flexDirection:"column", alignItems:"center", gap:10, background:C.warning+"14", border:`1px solid ${C.warning}44`, borderRadius:16, padding:"20px 32px", marginBottom:20 }}>
+                <span style={{ fontSize:32 }}>⏳</span>
+                <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.text, fontWeight:600 }}>
+                  Շնորհակալություն!
+                </span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.warning, textAlign:"center", lineHeight:1.5 }}>
+                  {pendingCount} {pendingCount === 1 ? "պատասխան" : "պատասխան"} սպասում {pendingCount === 1 ? "է" : "են"} ստուգման։<br/>
+                  <span style={{ color:C.textSub, fontSize:12 }}>Ձեր մակարդակը կհայտնվի ստուգումից հետո։</span>
+                </span>
+              </div>
+            ) : showLevel ? (
+              /* ── Detected level badge ── */
+              <>
+                <div style={{ display:"inline-flex", alignItems:"center", gap:12, background:C.purple+"14", border:`1px solid ${C.purple}44`, borderRadius:16, padding:"14px 28px", marginBottom:20 }}>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.purple }}>Detected Language Level</span>
+                  <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:700, color: LEVEL_COLORS[detectedLevel] || C.purple, lineHeight:1 }}>
+                    {detectedLevel}
+                  </span>
                 </div>
+
+                {/* Per-level breakdown */}
+                {placement?.levelStats && (
+                  <div style={{ display:"flex", flexDirection:"column", gap:8, maxWidth:520, margin:"0 auto 24px", textAlign:"left" }}>
+                    {["A1","A2","B1","B2","C1","C2"].filter(l => placement.levelStats[l]).map(l => {
+                      const lc = LEVEL_COLORS[l];
+                      const stat = placement.levelStats[l];
+                      const threshold = (exam?.placementThresholds||{})[l] ?? 60;
+                      const passed = stat.pct >= threshold;
+                      const isDetected = l === detectedLevel;
+                      return (
+                        <div key={l} style={{ display:"flex", alignItems:"center", gap:10,
+                          background: isDetected ? lc+"14" : C.panel,
+                          border:`1px solid ${isDetected ? lc+"55" : C.border}`,
+                          borderRadius:10, padding:"10px 14px", transition:"all .3s" }}>
+                          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:700,
+                            color:lc, background:lc+"18", border:`1px solid ${lc}33`,
+                            borderRadius:5, padding:"2px 8px", minWidth:32, textAlign:"center", flexShrink:0 }}>{l}</span>
+                          <div style={{ flex:1, height:8, background:C.dim, borderRadius:4, overflow:"hidden", position:"relative" }}>
+                            <div style={{ width:`${stat.pct}%`, height:"100%", background: passed ? lc : C.danger,
+                              borderRadius:4, transition:"width .6s ease" }} />
+                            <div style={{ position:"absolute", top:0, left:`${threshold}%`, width:2, height:"100%",
+                              background:C.muted, opacity:.6 }} />
+                          </div>
+                          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:passed?lc:C.danger,
+                            fontWeight:600, minWidth:48, textAlign:"right", flexShrink:0 }}>
+                            {stat.pct}%
+                          </span>
+                          <span style={{ fontSize:14, flexShrink:0 }}>{passed ? "✓" : "✗"}</span>
+                        </div>
+                      );
+                    })}
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center", marginTop:4 }}>
+                      Vertical line = threshold per level · Must pass each level consecutively
+                    </div>
+                  </div>
+                )}
+
+                {/* Level scale */}
+                <div style={{ display:"flex", gap:0, borderRadius:10, overflow:"hidden", marginBottom:28, maxWidth:500, margin:"0 auto 28px" }}>
+                  {["A1","A2","B1","B2","C1","C2"].map(l => {
+                    const lc = LEVEL_COLORS[l];
+                    const isDetected = l === detectedLevel;
+                    return (
+                      <div key={l} style={{ flex:1, background:isDetected?lc+"33":C.panel, border:`1px solid ${isDetected?lc+"88":lc+"22"}`, padding:"10px 4px", textAlign:"center", transition:"all .3s" }}>
+                        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, color:isDetected?lc:C.muted }}>{l}</div>
+                        {isDetected && <div style={{ fontSize:10, color:lc, marginTop:2 }}>▲</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              /* ── showResults=false: generic message ── */
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.textSub, marginBottom:20 }}>
+                Ձեր արդյունքները կհայտնվեն ստուգումից հետո։
               </div>
             )}
-
-            {/* Level scale */}
-            <div style={{ display:"flex", gap:0, borderRadius:10, overflow:"hidden", marginBottom:28, maxWidth:500, margin:"0 auto 28px" }}>
-              {["A1","A2","B1","B2","C1","C2"].map(l => {
-                const lc = LEVEL_COLORS[l];
-                const isDetected = l === detectedLevel;
-                return (
-                  <div key={l} style={{ flex:1, background:isDetected?lc+"33":C.panel, border:`1px solid ${isDetected?lc+"88":lc+"22"}`, padding:"10px 4px", textAlign:"center", transition:"all .3s" }}>
-                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, color:isDetected?lc:C.muted }}>{l}</div>
-                    {isDetected && <div style={{ fontSize:10, color:lc, marginTop:2 }}>▲</div>}
-                  </div>
-                );
-              })}
-            </div>
           </>
         ) : (
           <>
@@ -1287,7 +1310,7 @@ function ResultsScreen({ answers, questions, exam, onRestart, studentId = 1 }) {
           {[
             { label:"Score",     value:`${score}/${maxScore}`, color:GLD },
             ...(isPlacement
-              ? [{ label:"Level", value:detectedLevel, color:LEVEL_COLORS[detectedLevel]||C.purple }]
+              ? (showLevel ? [{ label:"Level", value:detectedLevel, color:LEVEL_COLORS[detectedLevel]||C.purple }] : [])
               : [{ label:passed?"Passed":"Failed", value:passed?"✓":"✗", color:passed?C.success:C.danger }]
             ),
             { label:"Correct",   value:qResults.filter(r=>r.isCorrect).length+"/"+qResults.filter(r=>r.isAuto).length, color:C.success },
