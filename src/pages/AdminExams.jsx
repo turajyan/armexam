@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
 import { formatDate } from "../dateUtils.js";
+import { t } from "../translations.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
@@ -734,22 +735,22 @@ function ExamPreview({ exam, questions, onClose }) {
         <div style={{ fontSize:48,marginBottom:12 }}>{score.pct >= 60 ? "🎉" : "📝"}</div>
         <div style={{ fontSize:28,fontWeight:700,color:C.gold,marginBottom:8 }}>{score.pct}%</div>
         <div style={{ color:C.muted,fontSize:14,marginBottom:4 }}>
-          Набрано: {score.earned} / {score.total} баллов
+          {t("adm.ex.scored", { earned: score.earned, total: score.total })}
         </div>
         <div style={{ color:C.muted,fontSize:12,marginBottom:20 }}>
-          ⚠ Это тестовый прогон — результаты НЕ сохраняются в базу данных
+          {t("adm.ex.preview_warning")}
         </div>
         <button onClick={()=>{setFinished(false);setAnswers({});setCurrent(0);setScore(null)}} style={{ background:C.gold+"22",border:`1px solid ${C.gold}44`,borderRadius:10,padding:"10px 24px",color:C.gold,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",marginRight:10 }}>
-          Пройти снова
+          {t("adm.ex.retry")}
         </button>
         <button onClick={onClose} style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 24px",color:C.text,fontWeight:500,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
-          Закрыть
+          {t("adm.ex.close")}
         </button>
       </div>
     );
   }
 
-  if (!q) return <div style={{ color:C.muted,fontFamily:"'DM Sans',sans-serif" }}>Нет вопросов</div>;
+  if (!q) return <div style={{ color:C.muted,fontFamily:"'DM Sans',sans-serif" }}>{t("adm.ex.no_questions")}</div>;
 
   const isMulti  = q.type === "multi_choice" || q.type === "multi_select";
   const selected = answers[q.id] ?? (isMulti ? [] : null);
@@ -775,7 +776,7 @@ function ExamPreview({ exam, questions, onClose }) {
     <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
       {/* Progress */}
       <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:12 }}>
-        <span style={{ color:C.muted,fontSize:13 }}>Вопрос {current+1} / {questions.length}</span>
+        <span style={{ color:C.muted,fontSize:13 }}>{t("adm.ex.question_of", { n: current+1, total: questions.length })}</span>
         <div style={{ flex:1,height:4,background:C.border,borderRadius:2 }}>
           <div style={{ width:`${((current+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s" }} />
         </div>
@@ -797,7 +798,7 @@ function ExamPreview({ exam, questions, onClose }) {
                     return (
                       <button
                         key={i}
-                        title={`${lvl} · Вопрос ${i+1}`}
+                        title={t("adm.ex.q_dot_n", { lvl, n: i+1 })}
                         onClick={() => setCurrent(i)}
                         style={{
                           width:12,height:12,borderRadius:"50%",padding:0,cursor:"pointer",
@@ -823,7 +824,7 @@ function ExamPreview({ exam, questions, onClose }) {
             return (
               <button
                 key={i}
-                title={`Вопрос ${i+1}`}
+                title={t("adm.ex.q_n", { n: i+1 })}
                 onClick={() => setCurrent(i)}
                 style={{
                   width:12,height:12,borderRadius:"50%",padding:0,cursor:"pointer",
@@ -865,7 +866,7 @@ function ExamPreview({ exam, questions, onClose }) {
         <input
           value={answers[q.id]||""}
           onChange={e=>setAnswer(q.id,e.target.value)}
-          placeholder="Введите ответ..."
+          placeholder={t("adm.ex.enter_answer")}
           style={{ width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,fontSize:14,outline:"none",fontFamily:"'DM Sans',sans-serif",marginBottom:20 }}
         />
       )}
@@ -874,13 +875,13 @@ function ExamPreview({ exam, questions, onClose }) {
           rows={5}
           value={answers[q.id]||""}
           onChange={e=>setAnswer(q.id,e.target.value)}
-          placeholder={`Напишите ответ (${q.minWords||0}–${q.maxWords||999} слов)...`}
+          placeholder={t("adm.ex.write_answer", { min: q.minWords||0, max: q.maxWords||999 })}
           style={{ width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,fontSize:14,outline:"none",fontFamily:"'DM Sans',sans-serif",marginBottom:20,resize:"vertical" }}
         />
       )}
       {q.type === "voice" && (
         <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:16,marginBottom:20,color:C.muted,fontSize:13 }}>
-          🎤 Запись голоса — в режиме предпросмотра недоступна
+          {t("adm.ex.voice_unavailable")}
         </div>
       )}
 
@@ -890,10 +891,10 @@ function ExamPreview({ exam, questions, onClose }) {
           disabled={current===0}
           onClick={()=>setCurrent(c=>c-1)}
           style={{ padding:"9px 20px",borderRadius:10,background:C.card,border:`1px solid ${C.border}`,color:current===0?C.muted:C.text,cursor:current===0?"not-allowed":"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:14 }}
-        >← Назад</button>
+        >{t("adm.ex.back")}</button>
         {current < questions.length - 1 ? (
           <button onClick={()=>setCurrent(c=>c+1)} style={{ padding:"9px 20px",borderRadius:10,background:`linear-gradient(135deg,${C.gold},${C.goldDim})`,border:"none",color:"white",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
-            Далее →
+            {t("adm.ex.next")}
           </button>
         ) : (
           <button onClick={calcScore} style={{ padding:"9px 24px",borderRadius:10,background:`linear-gradient(135deg,${C.success},#16a34a)`,border:"none",color:"white",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
