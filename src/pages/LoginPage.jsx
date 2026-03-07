@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
+import { t } from "../translations.js";
 
 export default function LoginPage({ theme: T, onSuccess, onRegister }) {
   const [form, setForm]       = useState({ email: "", password: "" });
@@ -9,7 +10,7 @@ export default function LoginPage({ theme: T, onSuccess, onRegister }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleLogin = async () => {
-    if (!form.email || !form.password) return setError("Введите email и пароль");
+    if (!form.email || !form.password) return setError(t("login.error.empty"));
     setError("");
     setSubm(true);
     try {
@@ -20,7 +21,7 @@ export default function LoginPage({ theme: T, onSuccess, onRegister }) {
       localStorage.setItem("armexam_token", token);
       onSuccess(user);
     } catch (e) {
-      setError(e.message || "Ошибка входа");
+      setError(e.message || t("login.error.failed"));
     } finally {
       setSubm(false);
     }
@@ -48,7 +49,7 @@ export default function LoginPage({ theme: T, onSuccess, onRegister }) {
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: T.text, fontWeight: 700, marginBottom: 6 }}>
             ArmExam
           </h1>
-          <p style={{ color: T.muted, fontSize: 14 }}>Вход в личный кабинет</p>
+          <p style={{ color: T.muted, fontSize: 14 }}>{t("login.title")}</p>
         </div>
 
         <div style={{
@@ -56,10 +57,10 @@ export default function LoginPage({ theme: T, onSuccess, onRegister }) {
           borderRadius: 16, padding: 32,
           boxShadow: "0 8px 32px rgba(0,0,0,.18)",
         }}>
-          <h2 style={{ fontSize: 17, color: T.text, fontWeight: 600, marginBottom: 22 }}>Войти</h2>
+          <h2 style={{ fontSize: 17, color: T.text, fontWeight: 600, marginBottom: 22 }}>{t("login.submit")}</h2>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, color: T.muted, marginBottom: 5, fontWeight: 500 }}>Email</label>
+            <label style={{ display: "block", fontSize: 12, color: T.muted, marginBottom: 5, fontWeight: 500 }}>{t("login.email")}</label>
             <input
               type="email"
               value={form.email}
@@ -71,7 +72,7 @@ export default function LoginPage({ theme: T, onSuccess, onRegister }) {
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 12, color: T.muted, marginBottom: 5, fontWeight: 500 }}>Пароль</label>
+            <label style={{ display: "block", fontSize: 12, color: T.muted, marginBottom: 5, fontWeight: 500 }}>{t("login.password")}</label>
             <input
               type="password"
               value={form.password}
@@ -85,16 +86,16 @@ export default function LoginPage({ theme: T, onSuccess, onRegister }) {
           {error && <p style={{ color: T.danger, fontSize: 13, marginBottom: 14 }}>{error}</p>}
 
           <button onClick={handleLogin} disabled={submitting} style={primaryBtn(T, submitting)}>
-            {submitting ? "Вход..." : "Войти"}
+            {submitting ? t("login.submitting") : t("login.submit")}
           </button>
 
           <div style={{ textAlign: "center", marginTop: 20 }}>
-            <span style={{ color: T.muted, fontSize: 13 }}>Нет учётной записи? </span>
+            <span style={{ color: T.muted, fontSize: 13 }}>{t("login.no_account")} </span>
             <button
               onClick={onRegister}
               style={{ background: "none", border: "none", color: T.gold, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
             >
-              Зарегистрироваться
+              {t("login.register")}
             </button>
           </div>
         </div>

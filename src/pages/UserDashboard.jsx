@@ -1,20 +1,18 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { formatDate } from "../dateUtils.js";
-
-const DOC_LABELS = { passport: "Паспорт", id_card: "ID карта" };
-const GENDER_LABELS = { male: "Мужской", female: "Женский", other: "Другой" };
+import { t } from "../translations.js";
 
 const LEVEL_COLORS = {
   A1: "#4ade80", A2: "#86efac", B1: "#60a5fa",
   B2: "#93c5fd", C1: "#f59e0b", C2: "#fbbf24",
 };
 
-const TABS = ["Мои экзамены", "Профиль", "Сменить пароль"];
-
 export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout, onUserUpdate }) {
   const [tab,  setTab]  = useState(0);
   const initials = user.name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+
+  const TABS = [t("dash.tab.exams"), t("dash.tab.profile"), t("dash.tab.password")];
 
   const handleLogout = async () => {
     try { await api.logout(); } catch {}
@@ -50,18 +48,18 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
           background: "transparent", border: `1px solid ${T.border}`,
           borderRadius: 8, padding: "6px 14px", color: T.muted,
           fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-        }}>Выйти</button>
+        }}>{t("dash.logout")}</button>
       </div>
 
       <div style={{ maxWidth: 740, margin: "0 auto", padding: "32px 24px" }}>
 
         {/* Greeting */}
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: T.text, fontWeight: 700, marginBottom: 6 }}>
-          Добро пожаловать, {user.name?.split(" ")[0]}
+          {t("dash.welcome", { name: user.name?.split(" ")[0] })}
         </h2>
         {user.level && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
-            <span style={{ color: T.muted, fontSize: 14 }}>Ваш уровень:</span>
+            <span style={{ color: T.muted, fontSize: 14 }}>{t("dash.level")}</span>
             <span style={{
               fontSize: 14, fontWeight: 700,
               color: LEVEL_COLORS[user.level] || T.gold,
@@ -70,12 +68,12 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
             }}>{user.level}</span>
           </div>
         )}
-        {!user.level && <p style={{ color: T.muted, fontSize: 14, marginBottom: 24 }}>Ваш личный кабинет</p>}
+        {!user.level && <p style={{ color: T.muted, fontSize: 14, marginBottom: 24 }}>{t("dash.subtitle")}</p>}
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: 4, marginBottom: 24, background: T.card, borderRadius: 12, padding: 4, width: "fit-content" }}>
-          {TABS.map((t, i) => (
-            <button key={t} onClick={() => setTab(i)} style={{
+          {TABS.map((label, i) => (
+            <button key={i} onClick={() => setTab(i)} style={{
               padding: "7px 16px", borderRadius: 9, border: "none",
               background: tab === i ? T.panel : "transparent",
               color: tab === i ? T.text : T.muted,
@@ -83,19 +81,13 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
               cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
               boxShadow: tab === i ? `0 1px 4px rgba(0,0,0,.15)` : "none",
               transition: "all .15s",
-            }}>{t}</button>
+            }}>{label}</button>
           ))}
         </div>
 
-        {tab === 0 && (
-          <ExamsTab T={T} user={user} onRegisterExam={onRegisterExam} />
-        )}
-        {tab === 1 && (
-          <ProfileTab T={T} user={user} onUserUpdate={onUserUpdate} />
-        )}
-        {tab === 2 && (
-          <PasswordTab T={T} />
-        )}
+        {tab === 0 && <ExamsTab T={T} user={user} onRegisterExam={onRegisterExam} />}
+        {tab === 1 && <ProfileTab T={T} user={user} onUserUpdate={onUserUpdate} />}
+        {tab === 2 && <PasswordTab T={T} />}
       </div>
     </div>
   );
@@ -114,22 +106,22 @@ function ExamsTab({ T, user, onRegisterExam }) {
       }}>
         <div style={{ fontSize: 36 }}>📝</div>
         <div style={{ flex: 1 }}>
-          <div style={{ color: T.text, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>Записаться на экзамен</div>
-          <div style={{ color: T.muted, fontSize: 13 }}>Выберите город, центр и удобное время</div>
+          <div style={{ color: T.text, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{t("dash.register_exam")}</div>
+          <div style={{ color: T.muted, fontSize: 13 }}>{t("dash.reg_hint")}</div>
         </div>
         <button onClick={onRegisterExam} style={{
           background: `linear-gradient(135deg,${T.gold},${T.goldDim})`,
           border: "none", borderRadius: 10, padding: "10px 20px",
           color: "white", fontWeight: 600, fontSize: 14, cursor: "pointer",
           fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap",
-        }}>Записаться →</button>
+        }}>{t("dash.reg_btn")}</button>
       </div>
 
       {/* Registered exams list */}
       {user.registeredExams && user.registeredExams.length > 0 ? (
         <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
           <div style={{ color: T.muted, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 16 }}>
-            Мои записи
+            {t("dash.my_regs")}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {user.registeredExams.map(r => (
@@ -142,7 +134,7 @@ function ExamsTab({ T, user, onRegisterExam }) {
                   <div style={{ color: T.text, fontWeight: 500, fontSize: 14, marginBottom: 5 }}>{r.exam.title}</div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {r.exam.level && <Tag color={T.info}>{r.exam.level}</Tag>}
-                    <Tag color={T.muted}>{r.exam.duration} мин</Tag>
+                    <Tag color={T.muted}>{t("dash.min", { n: r.exam.duration })}</Tag>
                     {r.exam.examCenter && (
                       <Tag color={T.muted}>{r.exam.examCenter.city?.name} — {r.exam.examCenter.name}</Tag>
                     )}
@@ -160,12 +152,12 @@ function ExamsTab({ T, user, onRegisterExam }) {
             ))}
           </div>
           <p style={{ color: T.muted, fontSize: 12, marginTop: 12, lineHeight: 1.5 }}>
-            PIN-код предъявляется на экзаменационном центре.
+            {t("dash.pin_hint")}
           </p>
         </div>
       ) : (
         <div style={{ color: T.muted, fontSize: 14, textAlign: "center", padding: "20px 0" }}>
-          Вы ещё не зарегистрированы ни на один экзамен.
+          {t("dash.no_exams")}
         </div>
       )}
     </>
@@ -189,7 +181,7 @@ function ProfileTab({ T, user, onUserUpdate }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    if (!form.name.trim()) return setError("Имя обязательно");
+    if (!form.name.trim()) return setError(t("dash.name"));
     setSaving(true); setError(""); setSuccess(false);
     try {
       const updated = await api.updateProfile(form);
@@ -204,50 +196,50 @@ function ProfileTab({ T, user, onUserUpdate }) {
 
   return (
     <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 28 }}>
-      <h3 style={{ fontSize: 16, color: T.text, fontWeight: 600, marginBottom: 20 }}>Личные данные</h3>
+      <h3 style={{ fontSize: 16, color: T.text, fontWeight: 600, marginBottom: 20 }}>{t("dash.personal")}</h3>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <Field label="Имя" T={T}>
+        <Field label={t("dash.name")} T={T}>
           <input value={form.name} onChange={e => set("name", e.target.value)} style={inputSt(T)} />
         </Field>
-        <Field label="Email" T={T}>
+        <Field label={t("login.email")} T={T}>
           <input value={user.email} disabled style={{ ...inputSt(T), opacity: .5 }} />
         </Field>
-        <Field label="Телефон" T={T}>
+        <Field label={t("dash.phone")} T={T}>
           <input value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="+374..." style={inputSt(T)} />
         </Field>
-        <Field label="Страна" T={T}>
+        <Field label={t("dash.country")} T={T}>
           <input value={form.country} onChange={e => set("country", e.target.value)} style={inputSt(T)} />
         </Field>
-        <Field label="Тип документа" T={T}>
+        <Field label={t("dash.doc_type")} T={T}>
           <select value={form.documentType} onChange={e => set("documentType", e.target.value)} style={inputSt(T)}>
-            <option value="passport">Паспорт</option>
-            <option value="id_card">ID карта</option>
+            <option value="passport">{t("dash.doc_passport")}</option>
+            <option value="id_card">{t("dash.doc_id")}</option>
           </select>
         </Field>
-        <Field label="Номер документа" T={T}>
+        <Field label={t("dash.doc_number")} T={T}>
           <input value={form.documentNumber} onChange={e => set("documentNumber", e.target.value)} style={inputSt(T)} />
         </Field>
-        <Field label="Пол" T={T}>
+        <Field label={t("dash.gender")} T={T}>
           <select value={form.gender} onChange={e => set("gender", e.target.value)} style={inputSt(T)}>
-            <option value="">— не указан —</option>
-            <option value="male">Мужской</option>
-            <option value="female">Женский</option>
-            <option value="other">Другой</option>
+            <option value="">{t("dash.not_set")}</option>
+            <option value="male">{t("dash.gender_male")}</option>
+            <option value="female">{t("dash.gender_female")}</option>
+            <option value="other">{t("dash.gender_other")}</option>
           </select>
         </Field>
         {user.level && (
-          <Field label="Уровень" T={T}>
+          <Field label={t("dash.level_label")} T={T}>
             <input value={user.level} disabled style={{ ...inputSt(T), opacity: .5 }} />
           </Field>
         )}
       </div>
 
       {error   && <div style={errorBox(T)}>{error}</div>}
-      {success && <div style={{ ...errorBox(T), background: "#4cc98a18", borderColor: "#4cc98a44", color: "#4cc98a" }}>Данные сохранены</div>}
+      {success && <div style={{ ...errorBox(T), background: "#4cc98a18", borderColor: "#4cc98a44", color: "#4cc98a" }}>{t("dash.saved")}</div>}
 
       <button onClick={handleSave} disabled={saving} style={primaryBtn(T, saving)}>
-        {saving ? "Сохранение..." : "Сохранить изменения"}
+        {saving ? t("dash.saving") : t("dash.save")}
       </button>
     </div>
   );
@@ -263,9 +255,9 @@ function PasswordTab({ T }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    if (!form.currentPassword || !form.newPassword) return setError("Заполните все поля");
-    if (form.newPassword !== form.confirm) return setError("Пароли не совпадают");
-    if (form.newPassword.length < 6) return setError("Минимум 6 символов");
+    if (!form.currentPassword || !form.newPassword) return setError(t("reg.error.password"));
+    if (form.newPassword !== form.confirm) return setError(t("reg.error.password"));
+    if (form.newPassword.length < 6) return setError(t("reg.error.password"));
     setSaving(true); setError(""); setSuccess(false);
     try {
       await api.changePassword({ currentPassword: form.currentPassword, newPassword: form.newPassword });
@@ -278,15 +270,17 @@ function PasswordTab({ T }) {
     }
   };
 
+  const fields = [
+    { key: "currentPassword", label: t("dash.pwd_current") },
+    { key: "newPassword",     label: t("dash.pwd_new") },
+    { key: "confirm",         label: t("dash.pwd_confirm") },
+  ];
+
   return (
     <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 28, maxWidth: 420 }}>
-      <h3 style={{ fontSize: 16, color: T.text, fontWeight: 600, marginBottom: 20 }}>Сменить пароль</h3>
+      <h3 style={{ fontSize: 16, color: T.text, fontWeight: 600, marginBottom: 20 }}>{t("dash.tab.password")}</h3>
 
-      {[
-        { key: "currentPassword", label: "Текущий пароль" },
-        { key: "newPassword",     label: "Новый пароль" },
-        { key: "confirm",         label: "Подтвердите новый пароль" },
-      ].map(f => (
+      {fields.map(f => (
         <div key={f.key} style={{ marginBottom: 14 }}>
           <label style={{ display: "block", fontSize: 12, color: T.muted, marginBottom: 5 }}>{f.label}</label>
           <input
@@ -300,10 +294,10 @@ function PasswordTab({ T }) {
       ))}
 
       {error   && <div style={errorBox(T)}>{error}</div>}
-      {success && <div style={{ ...errorBox(T), background: "#4cc98a18", borderColor: "#4cc98a44", color: "#4cc98a" }}>Пароль изменён</div>}
+      {success && <div style={{ ...errorBox(T), background: "#4cc98a18", borderColor: "#4cc98a44", color: "#4cc98a" }}>{t("dash.pwd_changed")}</div>}
 
       <button onClick={handleSave} disabled={saving} style={primaryBtn(T, saving)}>
-        {saving ? "Сохранение..." : "Изменить пароль"}
+        {saving ? t("dash.saving") : t("dash.pwd_submit")}
       </button>
     </div>
   );

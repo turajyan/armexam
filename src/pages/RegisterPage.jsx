@@ -1,14 +1,10 @@
 import { useState } from "react";
 import { api } from "../api.js";
+import { t } from "../translations.js";
 
 const COUNTRIES = [
   "Armenia", "Russia", "USA", "France", "Germany", "Georgia", "Ukraine",
   "Belarus", "Kazakhstan", "Azerbaijan", "Turkey", "Iran", "Other",
-];
-
-const DOC_TYPES = [
-  { value: "passport", label: "Паспорт" },
-  { value: "id_card",  label: "ID карта" },
 ];
 
 export default function RegisterPage({ theme: T, onSuccess }) {
@@ -23,11 +19,11 @@ export default function RegisterPage({ theme: T, onSuccess }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const validate = () => {
-    if (!form.name.trim())           return "Введите полное имя";
-    if (!form.email.includes("@"))   return "Введите корректный email";
-    if (form.password.length < 6)    return "Пароль минимум 6 символов";
-    if (!form.country)               return "Выберите страну проживания";
-    if (!form.documentNumber.trim()) return "Введите номер документа";
+    if (!form.name.trim())           return t("reg.error.name");
+    if (!form.email.includes("@"))   return t("reg.error.email");
+    if (form.password.length < 6)    return t("reg.error.password");
+    if (!form.country)               return t("reg.error.country");
+    if (!form.documentNumber.trim()) return t("reg.error.doc");
     return null;
   };
 
@@ -51,7 +47,7 @@ export default function RegisterPage({ theme: T, onSuccess }) {
       setDone(true);
       if (onSuccess) setTimeout(() => onSuccess(user), 1200);
     } catch (e) {
-      setError(e.message || "Ошибка регистрации");
+      setError(e.message || t("reg.error.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -77,7 +73,7 @@ export default function RegisterPage({ theme: T, onSuccess }) {
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: T.text, fontWeight: 700, marginBottom: 6 }}>
             ArmExam
           </h1>
-          <p style={{ color: T.muted, fontSize: 14 }}>Создание учётной записи</p>
+          <p style={{ color: T.muted, fontSize: 14 }}>{t("reg.title")}</p>
         </div>
 
         <div style={{
@@ -88,57 +84,58 @@ export default function RegisterPage({ theme: T, onSuccess }) {
           {done ? (
             <div style={{ textAlign: "center", padding: "16px 0" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
-              <h2 style={{ fontSize: 20, color: T.text, fontWeight: 700, marginBottom: 8 }}>Регистрация успешна!</h2>
-              <p style={{ color: T.muted, fontSize: 14 }}>Перенаправляем в личный кабинет...</p>
+              <h2 style={{ fontSize: 20, color: T.text, fontWeight: 700, marginBottom: 8 }}>{t("reg.success")}</h2>
+              <p style={{ color: T.muted, fontSize: 14 }}>{t("reg.redirecting")}</p>
             </div>
           ) : (
             <>
-              <h2 style={{ fontSize: 17, color: T.text, fontWeight: 600, marginBottom: 22 }}>Личные данные</h2>
+              <h2 style={{ fontSize: 17, color: T.text, fontWeight: 600, marginBottom: 22 }}>{t("reg.personal")}</h2>
 
-              <Field label="Полное имя *" T={T}>
+              <Field label={t("reg.fullname")} T={T}>
                 <input value={form.name} onChange={e => set("name", e.target.value)}
-                  placeholder="Иван Иванов" style={inputSt(T)} />
+                  placeholder="Ani Hakobyan" style={inputSt(T)} />
               </Field>
 
-              <Field label="Email *" T={T}>
+              <Field label={t("reg.email")} T={T}>
                 <input type="email" value={form.email} onChange={e => set("email", e.target.value)}
-                  placeholder="ivan@example.com" style={inputSt(T)} />
+                  placeholder="ani@example.com" style={inputSt(T)} />
               </Field>
 
-              <Field label="Пароль *" T={T}>
+              <Field label={t("reg.password")} T={T}>
                 <input type="password" value={form.password} onChange={e => set("password", e.target.value)}
-                  placeholder="Минимум 6 символов" style={inputSt(T)} />
+                  placeholder={t("reg.password_hint")} style={inputSt(T)} />
               </Field>
 
-              <Field label="Телефон" T={T}>
+              <Field label={t("reg.phone")} T={T}>
                 <input value={form.phone} onChange={e => set("phone", e.target.value)}
                   placeholder="+374 99 123456" style={inputSt(T)} />
               </Field>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <Field label="Страна проживания *" T={T}>
+                <Field label={t("reg.country")} T={T}>
                   <select value={form.country} onChange={e => set("country", e.target.value)} style={inputSt(T)}>
-                    <option value="">— выберите —</option>
+                    <option value="">{t("reg.country_default")}</option>
                     {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </Field>
-                <Field label="Пол" T={T}>
+                <Field label={t("reg.gender")} T={T}>
                   <select value={form.gender} onChange={e => set("gender", e.target.value)} style={inputSt(T)}>
-                    <option value="">— выберите —</option>
-                    <option value="male">Мужской</option>
-                    <option value="female">Женский</option>
-                    <option value="other">Другой</option>
+                    <option value="">{t("reg.country_default")}</option>
+                    <option value="male">{t("reg.gender_male")}</option>
+                    <option value="female">{t("reg.gender_female")}</option>
+                    <option value="other">{t("reg.gender_other")}</option>
                   </select>
                 </Field>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <Field label="Тип документа *" T={T}>
+                <Field label={t("reg.doc_type")} T={T}>
                   <select value={form.documentType} onChange={e => set("documentType", e.target.value)} style={inputSt(T)}>
-                    {DOC_TYPES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                    <option value="passport">{t("reg.doc_passport")}</option>
+                    <option value="id_card">{t("reg.doc_id")}</option>
                   </select>
                 </Field>
-                <Field label="Номер документа *" T={T}>
+                <Field label={t("reg.doc_number")} T={T}>
                   <input value={form.documentNumber} onChange={e => set("documentNumber", e.target.value)}
                     placeholder="AA 123456" style={inputSt(T)} />
                 </Field>
@@ -147,7 +144,7 @@ export default function RegisterPage({ theme: T, onSuccess }) {
               {error && <p style={{ color: T.danger, fontSize: 13, marginBottom: 14, marginTop: -4 }}>{error}</p>}
 
               <button onClick={handleSubmit} disabled={submitting} style={primaryBtn(T, submitting)}>
-                {submitting ? "Регистрация..." : "Зарегистрироваться"}
+                {submitting ? t("reg.submitting") : t("reg.submit")}
               </button>
             </>
           )}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
 import { formatDate } from "../dateUtils.js";
+import { t } from "../translations.js";
 
 // Steps: city → center → exam → pin
 export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
@@ -14,12 +15,14 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
   const [error, setError]     = useState("");
   const [pinResult, setPinResult] = useState(null); // { pin, examTitle }
 
+  const STEPS = [t("ereg.city"), t("ereg.center"), t("ereg.exam"), t("ereg.pin")];
+
   // Load cities on mount
   useEffect(() => {
     setLoading(true);
     api.getCities()
       .then(data => setCities(data))
-      .catch(() => setError("Не удалось загрузить список городов"))
+      .catch(() => setError(t("ereg.err.cities")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -32,7 +35,7 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
       setCenters(data);
       setStep(2);
     } catch {
-      setError("Не удалось загрузить центры");
+      setError(t("ereg.err.centers"));
     } finally {
       setLoading(false);
     }
@@ -47,7 +50,7 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
       setExams(data);
       setStep(3);
     } catch {
-      setError("Не удалось загрузить экзамены");
+      setError(t("ereg.err.exams"));
     } finally {
       setLoading(false);
     }
@@ -61,13 +64,11 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
       setPinResult({ ...result, examTitle: result.examTitle || exam.title });
       setStep(4);
     } catch (e) {
-      setError(e.message || "Ошибка записи на экзамен");
+      setError(e.message || t("ereg.err.reg"));
     } finally {
       setLoading(false);
     }
   };
-
-  const STEPS = ["Город", "Центр", "Экзамен", "PIN"];
 
   return (
     <div style={{
@@ -83,16 +84,16 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
             background: "transparent", border: `1px solid ${T.border}`,
             borderRadius: 8, padding: "6px 12px", color: T.muted,
             fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-          }}>← Назад</button>
+          }}>{t("ereg.back")}</button>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: T.text, fontWeight: 700 }}>
-            Запись на экзамен
+            {t("ereg.title")}
           </h2>
         </div>
 
         {/* Step indicator */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 28 }}>
           {STEPS.map((s, i) => (
-            <div key={s} style={{ display: "flex", alignItems: "center", flex: i < STEPS.length - 1 ? 1 : 0 }}>
+            <div key={i} style={{ display: "flex", alignItems: "center", flex: i < STEPS.length - 1 ? 1 : 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                 <div style={{
                   width: 26, height: 26, borderRadius: "50%",
@@ -124,22 +125,22 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
 
         <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
 
-          {loading && <div style={{ textAlign: "center", color: T.muted, padding: "32px 0" }}>Загрузка...</div>}
+          {loading && <div style={{ textAlign: "center", color: T.muted, padding: "32px 0" }}>{t("ereg.loading")}</div>}
 
           {error && <p style={{ color: T.danger, fontSize: 13, marginBottom: 16 }}>{error}</p>}
 
           {/* Step 1: Cities */}
           {step === 1 && !loading && (
             <>
-              <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Выберите город</h3>
+              <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, marginBottom: 16 }}>{t("ereg.select_city")}</h3>
               {cities.length === 0
-                ? <Empty T={T} text="Нет доступных городов" />
+                ? <Empty T={T} text={t("ereg.no_cities")} />
                 : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {cities.map(c => (
                       <SelectCard key={c.id} T={T} onClick={() => selectCity(c)}>
                         <div style={{ color: T.text, fontWeight: 500, fontSize: 14 }}>{c.name}</div>
-                        <div style={{ color: T.muted, fontSize: 12 }}>{c.centers?.length || 0} центров</div>
+                        <div style={{ color: T.muted, fontSize: 12 }}>{t("ereg.centers_count", { n: c.centers?.length || 0 })}</div>
                       </SelectCard>
                     ))}
                   </div>
@@ -151,9 +152,9 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
           {/* Step 2: Centers */}
           {step === 2 && !loading && (
             <>
-              <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Выберите экзаменационный центр</h3>
+              <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, marginBottom: 16 }}>{t("ereg.select_center")}</h3>
               {centers.length === 0
-                ? <Empty T={T} text="В этом городе нет экзаменационных центров" />
+                ? <Empty T={T} text={t("ereg.no_centers")} />
                 : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {centers.map(c => (
@@ -171,9 +172,9 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
           {/* Step 3: Exams */}
           {step === 3 && !loading && (
             <>
-              <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Доступные экзамены</h3>
+              <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, marginBottom: 16 }}>{t("ereg.available_exams")}</h3>
               {exams.length === 0
-                ? <Empty T={T} text="В данный момент нет открытых экзаменов в этом центре" />
+                ? <Empty T={T} text={t("ereg.no_exams")} />
                 : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {exams.map(exam => (
@@ -187,8 +188,8 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                               {exam.level && <Tag T={T} color={T.info}>{exam.level}</Tag>}
                               <Tag T={T} color={T.muted}>{exam.examType === "placement" ? "Placement" : "Fixed"}</Tag>
-                              <Tag T={T} color={T.muted}>{exam.duration} мин</Tag>
-                              {exam.passingScore && <Tag T={T} color={T.success}>Проходной: {exam.passingScore}%</Tag>}
+                              <Tag T={T} color={T.muted}>{t("dash.min", { n: exam.duration })}</Tag>
+                              {exam.passingScore && <Tag T={T} color={T.success}>{t("ereg.passing", { pct: exam.passingScore })}</Tag>}
                             </div>
                             {exam.startDate && (
                               <div style={{ color: T.muted, fontSize: 12 }}>
@@ -205,7 +206,7 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
                               fontFamily: "'DM Sans', sans-serif", flexShrink: 0,
                             }}
                           >
-                            Записаться
+                            {t("dash.reg_btn").replace(" →", "")}
                           </button>
                         </div>
                       </div>
@@ -221,14 +222,14 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
             <div style={{ textAlign: "center", padding: "8px 0" }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
               <h2 style={{ fontSize: 20, color: T.text, fontWeight: 700, marginBottom: 8 }}>
-                {pinResult.alreadyRegistered ? "Вы уже записаны!" : "Запись подтверждена!"}
+                {pinResult.alreadyRegistered ? t("ereg.already") : t("ereg.confirmed")}
               </h2>
               <p style={{ color: T.muted, fontSize: 14, marginBottom: 24 }}>
                 {pinResult.examTitle}
               </p>
 
               <div style={{ marginBottom: 24 }}>
-                <div style={{ color: T.muted, fontSize: 12, marginBottom: 10 }}>Ваш PIN-код для экзамена</div>
+                <div style={{ color: T.muted, fontSize: 12, marginBottom: 10 }}>{t("ereg.your_pin")}</div>
                 <div style={{
                   display: "inline-block",
                   background: `linear-gradient(135deg,${T.gold}22,${T.goldDim}11)`,
@@ -246,7 +247,7 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
                 borderRadius: 10, padding: "12px 16px",
                 fontSize: 13, color: T.textSub, marginBottom: 20, lineHeight: 1.6, textAlign: "left",
               }}>
-                Запишите PIN-код. Он потребуется при входе в систему в экзаменационном центре.
+                {t("ereg.pin_note")}
               </div>
 
               <button onClick={onBack} style={{
@@ -255,7 +256,7 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
                 color: T.textSub, fontWeight: 500, fontSize: 14, cursor: "pointer",
                 fontFamily: "'DM Sans', sans-serif",
               }}>
-                Вернуться в личный кабинет
+                {t("ereg.back_dashboard")}
               </button>
             </div>
           )}
