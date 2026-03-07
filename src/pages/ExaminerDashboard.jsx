@@ -167,7 +167,7 @@ export default function ExaminerDashboard({ theme: T }) {
                     type="text"
                     value={g.notes}
                     onChange={e => setGrade(q.id, "notes", e.target.value)}
-                    placeholder=t("adm.e.optional")
+                    placeholder={t("adm.e.optional")}
                     style={inputSt(T)}
                   />
                 </div>
