@@ -246,6 +246,7 @@ function CityModal({ C, initial, onClose, onSave }) {
 
 // ── Center Modal ──────────────────────────────────────────────────────────────
 function CenterModal({ C, cities, initial, onClose, onSave }) {
+  const { t } = useTranslation();
   const isEdit = !!(initial?.id && initial?.address !== undefined);
   const [form, setForm] = useState({
     name:    initial?.name    || "",

@@ -167,7 +167,7 @@ export default function App() {
         <style>{FONTS}{globalStyle}</style>
         <RegisterPage
           theme={T}
-          onSuccess={(u) => { setUser(u); setUserPage("dashboard"); window.location.hash = "#dashboard"; }}
+          onSuccess={(u) => { setUser(u); api.me().then(setUser).catch(() => {}); setUserPage("dashboard"); window.location.hash = "#dashboard"; }}
         />
         <div style={{ position:"fixed", bottom:16, right:16, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>
           <a href="#login" style={{ color:T.gold, textDecoration:"none" }}>Already have an account? Sign in</a>
@@ -184,7 +184,7 @@ export default function App() {
         <style>{FONTS}{globalStyle}</style>
         <LoginPage
           theme={T}
-          onSuccess={(u) => { setUser(u); setUserPage("dashboard"); window.location.hash = "#dashboard"; }}
+          onSuccess={(u) => { setUser(u); api.me().then(setUser).catch(() => {}); setUserPage("dashboard"); window.location.hash = "#dashboard"; }}
           onRegister={() => { window.location.hash = "#register"; }}
         />
       </>
@@ -211,6 +211,7 @@ export default function App() {
         <style>{FONTS}{globalStyle}</style>
         <UserDashboard
           theme={T} user={user}
+          onThemeChange={handleThemeChange} currentTheme={themeId}
           onRegisterExam={() => setUserPage("register-exam")}
           onLogout={() => { setUser(null); window.location.hash = "#login"; }}
           onUserUpdate={(u) => setUser(u)}

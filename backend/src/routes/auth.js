@@ -120,6 +120,7 @@ export default async function authRoutes(fastify) {
             },
           },
         },
+        results: true,
       },
     });
     if (!student) return reply.code(401).send({ error: "Недействительный токен" });
@@ -133,11 +134,19 @@ export default async function authRoutes(fastify) {
       documentType: student.documentType,
       documentNumber: student.documentNumber,
       level: student.level,
-      registeredExams: student.exams.map(a => ({
-        pin: a.pin,
-        registeredAt: a.createdAt,
-        exam: a.exam,
-      })),
+      registeredExams: student.exams.map(a => {
+        // Check if there's a result for this exam
+        const result = student.results?.find(r => r.examId === a.examId);
+        return {
+          id: a.id,
+          pin: a.pin,
+          registeredAt: a.createdAt,
+          exam: a.exam,
+          completed: !!result,
+          passed: result?.passed || false,
+          score: result?.pct || null,
+        };
+      }),
     };
   });
 
@@ -185,6 +194,32 @@ export default async function authRoutes(fastify) {
       where: { id: student.id },
       data: { passwordHash: hashPassword(newPassword, student.email) },
     });
+    return { success: true };
+  });
+
+  // DELETE /api/auth/exam-assignments/:id — cancel exam registration (student)
+  fastify.delete("/api/auth/exam-assignments/:id", async (req, reply) => {
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
+    if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
+
+    const student = await prisma.student.findUnique({ where: { sessionToken: token } });
+    if (!student) return reply.code(401).send({ error: "Недействительный токен" });
+
+    const assignmentId = Number(req.params.id);
+    const assignment = await prisma.examAssignment.findUnique({
+      where: { id: assignmentId },
+    });
+
+    if (!assignment) return reply.code(404).send({ error: "Регистрация не найдена" });
+    if (assignment.studentId !== student.id) return reply.code(403).send({ error: "Нет доступа" });
+
+    // Check if exam already passed
+    const result = await prisma.result.findUnique({
+      where: { examAssignmentId: assignmentId },
+    });
+    if (result) return reply.code(400).send({ error: "Нельзя отменить регистрацию на уже завершённый экзамен" });
+
+    await prisma.examAssignment.delete({ where: { id: assignmentId } });
     return { success: true };
   });
 

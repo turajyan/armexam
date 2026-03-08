@@ -9,6 +9,20 @@ const ROLE_COLORS = {
   examiner:     "#c94c6f",
 };
 
+// Avatar component
+function Avatar({ letter, size=32, color="#c9a84c" }) {
+  return <div style={{ width:size, height:size, borderRadius:"50%", background:`linear-gradient(135deg,${color}33,${color}11)`, border:`1.5px solid ${color}44`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Cormorant Garamond',serif", fontSize:size*0.4, fontWeight:700, color, flexShrink:0 }}>{letter}</div>;
+}
+
+function getInitials(name) {
+  if (!name) return "?";
+  const parts = name.split(" ").filter(p => p.length > 0);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 const EMPTY_FORM = { name: "", email: "", password: "", role: "moderator", centerId: "", status: "active" };
 
 export default function AdminManagement({ theme: T }) {
@@ -32,7 +46,7 @@ export default function AdminManagement({ theme: T }) {
 
   const load = async () => {
     try {
-      const [a, c] = await Promise.all([api.getAdmins(), api.getCenters()]);
+      const [a, c] = await Promise.all([api.getAdmins(), api.getAllCenters()]);
       setAdmins(a);
       setCenters(c);
     } catch (e) {
@@ -131,7 +145,12 @@ export default function AdminManagement({ theme: T }) {
           <tbody>
             {admins.map((a, i) => (
               <tr key={a.id} style={{ borderBottom: i < admins.length - 1 ? `1px solid ${T.border}` : "none" }}>
-                <td style={{ padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 500 }}>{a.name}</td>
+                <td style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Avatar letter={getInitials(a.name)} size={32} color={ROLE_COLORS[a.role] || T.gold} />
+                    <span style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>{a.name}</span>
+                  </div>
+                </td>
                 <td style={{ padding: "12px 16px", color: T.muted, fontSize: 13 }}>{a.email}</td>
                 <td style={{ padding: "12px 16px" }}>
                   <span style={{

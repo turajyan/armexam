@@ -520,6 +520,28 @@ async function main() {
   }
   console.log(`✅ ${exams.length} placement exams`);
 
+  // Fixed-level exams (for certificates) - Armenian language exams
+  const fixedExams = [
+    { title: "Հայոց լեզու A1", level: "A1", passingScore: 60 },
+    { title: "Հայոց լեզու A2", level: "A2", passingScore: 60 },
+    { title: "Հայոց լեզու B1", level: "B1", passingScore: 60 },
+  ];
+  const createdFixedExams = [];
+  for (const fe of fixedExams) {
+    const exam = await prisma.exam.create({
+      data: {
+        title: fe.title, examType: "fixed", level: fe.level,
+        duration: 60, passingScore: fe.passingScore, shuffle: true,
+        showResults: true, showQuestionLevel: true, showQuestionPoints: true,
+        status: "active", isOpen: false,  // Closed - past exams
+        examCenterId: centers[0].id,
+        startDate: new Date("2024-01-01"), endDate: new Date("2024-12-31"),  // Past dates
+      },
+    });
+    createdFixedExams.push(exam);
+  }
+  console.log(`✅ ${createdFixedExams.length} fixed exams (A1, A2, B1)`);
+
   // Students with PINs
   const usedPins = new Set();
   for (let i = 0; i < STUDENTS_DATA.length; i++) {
@@ -537,6 +559,48 @@ async function main() {
     console.log(`  👤 ${s.name.padEnd(22)} → ${exam.title} | PIN: ${pin}`);
   }
   console.log(`✅ ${STUDENTS_DATA.length} students`);
+
+  // Add certificate results for student Անի Հակոբյան (ani@example.am)
+  const aniStudent = await prisma.student.findUnique({ where: { email: "ani@example.am" } });
+  if (aniStudent) {
+    // Create exam assignments and results for A1, A2, B1 exams
+    const certificateResults = [
+      { examIndex: 0, score: 80, totalPoints: 100, pct: 80, passed: true },  // A1 - 80%
+      { examIndex: 1, score: 76, totalPoints: 100, pct: 76, passed: true },  // A2 - 76%
+      { examIndex: 2, score: 68, totalPoints: 100, pct: 68, passed: true },  // B1 - 68%
+    ];
+    
+    for (let i = 0; i < certificateResults.length; i++) {
+      const cr = certificateResults[i];
+      const exam = createdFixedExams[cr.examIndex];
+      const pin = randPin(usedPins);
+      
+      // Create exam assignment
+      const assignment = await prisma.examAssignment.create({
+        data: {
+          studentId: aniStudent.id,
+          examId: exam.id,
+          pin: pin,
+        },
+      });
+      
+      // Create result
+      await prisma.result.create({
+        data: {
+          examId: exam.id,
+          studentId: aniStudent.id,
+          score: cr.score,
+          totalPoints: cr.totalPoints,
+          pct: cr.pct,
+          passed: cr.passed,
+          gradingStatus: "auto",
+          submittedAt: new Date(`2024-${6 + i * 2}-15`), // Different dates: June, Aug, Oct
+        },
+      });
+      console.log(`  📜 ${aniStudent.name} → ${exam.title} | ${cr.pct}% | PIN: ${pin}`);
+    }
+    console.log(`✅ Added ${certificateResults.length} certificates for ${aniStudent.name}`);
+  }
 
   // Admins
   const adminSeeds = [

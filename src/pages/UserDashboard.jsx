@@ -2,18 +2,19 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { formatDate } from "../dateUtils.js";
 import { useTranslation } from "react-i18next";
+import StatsTab from "./StatsTab.jsx";
 
 const LEVEL_COLORS = {
   A1: "#4ade80", A2: "#86efac", B1: "#60a5fa",
   B2: "#93c5fd", C1: "#f59e0b", C2: "#fbbf24",
 };
 
-export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout, onUserUpdate }) {
-  const { t } = useTranslation();
+export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout, onUserUpdate, onThemeChange, currentTheme }) {
+  const { t, i18n } = useTranslation();
   const [tab,  setTab]  = useState(0);
   const initials = user.name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 
-  const TABS = [t("dash.tab.exams"), t("dash.tab.profile"), t("dash.tab.password")];
+  const TABS = [t("dash.tab.stats"), t("dash.tab.exams"), t("dash.tab.profile"), t("dash.tab.password")];
 
   const handleLogout = async () => {
     try { await api.logout(); } catch {}
@@ -50,9 +51,22 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
           borderRadius: 8, padding: "6px 14px", color: T.muted,
           fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
         }}>{t("dash.logout")}</button>
+        <select value={i18n.language} onChange={(e) => { i18n.changeLanguage(e.target.value); localStorage.setItem('armexam_general_settings', JSON.stringify({language: e.target.value})); }} style={{ background: T.panel, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}>
+          <option value="en">EN</option>
+          <option value="ru">RU</option>
+          <option value="hy">HY</option>
+        </select>
+        {onThemeChange && <div style={{ display: "flex", gap: 4 }}>
+          {["dark", "medium", "light"].map(th => (
+            <button key={th} onClick={() => onThemeChange(th)} title={th}
+              style={{ width: 24, height: 24, borderRadius: 6, background: currentTheme === th ? T.gold + "22" : "transparent", border: `1px solid ${currentTheme === th ? T.gold : T.border}`, cursor: "pointer", fontSize: 12 }}>
+              {th === "dark" ? "🌙" : th === "medium" ? "🌆" : "☀️"}
+            </button>
+          ))}
+        </div>}
       </div>
 
-      <div style={{ maxWidth: 740, margin: "0 auto", padding: "32px 24px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
 
         {/* Greeting */}
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: T.text, fontWeight: 700, marginBottom: 6 }}>
@@ -86,9 +100,10 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
           ))}
         </div>
 
-        {tab === 0 && <ExamsTab T={T} user={user} onRegisterExam={onRegisterExam} />}
-        {tab === 1 && <ProfileTab T={T} user={user} onUserUpdate={onUserUpdate} />}
-        {tab === 2 && <PasswordTab T={T} />}
+        {tab === 0 && <StatsTab theme={T} user={user} />}
+        {tab === 1 && <ExamsTab T={T} user={user} onRegisterExam={onRegisterExam} />}
+        {tab === 2 && <ProfileTab T={T} user={user} onUserUpdate={onUserUpdate} />}
+        {tab === 3 && <PasswordTab T={T} />}
       </div>
     </div>
   );
@@ -97,6 +112,29 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
 // ── Exams tab ──────────────────────────────────────────────────────────────────
 function ExamsTab({ T, user, onRegisterExam }) {
   const { t } = useTranslation();
+  const [cancelModal, setCancelModal] = useState(null); // { pin, examTitle }
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancelClick = (r) => {
+    setCancelModal({ id: r.id, examTitle: r.exam.title });
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancelModal) return;
+    setCancelling(true);
+    try {
+      await api.cancelExamRegistration(cancelModal.id);
+      // Refresh user data
+      const updated = await api.me();
+      // Update user via parent - we need to pass this up
+      window.location.reload();
+    } catch (e) {
+      alert(e.message || t("dash.cancel_err"));
+    } finally {
+      setCancelling(false);
+      setCancelModal(null);
+    }
+  };
   return (
     <>
       {/* Register CTA */}
@@ -121,45 +159,136 @@ function ExamsTab({ T, user, onRegisterExam }) {
 
       {/* Registered exams list */}
       {user.registeredExams && user.registeredExams.length > 0 ? (
-        <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
-          <div style={{ color: T.muted, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 16 }}>
-            {t("dash.my_regs")}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {user.registeredExams.map(r => (
-              <div key={r.pin} style={{
-                background: T.card, border: `1px solid ${T.border}`,
-                borderRadius: 12, padding: "14px 16px",
-                display: "flex", alignItems: "center", gap: 16,
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: T.text, fontWeight: 500, fontSize: 14, marginBottom: 5 }}>{r.exam.title}</div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {r.exam.level && <Tag color={T.info}>{r.exam.level}</Tag>}
-                    <Tag color={T.muted}>{t("dash.min", { n: r.exam.duration })}</Tag>
-                    {r.exam.examCenter && (
-                      <Tag color={T.muted}>{r.exam.examCenter.city?.name} — {r.exam.examCenter.name}</Tag>
-                    )}
-                    {r.exam.startDate && <Tag color={T.warning}>{fmtDate(r.exam.startDate)}</Tag>}
-                  </div>
-                </div>
-                <div style={{
-                  background: `linear-gradient(135deg,${T.gold}22,${T.goldDim}11)`,
-                  border: `1.5px solid ${T.gold}55`,
-                  borderRadius: 10, padding: "8px 14px",
-                  fontFamily: "monospace", fontSize: 18, fontWeight: 700,
-                  color: T.gold, letterSpacing: 3, userSelect: "all", flexShrink: 0,
-                }}>{r.pin}</div>
+        <>
+          {/* Active exams */}
+          {user.registeredExams.filter(r => !r.completed).length > 0 && (
+            <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24, marginBottom: 24 }}>
+              <div style={{ color: T.muted, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 16 }}>
+                {t("dash.my_regs")}
               </div>
-            ))}
-          </div>
-          <p style={{ color: T.muted, fontSize: 12, marginTop: 12, lineHeight: 1.5 }}>
-            {t("dash.pin_hint")}
-          </p>
-        </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {user.registeredExams.filter(r => !r.completed).map(r => (
+                  <div key={r.pin} style={{
+                    background: T.card, border: `1px solid ${T.border}`,
+                    borderRadius: 12, padding: "14px 16px",
+                    display: "flex", alignItems: "center", gap: 16,
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: T.text, fontWeight: 500, fontSize: 14, marginBottom: 5 }}>{r.exam.title}</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {r.exam.level && <Tag color={T.info}>{r.exam.level}</Tag>}
+                        <Tag color={T.muted}>{t("dash.min", { n: r.exam.duration })}</Tag>
+                        {r.exam.examCenter && (
+                          <Tag color={T.muted}>{r.exam.examCenter.city?.name} — {r.exam.examCenter.name}</Tag>
+                        )}
+                        {r.exam.startDate && <Tag color={T.warning}>{fmtDate(r.exam.startDate)}{r.exam.endDate && ` — ${fmtDate(r.exam.endDate)}`}</Tag>}
+                      </div>
+                    </div>
+                    <div style={{
+                      background: `linear-gradient(135deg,${T.gold}22,${T.goldDim}11)`,
+                      border: `1.5px solid ${T.gold}55`,
+                      borderRadius: 10, padding: "8px 14px",
+                      fontFamily: "monospace", fontSize: 18, fontWeight: 700,
+                      color: T.gold, letterSpacing: 3, userSelect: "all", flexShrink: 0,
+                    }}>{r.pin}</div>
+                    <button onClick={() => handleCancelClick(r)} style={{
+                      background: "transparent", border: `1px solid ${T.error}44`,
+                      borderRadius: 8, padding: "6px 12px",
+                      color: T.error, fontSize: 12, cursor: "pointer",
+                    }}>✕</button>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: T.muted, fontSize: 12, marginTop: 12, lineHeight: 1.5 }}>
+                {t("dash.pin_hint")}
+              </p>
+            </div>
+          )}
+
+          {/* Completed exams */}
+          {user.registeredExams.filter(r => r.completed).length > 0 && (
+            <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
+              <div style={{ color: T.muted, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 16 }}>
+                {t("dash.completed_exams")}
+              </div>
+              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {user.registeredExams.filter(r => r.completed).map(r => (
+                    <div key={r.pin} style={{
+                      background: T.card, border: `1px solid ${T.border}`,
+                      borderRadius: 12, padding: "14px 16px",
+                      display: "flex", alignItems: "center", gap: 16,
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: T.text, fontWeight: 500, fontSize: 14, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {r.exam.title}
+                          <span style={{ 
+                            background: r.passed ? `${T.success}22` : `${T.error}22`,
+                            color: r.passed ? T.success : T.error,
+                            borderRadius: 4, padding: '2px 6px', fontSize: 10, fontWeight: 600 
+                          }}>
+                            {r.passed ? '✓ ' + t('dash.exam_passed') : '✗ ' + t('dash.exam_failed')}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {r.exam.level && <Tag color={T.info}>{r.exam.level}</Tag>}
+                          <Tag color={T.muted}>{t("dash.min", { n: r.exam.duration })}</Tag>
+                          {r.exam.examCenter && (
+                            <Tag color={T.muted}>{r.exam.examCenter.city?.name} — {r.exam.examCenter.name}</Tag>
+                          )}
+                          {r.score !== null && (
+                            <Tag color={r.passed ? T.success : T.error}>{r.score}%</Tag>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{
+                        background: T.panel,
+                        borderRadius: 10, padding: "8px 14px",
+                        fontSize: 12, fontWeight: 600,
+                        color: T.muted, flexShrink: 0,
+                      }}>{fmtDate(r.registeredAt)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div style={{ color: T.muted, fontSize: 14, textAlign: "center", padding: "20px 0" }}>
           {t("dash.no_exams")}
+        </div>
+      )}
+
+      {/* Cancel confirmation modal */}
+      {cancelModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+        }}>
+          <div style={{
+            background: T.panel, border: `1px solid ${T.border}`,
+            borderRadius: 16, padding: 24, maxWidth: 400, width: "90%",
+          }}>
+            <h3 style={{ color: T.text, fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
+              {t("dash.cancel_title")}
+            </h3>
+            <p style={{ color: T.muted, fontSize: 14, marginBottom: 20, lineHeight: 1.5 }}>
+              {t("dash.cancel_confirm", { exam: cancelModal.examTitle })}
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button onClick={() => setCancelModal(null)} style={{
+                background: "transparent", border: `1px solid ${T.border}`,
+                borderRadius: 8, padding: "8px 16px", color: T.muted,
+                cursor: "pointer", fontSize: 14,
+              }}>{t("dash.cancel_no")}</button>
+              <button onClick={handleCancelConfirm} disabled={cancelling} style={{
+                background: T.error, border: "none", borderRadius: 8,
+                padding: "8px 16px", color: "white", cursor: cancelling ? "not-allowed" : "pointer",
+                fontSize: 14, opacity: cancelling ? 0.7 : 1,
+              }}>{cancelling ? t("dash.cancelling") : t("dash.cancel_yes")}</button>
+            </div>
+          </div>
         </div>
       )}
     </>

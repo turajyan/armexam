@@ -227,6 +227,7 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
               </h2>
               <p style={{ color: T.muted, fontSize: 14, marginBottom: 24 }}>
                 {pinResult.examTitle}
+                {pinResult.startDate && <><br />{fmtDate(pinResult.startDate)} — {pinResult.endDate ? fmtDate(pinResult.endDate) : "..."}</>}
               </p>
 
               <div style={{ marginBottom: 24 }}>

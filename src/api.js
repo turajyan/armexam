@@ -35,7 +35,10 @@ export const api = {
   register:   (data) => req('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login:      (data) => req('/auth/login',    { method: 'POST', body: JSON.stringify(data) }),
   me:         ()     => req('/auth/me'),
+  getStudentStats: () => req('/student/stats'),
+  studentStats: () => req('/student/stats'),
   logout:     ()     => req('/auth/logout',   { method: 'POST' }),
+  cancelExamRegistration: (id) => req(`/auth/exam-assignments/${id}`, { method: 'DELETE' }),
   updateProfile:  (data) => req('/auth/profile',  { method: 'PUT', body: JSON.stringify(data) }),
   changePassword: (data) => req('/auth/password', { method: 'PUT', body: JSON.stringify(data) }),
 
@@ -63,7 +66,8 @@ export const api = {
   deleteCity:   (id)       => adminReq(`/cities/${id}`, { method: 'DELETE' }),
 
   // ── Centers ──────────────────────────────────────────────────────────────────
-  getCenters:     (p = {})  => adminReq('/centers' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  getCenters:     (cityId) => req(`/cities/${cityId}/centers`), // public endpoint
+  getAllCenters:  ()        => adminReq(`/centers`), // admin endpoint - get all centers
   getCenter:      (id)      => adminReq(`/centers/${id}`),
   createCenter:   (data)    => adminReq('/centers',       { method: 'POST',  body: JSON.stringify(data) }),
   updateCenter:   (id, data)=> adminReq(`/centers/${id}`, { method: 'PUT',  body: JSON.stringify(data) }),

@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 import questionsRoutes from "./routes/questions.js";
@@ -13,6 +14,7 @@ import citiesRoutes    from "./routes/cities.js";
 import adminAuthRoutes from "./routes/adminAuth.js";
 import adminsRoutes    from "./routes/admins.js";
 import gradingRoutes   from "./routes/grading.js";
+import studentStatsRoutes from "./routes/studentStats.js";
 
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -38,6 +40,10 @@ await fastify.register(citiesRoutes);
 await fastify.register(adminAuthRoutes);
 await fastify.register(adminsRoutes);
 await fastify.register(gradingRoutes);
+await fastify.register(studentStatsRoutes);
+
+// Root route
+fastify.get("/", async () => ({ message: "ARM Exam API" }));
 
 // Health check
 fastify.get("/health", async () => ({ ok: true }));

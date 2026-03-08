@@ -38,6 +38,8 @@ export default async function citiesRoutes(fastify) {
   });
 
   fastify.get("/api/cities/:id/centers", async (req, reply) => {
+    const cityId = Number(req.params.id);
+    if (!cityId || isNaN(cityId)) return reply.code(400).send({ error: "Invalid city ID" });
     const city = await prisma.city.findUnique({
       where: { id: Number(req.params.id) },
       include: { centers: { orderBy: { name: "asc" } } },
@@ -117,18 +119,18 @@ export default async function citiesRoutes(fastify) {
     const { examId } = req.body ?? {};
     if (!examId) return reply.code(400).send({ error: "Укажите ID экзамена" });
 
-    const exam = await prisma.exam.findUnique({ where: { id: Number(examId) }, select: { id: true, title: true, isOpen: true, status: true } });
+    const exam = await prisma.exam.findUnique({ where: { id: Number(examId) }, select: { id: true, title: true, isOpen: true, status: true, startDate: true, endDate: true } });
     if (!exam) return reply.code(404).send({ error: "Экзамен не найден" });
     if (!exam.isOpen || exam.status !== "active") return reply.code(400).send({ error: "Регистрация на этот экзамен недоступна" });
 
     const existing = await prisma.examAssignment.findUnique({
       where: { examId_studentId: { examId: exam.id, studentId: student.id } },
     });
-    if (existing) return { pin: existing.pin, examTitle: exam.title, alreadyRegistered: true };
+    if (existing) return { pin: existing.pin, examTitle: exam.title, startDate: exam.startDate, endDate: exam.endDate, alreadyRegistered: true };
 
     const pin = await generateUniquePin(prisma);
     await prisma.examAssignment.create({ data: { examId: exam.id, studentId: student.id, pin } });
-    return reply.code(201).send({ pin, examTitle: exam.title });
+    return reply.code(201).send({ pin, examTitle: exam.title, startDate: exam.startDate, endDate: exam.endDate });
   });
 }
 
