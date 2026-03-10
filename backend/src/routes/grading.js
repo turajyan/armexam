@@ -89,12 +89,13 @@ export default async function gradingRoutes(fastify) {
     
     // For auto-graded results, get all questions; for pending/graded, only manual types
     const isAutoGraded = result.gradingStatus === "auto";
+    let questionWhere = { id: { in: questionIds } };
+    if (!isAutoGraded) {
+      questionWhere.type = { in: ["writing", "voice"] };
+    }
     const questions = questionIds.length
       ? await prisma.question.findMany({
-          where: { 
-            id: { in: questionIds },
-            ...(isAutoGraded ? {} : { type: { in: ["writing", "voice"] } })
-          },
+          where: questionWhere,
           select: { id: true, type: true, text: true, points: true, level: true, minWords: true, maxWords: true, minSeconds: true, maxSeconds: true, correctAnswer: true },
         })
       : [];
