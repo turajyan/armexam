@@ -218,6 +218,7 @@ function CenterCard({ center, cityName, C, onEdit, onDelete }) {
 
 // ── City Modal ────────────────────────────────────────────────────────────────
 function CityModal({ C, initial, onClose, onSave }) {
+  const { t } = useTranslation();
   const [name, setName] = useState(initial?.name || "");
   const [err,  setErr]  = useState("");
   const [busy, setBusy] = useState(false);
