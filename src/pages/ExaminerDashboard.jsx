@@ -498,28 +498,6 @@ export default function ExaminerDashboard({ theme: T }) {
           </div>
         )}
       </div>
-        {centers.length > 0 && (
-          <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
-            <Pill
-              label="All Centers"
-              active={centerFilter === null}
-              onClick={() => setCenterFilter(null)}
-              color={T.muted}
-              T={T}
-            />
-            {centers.slice(0, 5).map(c => (
-              <Pill
-                key={c.id}
-                label={c.name}
-                active={centerFilter === c.id}
-                onClick={() => setCenterFilter(c.id)}
-                color={T.muted}
-                T={T}
-              />
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Table */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
