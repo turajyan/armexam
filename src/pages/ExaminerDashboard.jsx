@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { formatDateTime } from "../dateUtils.js";
 
 const STATUS_COLOR = { approved: "#4cc98a", partial: "#c9a84c", declined: "#c94c6f" };
+const LEVEL_COLORS = { A1: "#4ade80", A2: "#86efac", B1: "#60a5fa", B2: "#93c5fd", C1: "#f59e0b", C2: "#fbbf24" };
 
 export default function ExaminerDashboard({ theme: T }) {
   const { t } = useTranslation();
@@ -558,14 +559,24 @@ export default function ExaminerDashboard({ theme: T }) {
                 <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>—</div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
-                  <span style={{ 
-                    fontFamily: "'DM Sans',sans-serif", 
-                    fontSize: 11, 
-                    fontWeight: 700, 
-                    color: (tab === "auto" ? r.exam?.level : r.detectedLevel) === "A1" ? "#4ade80" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "A2" ? "#86efac" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "B1" ? "#60a5fa" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "B2" ? "#93c5fd" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "C1" ? "#f59e0b" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "C2" ? "#fbbf24" : T.muted 
-                  }}>
-                    {tab === "auto" ? r.exam?.level : r.detectedLevel || "—"}
-                  </span>
+                  {(() => {
+                    const level = tab === "auto" ? r.exam?.level : r.detectedLevel;
+                    const lc = LEVEL_COLORS[level] || T.muted;
+                    return (
+                      <span style={{ 
+                        fontFamily: "'DM Sans',sans-serif", 
+                        fontSize: 11, 
+                        fontWeight: 700, 
+                        color: lc,
+                        background: lc + "22",
+                        border: `1px solid ${lc}44`,
+                        borderRadius: 8,
+                        padding: "3px 10px",
+                      }}>
+                        {level || "—"}
+                      </span>
+                    );
+                  })()}
                   <span style={{ 
                     fontFamily: "'DM Sans',sans-serif", 
                     fontSize: 9, 
