@@ -561,9 +561,9 @@ export default function ExaminerDashboard({ theme: T }) {
                   fontFamily: "'DM Sans',sans-serif", 
                   fontSize: 11, 
                   fontWeight: 700, 
-                  color: r.level === "A1" ? "#4ade80" : r.level === "A2" ? "#86efac" : r.level === "B1" ? "#60a5fa" : r.level === "B2" ? "#93c5fd" : r.level === "C1" ? "#f59e0b" : r.level === "C2" ? "#fbbf24" : T.muted 
+                  color: r.detectedLevel === "A1" ? "#4ade80" : r.detectedLevel === "A2" ? "#86efac" : r.detectedLevel === "B1" ? "#60a5fa" : r.detectedLevel === "B2" ? "#93c5fd" : r.detectedLevel === "C1" ? "#f59e0b" : r.detectedLevel === "C2" ? "#fbbf24" : T.muted 
                 }}>
-                  {r.level || "—"}
+                  {r.detectedLevel || "—"}
                 </span>
               )}
               <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>
