@@ -433,13 +433,34 @@ export default function ExaminerDashboard({ theme: T }) {
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Stats - clickable filters */}
       {stats && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <StatCard label={t("adm.e.pending")} value={stats.pending} color={T.gold} T={T} />
-            <StatCard label={t("adm.e.graded")} value={stats.graded} color={STATUS_COLOR.approved} T={T} />
-            <StatCard label={t("adm.e.auto")} value={stats.auto} color={T.muted} T={T} />
+            <StatCard 
+              label={t("adm.e.pending")} 
+              value={stats.pending} 
+              color={T.gold} 
+              T={T}
+              active={tab === "pending"}
+              onClick={() => setTab("pending")}
+            />
+            <StatCard 
+              label={t("adm.e.graded")} 
+              value={stats.graded} 
+              color={STATUS_COLOR.approved} 
+              T={T}
+              active={tab === "graded"}
+              onClick={() => setTab("graded")}
+            />
+            <StatCard 
+              label={t("adm.e.auto")} 
+              value={stats.auto} 
+              color={T.muted} 
+              T={T}
+              active={tab === "auto"}
+              onClick={() => setTab("auto")}
+            />
           </div>
         </div>
       )}
@@ -455,29 +476,28 @@ export default function ExaminerDashboard({ theme: T }) {
           placeholder={t("adm.e.search_placeholder") || "🔍  Search by exam / student / id..."}
           style={{ flex: "1 1 240px", background: T.panel, border: `1.5px solid ${T.border2 || T.border}`, borderRadius: 9, padding: "8px 14px", color: T.text, fontFamily: "'DM Sans',sans-serif", fontSize: 13, outline: "none" }}
         />
-        <div style={{ display: "flex", gap: 6 }}>
-          <Pill
-            label={(t("adm.e.pending") || "Pending") + (stats ? ` · ${stats.pending}` : "")}
-            active={tab === "pending"}
-            onClick={() => setTab("pending")}
-            color={T.gold}
-            T={T}
-          />
-          <Pill
-            label={(t("adm.e.graded") || "Graded") + (stats ? ` · ${stats.graded}` : "")}
-            active={tab === "graded"}
-            onClick={() => setTab("graded")}
-            color={STATUS_COLOR.approved}
-            T={T}
-          />
-          <Pill
-            label={(t("adm.e.auto") || "Auto") + (stats ? ` · ${stats.auto}` : "")}
-            active={tab === "auto"}
-            onClick={() => setTab("auto")}
-            color={T.muted}
-            T={T}
-          />
-        </div>
+        {centers.length > 0 && (
+          <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+            <Pill
+              label="All Centers"
+              active={centerFilter === null}
+              onClick={() => setCenterFilter(null)}
+              color={T.muted}
+              T={T}
+            />
+            {centers.slice(0, 5).map(c => (
+              <Pill
+                key={c.id}
+                label={c.name}
+                active={centerFilter === c.id}
+                onClick={() => setCenterFilter(c.id)}
+                color={T.muted}
+                T={T}
+              />
+            ))}
+          </div>
+        )}
+      </div>
         {centers.length > 0 && (
           <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
             <Pill
@@ -682,8 +702,18 @@ function backBtn(T) {
   };
 }
 
-const StatCard = ({ label, value, color, T }) => (
-  <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
+const StatCard = ({ label, value, color, T, active, onClick }) => (
+  <div 
+    onClick={onClick}
+    style={{ 
+      background: active ? color + "18" : T.panel, 
+      border: `1px solid ${active ? color : T.border}`, 
+      borderRadius: 16, 
+      padding: 20, 
+      cursor: onClick ? "pointer" : "default",
+      transition: "all .15s",
+    }}
+  >
     <div style={{ fontSize: 28, fontWeight: 800, color }}>{value}</div>
     <div style={{ fontSize: 12, color: T.muted, fontWeight: 600, textTransform: "uppercase", marginTop: 4 }}>
       {label}
