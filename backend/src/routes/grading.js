@@ -45,6 +45,26 @@ export default async function gradingRoutes(fastify) {
     });
   });
 
+  // GET /api/grading/auto  — auto-graded results (no manual grading needed)
+  fastify.get("/api/grading/auto", { preHandler: adminHook }, async (req) => {
+    const { centerId, take } = req.query;
+    const where = { gradingStatus: "auto" };
+    if (centerId) {
+      where.exam = { examCenterId: Number(centerId) };
+    } else if (req.admin.role === "center_admin" && req.admin.centerId) {
+      where.exam = { examCenterId: req.admin.centerId };
+    }
+    return prisma.result.findMany({
+      where,
+      orderBy: { submittedAt: "desc" },
+      take: Math.min(Number(take ?? 200) || 200, 500),
+      include: {
+        exam:    { select: { id: true, title: true, examType: true, examCenterId: true } },
+        student: { select: { id: true, name: true, email: true } },
+      },
+    });
+  });
+
   // GET /api/grading/:resultId  — full result with question details for grading
   fastify.get("/api/grading/:resultId", { preHandler: adminHook }, async (req, reply) => {
     const resultId = Number(req.params.resultId);

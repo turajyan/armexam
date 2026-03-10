@@ -14,9 +14,12 @@ export default function ExaminerDashboard({ theme: T }) {
   };
 
   const [stats, setStats] = useState(null);
-  const [tab, setTab] = useState("pending"); // pending | graded
+  const [tab, setTab] = useState("pending"); // pending | graded | auto
   const [pending, setPending] = useState([]);
   const [graded, setGraded] = useState([]);
+  const [auto, setAuto] = useState([]);
+  const [centers, setCenters] = useState([]);
+  const [centerFilter, setCenterFilter] = useState(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [selectedMode, setSelectedMode] = useState("grade"); // grade | view
@@ -30,9 +33,10 @@ export default function ExaminerDashboard({ theme: T }) {
   const load = async () => {
     setLoading(true);
     try {
-      const [s, p] = await Promise.all([api.getGradingStats(), api.getGradingPending()]);
+      const [s, p, c] = await Promise.all([api.getGradingStats(), api.getGradingPending(), api.getAllCenters()]);
       setStats(s);
       setPending(p);
+      setCenters(c || []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -43,11 +47,16 @@ export default function ExaminerDashboard({ theme: T }) {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    if (tab !== "graded") return;
-    api.getGradingGraded({ take: 200 })
-      .then(setGraded)
-      .catch(e => setError(e.message));
-  }, [tab]);
+    if (tab === "graded") {
+      api.getGradingGraded({ take: 200, centerId: centerFilter })
+        .then(setGraded)
+        .catch(e => setError(e.message));
+    } else if (tab === "auto") {
+      api.getGradingAuto({ take: 200, centerId: centerFilter })
+        .then(setAuto)
+        .catch(e => setError(e.message));
+    }
+  }, [tab, centerFilter]);
 
   // Persist grading drafts locally so examiner doesn't lose work on refresh/close
   useEffect(() => {
@@ -394,8 +403,9 @@ export default function ExaminerDashboard({ theme: T }) {
   }
 
   // ── List view ───────────────────────────────────────────────────────────────
-  const list = tab === "pending" ? pending : graded;
+  const list = tab === "pending" ? pending : tab === "graded" ? graded : auto;
   const filtered = list.filter(r => {
+    if (centerFilter && r.exam?.examCenterId !== centerFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -460,7 +470,35 @@ export default function ExaminerDashboard({ theme: T }) {
             color={STATUS_COLOR.approved}
             T={T}
           />
+          <Pill
+            label={(t("adm.e.auto") || "Auto") + (stats ? ` · ${stats.auto}` : "")}
+            active={tab === "auto"}
+            onClick={() => setTab("auto")}
+            color={T.muted}
+            T={T}
+          />
         </div>
+        {centers.length > 0 && (
+          <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+            <Pill
+              label="All Centers"
+              active={centerFilter === null}
+              onClick={() => setCenterFilter(null)}
+              color={T.muted}
+              T={T}
+            />
+            {centers.slice(0, 5).map(c => (
+              <Pill
+                key={c.id}
+                label={c.name}
+                active={centerFilter === c.id}
+                onClick={() => setCenterFilter(c.id)}
+                color={T.muted}
+                T={T}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -479,7 +517,7 @@ export default function ExaminerDashboard({ theme: T }) {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: "48px", textAlign: "center", fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: T.muted }}>
-            {tab === "pending" ? (t("adm.e.no_pending") || "No pending results") : (t("adm.e.no_graded") || "No graded results")}
+            {tab === "pending" ? (t("adm.e.no_pending") || "No pending results") : tab === "graded" ? (t("adm.e.no_graded") || "No graded results") : (t("adm.e.no_auto") || "No auto-graded results")}
           </div>
         ) : (
           filtered.map(r => (
