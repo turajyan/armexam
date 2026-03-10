@@ -38,7 +38,8 @@ export default async function gradingRoutes(fastify) {
       where,
       orderBy: [{ gradedAt: "desc" }, { submittedAt: "desc" }],
       take: Math.min(Number(take ?? 200) || 200, 500),
-      include: {
+      select: {
+        id: true, score: true, pct: true, passed: true, totalPoints: true, level: true, submittedAt: true, gradedAt: true,
         exam:    { select: { id: true, title: true, examType: true, examCenterId: true } },
         student: { select: { id: true, name: true, email: true } },
       },
@@ -58,7 +59,8 @@ export default async function gradingRoutes(fastify) {
       where,
       orderBy: { submittedAt: "desc" },
       take: Math.min(Number(take ?? 200) || 200, 500),
-      include: {
+      select: {
+        id: true, score: true, pct: true, passed: true, totalPoints: true, level: true, submittedAt: true,
         exam:    { select: { id: true, title: true, examType: true, examCenterId: true } },
         student: { select: { id: true, name: true, email: true } },
       },

@@ -501,8 +501,8 @@ export default function ExaminerDashboard({ theme: T }) {
 
       {/* Table */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 1fr 140px 130px", gap: 14, padding: "11px 20px", borderBottom: `1px solid ${T.border}`, background: T.panel }}>
-          {["#", t("adm.e.exam") || "Exam", t("adm.e.student") || "Student", t("adm.e.submitted_at") || "Submitted", ""].map((h, i) => (
+        <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr 100px 80px 80px 120px", gap: 14, padding: "11px 20px", borderBottom: `1px solid ${T.border}`, background: T.panel }}>
+          {["#", t("adm.e.exam") || "Exam", t("adm.e.student") || "Student", t("adm.e.score") || "Score", t("adm.e.level") || "Level", t("adm.e.submitted_at") || "Submitted", ""].map((h, i) => (
             <span key={i} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase" }}>
               {h}
             </span>
@@ -521,7 +521,7 @@ export default function ExaminerDashboard({ theme: T }) {
           filtered.map(r => (
             <div
               key={r.id}
-              style={{ display: "grid", gridTemplateColumns: "70px 1fr 1fr 140px 130px", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: `1px solid ${T.border}`, transition: "background .15s" }}
+              style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr 100px 80px 80px 120px", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: `1px solid ${T.border}`, transition: "background .15s" }}
               onMouseEnter={e => { e.currentTarget.style.background = T.panel; }}
               onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
             >
@@ -542,6 +542,30 @@ export default function ExaminerDashboard({ theme: T }) {
                   {r.student?.email}
                 </div>
               </div>
+              {tab === "pending" ? (
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>—</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 600, color: r.passed ? "#4cc98a" : "#c94c6f" }}>
+                    {r.pct || 0}%
+                  </span>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: T.muted }}>
+                    {r.score || 0} / {r.totalPoints || 0}
+                  </span>
+                </div>
+              )}
+              {tab === "pending" ? (
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>—</div>
+              ) : (
+                <span style={{ 
+                  fontFamily: "'DM Sans',sans-serif", 
+                  fontSize: 11, 
+                  fontWeight: 700, 
+                  color: r.level === "A1" ? "#4ade80" : r.level === "A2" ? "#86efac" : r.level === "B1" ? "#60a5fa" : r.level === "B2" ? "#93c5fd" : r.level === "C1" ? "#f59e0b" : r.level === "C2" ? "#fbbf24" : T.muted 
+                }}>
+                  {r.level || "—"}
+                </span>
+              )}
               <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>
                 {formatDateTime(r.submittedAt)}
               </div>
