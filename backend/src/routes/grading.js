@@ -96,7 +96,7 @@ export default async function gradingRoutes(fastify) {
     const questions = questionIds.length
       ? await prisma.question.findMany({
           where: questionWhere,
-          select: { id: true, type: true, text: true, points: true, level: true, minWords: true, maxWords: true, minSeconds: true, maxSeconds: true, correctAnswer: true },
+          select: { id: true, type: true, text: true, points: true, level: true, minWords: true, maxWords: true, minSeconds: true, maxSeconds: true, correct: true, answer: true },
         })
       : [];
 

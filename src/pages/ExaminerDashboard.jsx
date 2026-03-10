@@ -262,10 +262,10 @@ export default function ExaminerDashboard({ theme: T }) {
                         <span style={{ fontWeight: 600 }}>Student answer: </span>
                         <span style={{ color: T.text }}>{String(studentAnswer ?? "—")}</span>
                       </div>
-                      {q.correctAnswer && (
+                      {q.correct && (
                         <div style={{ fontSize: 12, color: T.muted }}>
                           <span style={{ fontWeight: 600 }}>Correct answer: </span>
-                          <span style={{ color: "#4cc98a" }}>{String(q.correctAnswer)}</span>
+                          <span style={{ color: "#4cc98a" }}>{String(q.correct)}</span>
                         </div>
                       )}
                     </div>
