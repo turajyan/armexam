@@ -557,14 +557,27 @@ export default function ExaminerDashboard({ theme: T }) {
               {tab === "pending" ? (
                 <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>—</div>
               ) : (
-                <span style={{ 
-                  fontFamily: "'DM Sans',sans-serif", 
-                  fontSize: 11, 
-                  fontWeight: 700, 
-                  color: r.detectedLevel === "A1" ? "#4ade80" : r.detectedLevel === "A2" ? "#86efac" : r.detectedLevel === "B1" ? "#60a5fa" : r.detectedLevel === "B2" ? "#93c5fd" : r.detectedLevel === "C1" ? "#f59e0b" : r.detectedLevel === "C2" ? "#fbbf24" : T.muted 
-                }}>
-                  {r.detectedLevel || "—"}
-                </span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+                  <span style={{ 
+                    fontFamily: "'DM Sans',sans-serif", 
+                    fontSize: 11, 
+                    fontWeight: 700, 
+                    color: (tab === "auto" ? r.exam?.level : r.detectedLevel) === "A1" ? "#4ade80" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "A2" ? "#86efac" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "B1" ? "#60a5fa" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "B2" ? "#93c5fd" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "C1" ? "#f59e0b" : (tab === "auto" ? r.exam?.level : r.detectedLevel) === "C2" ? "#fbbf24" : T.muted 
+                  }}>
+                    {tab === "auto" ? r.exam?.level : r.detectedLevel || "—"}
+                  </span>
+                  <span style={{ 
+                    fontFamily: "'DM Sans',sans-serif", 
+                    fontSize: 9, 
+                    fontWeight: 600,
+                    color: r.passed ? "#4cc98a" : "#c94c6f",
+                    background: r.passed ? "#4cc98a18" : "#c94c6f18",
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                  }}>
+                    {r.passed ? "✓ Passed" : "✕ Failed"}
+                  </span>
+                </div>
               )}
               <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>
                 {formatDateTime(r.submittedAt)}
