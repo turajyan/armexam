@@ -500,10 +500,10 @@ export default function ExaminerDashboard({ theme: T }) {
       </div>
 
       {/* Table */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr 100px 80px 80px 120px", gap: 14, padding: "11px 20px", borderBottom: `1px solid ${T.border}`, background: T.panel }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden", overflowX: "auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(50px, 0.5fr) minmax(150px, 1.5fr) minmax(150px, 1.5fr) minmax(80px, 0.8fr) minmax(70px, 0.7fr) minmax(80px, 0.8fr) minmax(100px, 1fr)", gap: 14, padding: "11px 20px", borderBottom: `1px solid ${T.border}`, background: T.panel, minWidth: 800 }}>
           {["#", t("adm.e.exam") || "Exam", t("adm.e.student") || "Student", t("adm.e.score") || "Score", t("adm.e.level") || "Level", t("adm.e.submitted_at") || "Submitted", ""].map((h, i) => (
-            <span key={i} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase" }}>
+            <span key={i} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", whiteSpace: "nowrap" }}>
               {h}
             </span>
           ))}
@@ -521,7 +521,7 @@ export default function ExaminerDashboard({ theme: T }) {
           filtered.map(r => (
             <div
               key={r.id}
-              style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr 100px 80px 80px 120px", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: `1px solid ${T.border}`, transition: "background .15s" }}
+              style={{ display: "grid", gridTemplateColumns: "minmax(50px, 0.5fr) minmax(150px, 1.5fr) minmax(150px, 1.5fr) minmax(80px, 0.8fr) minmax(70px, 0.7fr) minmax(80px, 0.8fr) minmax(100px, 1fr)", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: `1px solid ${T.border}`, transition: "background .15s", minWidth: 800 }}
               onMouseEnter={e => { e.currentTarget.style.background = T.panel; }}
               onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
             >
