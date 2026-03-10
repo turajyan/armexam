@@ -171,7 +171,8 @@ export default function ExaminerDashboard({ theme: T }) {
 
   // ── Result detail view (Focus Mode) ─────────────────────────────────────────
   if (selected) {
-    const questions = selected.gradableQuestions ?? [];
+    const isAutoGraded = selected.gradingStatus === "auto";
+    const questions = isAutoGraded ? (selected.allQuestions ?? []) : (selected.gradableQuestions ?? []);
     const currentQ = questions[activeQIdx] ?? null;
     const answer = currentQ ? selected.answers?.[currentQ.id] : null;
     const rawGrade = currentQ ? grades[currentQ.id] : null;
@@ -180,6 +181,111 @@ export default function ExaminerDashboard({ theme: T }) {
       : {};
     const readOnly = selectedMode === "view";
 
+    // Auto-graded result view
+    if (isAutoGraded && readOnly) {
+      const autoQuestions = selected.allQuestions ?? [];
+      return (
+        <>
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'DM Sans',sans-serif" }}>
+          {/* Header with result summary */}
+          <div style={{ padding: "16px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button onClick={() => setSelected(null)} style={backBtn(T)}>← {t("adm.back")}</button>
+            <div style={{ flex: 1, marginLeft: 16 }}>
+              <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}>
+                {selected.exam?.title}
+              </div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                {t("adm.e.student")}: {selected.student?.name} ({selected.student?.email})
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12, color: T.muted, marginBottom: 4 }}>{t("adm.e.score") || "Score"}</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: selected.passed ? "#4cc98a" : "#c94c6f" }}>
+                  {selected.pct || 0}%
+                </div>
+                <div style={{ fontSize: 11, color: T.muted }}>
+                  {selected.score || 0} / {selected.totalPoints || 0}
+                </div>
+              </div>
+              {selected.exam?.level && (
+                <span style={{ 
+                  fontSize: 12, fontWeight: 700, 
+                  color: LEVEL_COLORS[selected.exam.level] || T.muted,
+                  background: (LEVEL_COLORS[selected.exam.level] || T.muted) + "22",
+                  border: `1px solid ${(LEVEL_COLORS[selected.exam.level] || T.muted)}44`,
+                  borderRadius: 8, padding: "4px 12px",
+                }}>
+                  {selected.exam.level}
+                </span>
+              )}
+              <span style={{ 
+                fontSize: 11, fontWeight: 600,
+                color: selected.passed ? "#4cc98a" : "#c94c6f",
+                background: selected.passed ? "#4cc98a18" : "#c94c6f18",
+                padding: "4px 10px", borderRadius: 6,
+              }}>
+                {selected.passed ? "✓ Passed" : "✕ Failed"}
+              </span>
+            </div>
+          </div>
+
+          {/* Questions list */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+            <div style={{ maxWidth: 800, margin: "0 auto" }}>
+              <h3 style={{ fontSize: 14, color: T.muted, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>
+                {t("adm.e.questions") || "Questions"} ({autoQuestions.length})
+              </h3>
+              {autoQuestions.length === 0 ? (
+                <div style={{ color: T.muted, textAlign: "center", padding: 40 }}>
+                  {t("adm.e.no_questions") || "No questions found"}
+                </div>
+              ) : (
+                autoQuestions.map((q, idx) => {
+                  const studentAnswer = selected.answers?.[q.id];
+                  const isCorrect = studentAnswer === q.correctAnswer;
+                  return (
+                    <div key={q.id} style={{ 
+                      background: T.panel, border: `1px solid ${T.border}`, 
+                      borderRadius: 12, padding: 16, marginBottom: 12 
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                        <div style={{ fontSize: 11, color: T.muted, fontWeight: 600 }}>
+                          {idx + 1}. {q.type === "single_choice" ? "Single Choice" : q.type === "multi_choice" ? "Multi Choice" : q.type === "multi_select" ? "Multi Select" : q.type === "fill_blank" ? "Fill Blank" : q.type === "fill_wordbank" ? "Word Bank" : q.type === "writing" ? "Writing" : q.type === "voice" ? "Voice" : q.type}
+                        </div>
+                        <span style={{ fontSize: 10, color: T.muted }}>{q.points} pts</span>
+                      </div>
+                      <div style={{ fontSize: 14, color: T.text, marginBottom: 8, lineHeight: 1.5 }}>
+                        {q.text}
+                      </div>
+                      <div style={{ fontSize: 12, color: T.muted, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600 }}>Student answer: </span>
+                        <span style={{ color: T.text }}>{String(studentAnswer ?? "—")}</span>
+                      </div>
+                      {q.correctAnswer && (
+                        <div style={{ fontSize: 12, color: T.muted }}>
+                          <span style={{ fontWeight: 600 }}>Correct answer: </span>
+                          <span style={{ color: "#4cc98a" }}>{String(q.correctAnswer)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div style={{ padding: "16px 24px", borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "flex-end" }}>
+            <button onClick={() => setSelected(null)} style={primaryBtn(T)}>
+              {t("adm.close") || "Close"}
+            </button>
+          </div>
+        </div>
+        </>
+      );
+    }
+
+    // Manual grading view (pending/graded)
     return (
       <>
       <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'DM Sans',sans-serif" }}>
