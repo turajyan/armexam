@@ -48,11 +48,11 @@ export default function ExaminerDashboard({ theme: T }) {
 
   useEffect(() => {
     if (tab === "graded") {
-      api.getGradingGraded({ take: 200, centerId: centerFilter })
+      api.getGradingGraded({ take: 200, ...(centerFilter ? { centerId: centerFilter } : {}) })
         .then(setGraded)
         .catch(e => setError(e.message));
     } else if (tab === "auto") {
-      api.getGradingAuto({ take: 200, centerId: centerFilter })
+      api.getGradingAuto({ take: 200, ...(centerFilter ? { centerId: centerFilter } : {}) })
         .then(setAuto)
         .catch(e => setError(e.message));
     }
