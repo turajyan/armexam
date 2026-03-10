@@ -602,6 +602,99 @@ async function main() {
     console.log(`✅ Added ${certificateResults.length} certificates for ${aniStudent.name}`);
   }
 
+  // Demo results for manual grading (writing / speaking) so ExaminerDashboard has data
+  console.log("📝 Creating demo results for manual grading preview...");
+  // Pick a couple of writing and speaking questions
+  const demoWritingQs = await prisma.question.findMany({
+    where: { type: "writing" },
+    take: 2,
+  });
+  const demoVoiceQs = await prisma.question.findMany({
+    where: { type: "voice" },
+    take: 1,
+  });
+  const demoQuestions = [...demoWritingQs, ...demoVoiceQs];
+
+  if (demoQuestions.length > 0) {
+    // Choose any existing student (not Ani, чтобы видеть разные профили)
+    const demoStudent =
+      (await prisma.student.findUnique({ where: { email: "davit@example.am" } })) ||
+      (await prisma.student.findFirst());
+    const demoExam = exams[0] ?? createdFixedExams[0];
+
+    if (demoStudent && demoExam) {
+      // Pending result with unanswered manual questions
+      const pendingAnswers = {};
+      for (const q of demoQuestions) {
+        if (q.type === "writing") {
+          pendingAnswers[q.id] = "Սա օրինակային գրավոր պատասխան է ուսանողի կողմից՝ դիտարկման համար:";
+        } else if (q.type === "voice") {
+          // In real system this would be a blob URL or file path
+          pendingAnswers[q.id] = "/media/demo-voice-answer.mp3";
+        }
+      }
+
+      await prisma.result.create({
+        data: {
+          examId: demoExam.id,
+          studentId: demoStudent.id,
+          score: 0,
+          totalPoints: demoQuestions.reduce((s, q) => s + q.points, 0),
+          pct: 0,
+          passed: null,
+          answers: pendingAnswers,
+          gradingStatus: "pending",
+          submittedAt: new Date(),
+        },
+      });
+
+      // Already graded result with manualGrades filled
+      const gradedAnswers = {};
+      const manualGrades = {};
+      let manualEarned = 0;
+      let manualTotal = 0;
+
+      for (const q of demoQuestions) {
+        if (q.type === "writing") {
+          gradedAnswers[q.id] =
+            "Սա արդեն ստուգված գրավոր պատասխան է, որը պետք է երևա որպես пример «уже проверенных» работ.";
+        } else if (q.type === "voice") {
+          gradedAnswers[q.id] = "/media/demo-voice-graded.mp3";
+        }
+        const maxPts = q.points;
+        const earned = Math.max(1, Math.round(maxPts * 0.7));
+        manualGrades[q.id] = {
+          earnedPoints: earned,
+          maxPoints: maxPts,
+          status: "approved",
+          notes: "Demo graded in seed",
+        };
+        manualEarned += earned;
+        manualTotal += maxPts;
+      }
+
+      const gradedPct = manualTotal > 0 ? Math.round((manualEarned / manualTotal) * 100) : 0;
+
+      await prisma.result.create({
+        data: {
+          examId: demoExam.id,
+          studentId: demoStudent.id,
+          score: manualEarned,
+          totalPoints: manualTotal,
+          pct: gradedPct,
+          passed: gradedPct >= 60,
+          answers: gradedAnswers,
+          gradingStatus: "graded",
+          manualGrades,
+          gradingStatus: "graded",
+          submittedAt: new Date(),
+        },
+      });
+
+      console.log("✅ Demo pending and graded results created for manual grading UI");
+    }
+  }
+
   // Admins
   const adminSeeds = [
     { name:"Super Admin",    email:"admin@armexam.am",    password:"admin1234", role:"super_admin",   centerId:null },

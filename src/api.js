@@ -55,6 +55,7 @@ export const api = {
 
   // ── Examiner Grading ─────────────────────────────────────────────────────────
   getGradingPending: (p = {}) => adminReq('/grading/pending' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  getGradingGraded:  (p = {}) => adminReq('/grading/graded'  + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
   getGradingResult:  (id)     => adminReq(`/grading/${id}`),
   submitGrades:      (id, grades) => adminReq(`/grading/${id}`, { method: 'POST', body: JSON.stringify({ grades }) }),
   getGradingStats:   ()       => adminReq('/grading/stats'),
