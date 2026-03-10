@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../api.js";
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
@@ -169,6 +170,7 @@ const TABS = [
   { id:"general",      icon:"⚙️",  label:"General" },
   { id:"exam",         icon:"🎓", label:"Exam Defaults" },
   { id:"appearance",   icon:"🎨", label:"Appearance" },
+  { id:"sections",     icon:"📂", label:"Sections" },
   { id:"users",        icon:"👥", label:"Admin Users" },
   { id:"email",        icon:"📧", label:"Email / SMTP" },
   { id:"security",     icon:"🔒", label:"Security" },
@@ -198,18 +200,69 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
   const [saved, setSaved] = useState(true);
   const [admins, setAdmins] = useState(SEED_ADMINS);
   const [toast, setToast] = useState(null);
+  // sections: [{ id, name }]
+  const [sections, setSections] = useState([]);
+  const [newSection, setNewSection] = useState("");
+  const [editingSection, setEditingSection] = useState(null); // { id, value }
 
-  const [general, setGeneral] = useState({
-    platformName:"ArmExam",
-    platformNameHy:"Հայոց Լեզվի Քննություն",
-    tagline:"Armenian Language Testing Platform",
-    supportEmail:"support@armexam.am",
-    supportPhone:"+374 10 000 000",
-    timezone:"Asia/Yerevan",
-    dateFormat:"DD.MM.YYYY",
-    language:"hy",
-    maintenanceMode:false,
-    registrationOpen:true,
+  useEffect(() => {
+    api.getSections().then(setSections).catch(() => {});
+  }, []);
+
+  const addSection = async () => {
+    const name = newSection.trim();
+    if (!name || sections.some(s => s.name === name)) return;
+    try {
+      const created = await api.createSection({ name });
+      setSections(prev => [...prev, created].sort((a,b) => a.name.localeCompare(b.name)));
+      setNewSection("");
+    } catch (e) { setToast({ type:"danger", msg: e.message }); }
+  };
+
+  const deleteSection = async (id) => {
+    try {
+      await api.deleteSection(id);
+      setSections(prev => prev.filter(s => s.id !== id));
+    } catch (e) { setToast({ type:"danger", msg: e.message }); }
+  };
+
+  const startEdit = (sec) => setEditingSection({ id: sec.id, value: sec.name });
+  const confirmEdit = async () => {
+    if (!editingSection) return;
+    const name = editingSection.value.trim();
+    if (!name) return;
+    try {
+      const updated = await api.updateSection(editingSection.id, { name });
+      setSections(prev => prev.map(s => s.id === updated.id ? updated : s).sort((a,b) => a.name.localeCompare(b.name)));
+      setEditingSection(null);
+    } catch (e) { setToast({ type:"danger", msg: e.message }); }
+  };
+
+  const [general, setGeneral] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("armexam_general_settings") || "{}");
+      return {
+        platformName:    saved.platformName    ?? "ArmExam",
+        platformNameHy:  saved.platformNameHy  ?? "Հայոց Լեզվի Քննություն",
+        tagline:         saved.tagline         ?? "Armenian Language Testing Platform",
+        supportEmail:    saved.supportEmail    ?? "support@armexam.am",
+        supportPhone:    saved.supportPhone    ?? "+374 10 000 000",
+        timezone:        saved.timezone        ?? "Asia/Yerevan",
+        dateFormat:      saved.dateFormat      ?? "DD.MM.YYYY",
+        timeFormat:      saved.timeFormat      ?? "HH:mm",
+        language:        saved.language        ?? "hy",
+        maintenanceMode: saved.maintenanceMode ?? false,
+        registrationOpen:saved.registrationOpen ?? true,
+      };
+    } catch {
+      return {
+        platformName:"ArmExam", platformNameHy:"Հայոց Լեզվի Քննություն",
+        tagline:"Armenian Language Testing Platform",
+        supportEmail:"support@armexam.am", supportPhone:"+374 10 000 000",
+        timezone:"Asia/Yerevan", dateFormat:"DD.MM.YYYY", timeFormat:"HH:mm",
+        language:"hy", maintenanceMode:false, registrationOpen:true,
+      };
+    }
   });
 
   const [exam, setExam] = useState({
@@ -292,7 +345,12 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     setTimeout(()=>setToast(null), 3000);
   };
 
-  const handleSave  = () => { setSaved(true); showToast("✓ Settings saved successfully!"); };
+  const handleSave  = () => {
+    setSaved(true);
+    try { localStorage.setItem("armexam_general_settings", JSON.stringify(general)); } catch {}
+    window.dispatchEvent(new Event("armexam:langchange"));
+    showToast("✓ Settings saved successfully!");
+  };
   const handleReset = () => { setSaved(true); showToast("↺ Reset to last saved state", C.warning); };
 
   const renderTab = () => {
@@ -312,14 +370,43 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
           </div>
         </SettingSection>
 
-        <SettingSection title="Region & Language" icon="🌍" description="Timezone, date format, and default interface language">
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+        <SettingSection title="Region & Language" icon="🌍" description="Timezone, date/time format, and default interface language">
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
             <Select label="Timezone" value={general.timezone} onChange={v=>setG("timezone",v)}
-              options={["Asia/Yerevan","Europe/Moscow","Europe/London","America/New_York"].map(z=>({value:z,label:z}))} />
+              options={[
+                "Asia/Yerevan","Europe/Moscow","Europe/Istanbul","Europe/Berlin",
+                "Europe/London","America/New_York","America/Los_Angeles","Asia/Dubai",
+              ].map(z=>({value:z,label:z}))} />
+            <Select label="Default Interface Language" value={general.language} onChange={v=>setG("language",v)}
+              options={[{value:"hy",label:"Հայերեն"},{value:"ru",label:"Русский"},{value:"en",label:"English"}]} />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
             <Select label="Date Format" value={general.dateFormat} onChange={v=>setG("dateFormat",v)}
               options={["DD.MM.YYYY","MM/DD/YYYY","YYYY-MM-DD"].map(f=>({value:f,label:f}))} />
-            <Select label="Default Interface Language" value={general.language} onChange={v=>setG("language",v)}
-              options={[{value:"hy",label:"Հայerен"},{value:"ru",label:"Русский"},{value:"en",label:"English"}]} />
+            <Select label="Time Format" value={general.timeFormat} onChange={v=>setG("timeFormat",v)}
+              options={[{value:"HH:mm",label:"24h — 14:30"},{value:"HH:mm:ss",label:"24h + seconds — 14:30:05"},{value:"hh:mm A",label:"12h AM/PM — 02:30 PM"}]} />
+          </div>
+          {/* Live preview */}
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px", display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>Preview:</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, fontWeight:500 }}>
+              {(() => {
+                const d = new Date();
+                const pad = n => String(n).padStart(2,"0");
+                const day = pad(d.getDate()), month = pad(d.getMonth()+1), year = d.getFullYear();
+                const h24 = d.getHours(), mins = pad(d.getMinutes()), secs = pad(d.getSeconds());
+                const datePart = general.dateFormat === "MM/DD/YYYY" ? `${month}/${day}/${year}`
+                               : general.dateFormat === "YYYY-MM-DD" ? `${year}-${month}-${day}`
+                               : `${day}.${month}.${year}`;
+                const timePart = general.timeFormat === "hh:mm A"
+                               ? `${pad(h24%12||12)}:${mins} ${h24>=12?"PM":"AM"}`
+                               : general.timeFormat === "HH:mm:ss"
+                               ? `${pad(h24)}:${mins}:${secs}`
+                               : `${pad(h24)}:${mins}`;
+                return `${datePart}, ${timePart}`;
+              })()}
+            </span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, marginLeft:"auto" }}>используется по всему проекту</span>
           </div>
         </SettingSection>
 
@@ -600,6 +687,55 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
               </Btn>
             </div>
           ))}
+        </SettingSection>
+      </>);
+
+      // ── SECTIONS ───────────────────────────────────────────────────────────
+      case "sections": return (<>
+        <SettingSection title="Question Sections" icon="📂" description="Manage the section categories used in Question Management and Exams. Changes apply immediately.">
+          {/* Add */}
+          <div style={{ display:"flex", gap:8 }}>
+            <input
+              value={newSection}
+              onChange={e=>setNewSection(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&addSection()}
+              placeholder="New section name…"
+              style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }}
+            />
+            <Btn variant="primary" onClick={addSection} disabled={!newSection.trim()}>+ Add</Btn>
+          </div>
+          {/* List */}
+          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            {sections.map((s)=>(
+              <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:C.panel, border:`1px solid ${C.border}`, borderRadius:10 }}>
+                <span style={{ fontSize:14 }}>📂</span>
+                {editingSection?.id===s.id ? (
+                  <input
+                    autoFocus
+                    value={editingSection.value}
+                    onChange={e=>setEditingSection(es=>({...es,value:e.target.value}))}
+                    onKeyDown={e=>{ if(e.key==="Enter") confirmEdit(); if(e.key==="Escape") setEditingSection(null); }}
+                    style={{ flex:1, background:C.bg, border:`1.5px solid ${C.gold}`, borderRadius:8, padding:"5px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }}
+                  />
+                ) : (
+                  <span style={{ flex:1, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text }}>{s.name}</span>
+                )}
+                <div style={{ display:"flex", gap:6 }}>
+                  {editingSection?.id===s.id ? (
+                    <>
+                      <Btn small variant="success" onClick={confirmEdit}>✓</Btn>
+                      <Btn small onClick={()=>setEditingSection(null)}>✕</Btn>
+                    </>
+                  ) : (
+                    <>
+                      <Btn small onClick={()=>startEdit(s)}>✎ Rename</Btn>
+                      <Btn small variant="danger" onClick={()=>deleteSection(s.id)}>✕</Btn>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </SettingSection>
       </>);
 

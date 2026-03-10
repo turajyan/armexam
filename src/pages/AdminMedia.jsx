@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { formatDate } from "../dateUtils.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
@@ -26,9 +27,7 @@ function fmtSize(bytes) {
   return (bytes/(1024*1024)).toFixed(1) + " MB";
 }
 
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString("ru-RU", { day:"2-digit", month:"short", year:"numeric" });
-}
+function fmtDate(iso) { return formatDate(iso); }
 
 // ── Seed files ────────────────────────────────────────────────────────────────
 const SEED_FILES = [

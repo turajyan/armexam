@@ -1,12 +1,11 @@
-import { useState, useRef } from "react";
-import { QUESTIONS as DATA_QUESTIONS } from "../data.js";
+import { useState, useEffect, useRef } from "react";
+import { api } from "../api.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const SECTIONS = ["Reading","Writing","Listening","Grammar","Vocabulary","Listening / Տեսնել","Free Writing"];
 const QTYPES = [
   { id:"single_choice", label:"Single Choice", icon:"◉", color:"#60a5fa" },
   { id:"multi_choice",  label:"Multi Choice",  icon:"☑", color:"#a78bfa" },
@@ -18,8 +17,6 @@ const QTYPES = [
   { id:"writing",       label:"Writing",       icon:"✍", color:"#94a3b8" },
   { id:"voice",         label:"Voice",         icon:"🎤", color:"#fb923c" },
 ];
-
-const SEED = DATA_QUESTIONS.map(q => ({ ...q, status: q.status || "published", createdAt: q.createdAt || "2025-01-01" }));
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
@@ -221,7 +218,7 @@ function WordBankEditor({ q, set }) {
 }
 
 // ── Question Form ───────────────────────────────────────────────────────────────
-function QuestionForm({ initial, onSave, onCancel }) {
+function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
   const isEdit = !!initial;
   const blank = { type:"single_choice", level:"B1", section:"Reading", points:1, status:"draft", text:"", options:["","","",""], correct:0 };
   const [q, setQ] = useState(initial ? {...initial, options: initial.options ? [...initial.options] : ["","","",""] } : blank);
@@ -260,7 +257,7 @@ function QuestionForm({ initial, onSave, onCancel }) {
       {/* Row: level + section + points + status */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 100px", gap:14 }}>
         <Select label="Level" value={q.level} onChange={v=>set("level",v)} options={LEVELS} />
-        <Select label="Section" value={q.section} onChange={v=>set("section",v)} options={SECTIONS} />
+        <Select label="Section" value={q.section} onChange={v=>set("section",v)} options={sections} />
         <Input label="Points" value={q.points} onChange={v=>set("points",+v)} type="number" />
         <Select label="Status" value={q.status} onChange={v=>set("status",v)} options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
       </div>
@@ -699,36 +696,58 @@ function ViewQuestion({ q, onEdit, onClose }) {
 
 // ── Questions Page ─────────────────────────────────────────────────────────────
 function QuestionsPage() {
-  const [questions, setQuestions] = useState(SEED);
+  const [questions, setQuestions] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // null | "create" | "edit" | "view"
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [filterType, setFilterType] = useState("all");
   const [filterLevel, setFilterLevel] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterSection, setFilterSection] = useState("all");
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  useEffect(() => {
+    Promise.all([api.getQuestions(), api.getSections()]).then(([qs, secs]) => {
+      setQuestions(qs);
+      setSections(secs.map(s => s.name));
+      setLoading(false);
+    });
+  }, []);
 
   const filtered = questions.filter(q => {
     if (filterType!=="all" && q.type!==filterType) return false;
     if (filterLevel!=="all" && q.level!==filterLevel) return false;
     if (filterStatus!=="all" && q.status!==filterStatus) return false;
-    if (search && !q.text.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterSection!=="all" && q.section!==filterSection) return false;
+    if (search && !q.text.toLowerCase().includes(search.toLowerCase()) && !String(q.id).includes(search)) return false;
     return true;
   });
 
-  const handleSave = (q) => {
+  const handleSave = async (q) => {
     if (modal==="edit") {
-      setQuestions(qs=>qs.map(x=>x.id===q.id?q:x));
+      const updated = await api.updateQuestion(q.id, q);
+      setQuestions(qs=>qs.map(x=>x.id===updated.id?updated:x));
     } else {
-      const newQ = { ...q, id: Math.max(0, ...questions.map(x=>x.id)) + 1, createdAt: new Date().toISOString().slice(0,10) };
+      const newQ = await api.createQuestion(q);
       setQuestions(qs=>[newQ,...qs]);
     }
     setModal(null); setEditing(null);
   };
 
-  const handleDelete = (id) => { setQuestions(qs=>qs.filter(q=>q.id!==id)); setDeleteConfirm(null); };
-  const handleToggleStatus = (id) => setQuestions(qs=>qs.map(q=>q.id===id?{...q,status:q.status==="published"?"draft":"published"}:q));
+  const handleDelete = async (id) => {
+    await api.deleteQuestion(id);
+    setQuestions(qs=>qs.filter(q=>q.id!==id));
+    setDeleteConfirm(null);
+  };
+  const handleToggleStatus = async (id) => {
+    const q = questions.find(x=>x.id===id);
+    const newStatus = q.status==="published" ? "draft" : "published";
+    const updated = await api.updateQuestion(id, { status: newStatus });
+    setQuestions(qs=>qs.map(x=>x.id===id?{...x,status:updated.status}:x));
+  };
 
   return (
     <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box" }}>
@@ -767,6 +786,10 @@ function QuestionsPage() {
             <Pill key={v} label={label} active={filterStatus===v} onClick={()=>setFilterStatus(v)} color={v==="published"?C.success:v==="draft"?"#f59e0b":C.gold} />
           ))}
         </div>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          <Pill label="All Sections" active={filterSection==="all"} onClick={()=>setFilterSection("all")} />
+          {sections.map(s=><Pill key={s} label={s} active={filterSection===s} onClick={()=>setFilterSection(s)} />)}
+        </div>
       </div>
 
       {/* Table */}
@@ -777,7 +800,11 @@ function QuestionsPage() {
             <span key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, fontWeight:600, letterSpacing:.8, textTransform:"uppercase" }}>{h}</span>
           ))}
         </div>
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div style={{ padding:"48px", textAlign:"center", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
+            Loading…
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ padding:"48px", textAlign:"center", fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.muted }}>
             No questions found
           </div>
@@ -797,7 +824,7 @@ function QuestionsPage() {
       {/* Create/Edit Modal */}
       {(modal==="create"||modal==="edit") && (
         <Modal title={modal==="edit"?"Edit Question":"New Question"} onClose={()=>{setModal(null);setEditing(null)}}>
-          <QuestionForm initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} />
+          <QuestionForm initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} sections={sections} />
         </Modal>
       )}
 

@@ -112,14 +112,14 @@ export const QUESTIONS = [
     correct:2, status:"published", createdAt:"2025-04-02" },
 
   // ── Video questions ──────────────────────────────────────────────────────────
-  { id:35, type:"video", level:"B2", section:"Listening / Տեսնել", points:4,
+  { id:35, type:"video", level:"B2", section:"Watching", points:4,
     text:"Դիտի՛ր հատվածը. Ո՞ր թեմայի մասին է պատմում բանախոսը:",
     videoSrc:"https://www.w3schools.com/html/mov_bbb.mp4",
     maxPlays:1,
     options:["Բնապահպանություն","Տնտեսություն","Կրթություն","Մշակույթ"],
     correct:0, status:"published", createdAt:"2025-04-03" },
 
-  { id:36, type:"video", level:"C1", section:"Listening / Տեսնել", points:5,
+  { id:36, type:"video", level:"C1", section:"Watching", points:5,
     text:"Դիտի՛ր հարցազրույցը. Ի՞նչ խնդիր է բարձրացնում հյուրը:",
     videoSrc:"https://www.w3schools.com/html/movie.mp4",
     maxPlays:1,

@@ -1,0 +1,237 @@
+import crypto from "crypto";
+
+function hashPassword(password, email) {
+  return crypto.createHash("sha256").update(password + email.toLowerCase()).digest("hex");
+}
+
+function generateToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+export default async function authRoutes(fastify) {
+  const { prisma } = fastify;
+
+  // POST /api/auth/register
+  fastify.post("/api/auth/register", async (req, reply) => {
+    const { name, email, password, phone, country, documentType, documentNumber, gender } = req.body ?? {};
+
+    if (!name || !email || !password || !country || !documentType || !documentNumber) {
+      return reply.code(400).send({ error: "Все обязательные поля должны быть заполнены" });
+    }
+    if (!email.includes("@")) {
+      return reply.code(400).send({ error: "Некорректный email" });
+    }
+    if (password.length < 6) {
+      return reply.code(400).send({ error: "Пароль должен содержать минимум 6 символов" });
+    }
+
+    const existing = await prisma.student.findUnique({ where: { email: email.toLowerCase() } });
+    if (existing) {
+      return reply.code(409).send({ error: "Пользователь с таким email уже зарегистрирован" });
+    }
+
+    const passwordHash = hashPassword(password, email);
+    const sessionToken = generateToken();
+
+    const student = await prisma.student.create({
+      data: {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        passwordHash,
+        phone: phone?.trim() || null,
+        country: country.trim(),
+        documentType,
+        documentNumber: documentNumber.trim(),
+        gender: gender || "",
+        sessionToken,
+      },
+    });
+
+    return reply.code(201).send({
+      token: sessionToken,
+      user: {
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        country: student.country,
+        documentType: student.documentType,
+        documentNumber: student.documentNumber,
+        level: student.level,
+      },
+    });
+  });
+
+  // POST /api/auth/login
+  fastify.post("/api/auth/login", async (req, reply) => {
+    const { email, password } = req.body ?? {};
+
+    if (!email || !password) {
+      return reply.code(400).send({ error: "Email и пароль обязательны" });
+    }
+
+    const student = await prisma.student.findUnique({ where: { email: email.toLowerCase() } });
+    if (!student) {
+      return reply.code(401).send({ error: "Неверный email или пароль" });
+    }
+
+    const hash = hashPassword(password, email);
+    if (hash !== student.passwordHash) {
+      return reply.code(401).send({ error: "Неверный email или пароль" });
+    }
+
+    const sessionToken = generateToken();
+    await prisma.student.update({
+      where: { id: student.id },
+      data: { sessionToken },
+    });
+
+    return {
+      token: sessionToken,
+      user: {
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        country: student.country,
+        documentType: student.documentType,
+        documentNumber: student.documentNumber,
+        level: student.level,
+      },
+    };
+  });
+
+  // GET /api/auth/me — requires Authorization: Bearer <token>
+  fastify.get("/api/auth/me", async (req, reply) => {
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
+    if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
+
+    const student = await prisma.student.findUnique({
+      where: { sessionToken: token },
+      include: {
+        exams: {
+          include: {
+            exam: {
+              select: {
+                id: true, title: true, examType: true, level: true,
+                duration: true, startDate: true, endDate: true,
+                examCenter: { select: { id: true, name: true, city: { select: { id: true, name: true } } } },
+              },
+            },
+          },
+        },
+        results: true,
+      },
+    });
+    if (!student) return reply.code(401).send({ error: "Недействительный токен" });
+
+    return {
+      id: student.id,
+      name: student.name,
+      email: student.email,
+      phone: student.phone,
+      country: student.country,
+      documentType: student.documentType,
+      documentNumber: student.documentNumber,
+      level: student.level,
+      registeredExams: student.exams.map(a => {
+        // Check if there's a result for this exam
+        const result = student.results?.find(r => r.examId === a.examId);
+        return {
+          id: a.id,
+          pin: a.pin,
+          registeredAt: a.createdAt,
+          exam: a.exam,
+          completed: !!result,
+          passed: result?.passed || false,
+          score: result?.pct || null,
+        };
+      }),
+    };
+  });
+
+  // PUT /api/auth/profile — update personal info (requires Bearer token)
+  fastify.put("/api/auth/profile", async (req, reply) => {
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
+    if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
+    const student = await prisma.student.findUnique({ where: { sessionToken: token } });
+    if (!student) return reply.code(401).send({ error: "Недействительный токен" });
+
+    const allowed = ["name", "phone", "country", "documentType", "documentNumber", "gender"];
+    const data = Object.fromEntries(
+      Object.entries(req.body ?? {}).filter(([k]) => allowed.includes(k))
+    );
+    if (data.name) data.name = data.name.trim();
+
+    const updated = await prisma.student.update({ where: { id: student.id }, data });
+    return {
+      id: updated.id, name: updated.name, email: updated.email,
+      phone: updated.phone, country: updated.country,
+      documentType: updated.documentType, documentNumber: updated.documentNumber,
+      gender: updated.gender, level: updated.level,
+    };
+  });
+
+  // PUT /api/auth/password — change password (requires Bearer token)
+  fastify.put("/api/auth/password", async (req, reply) => {
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
+    if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
+    const student = await prisma.student.findUnique({ where: { sessionToken: token } });
+    if (!student) return reply.code(401).send({ error: "Недействительный токен" });
+
+    const { currentPassword, newPassword } = req.body ?? {};
+    if (!currentPassword || !newPassword) {
+      return reply.code(400).send({ error: "currentPassword и newPassword обязательны" });
+    }
+    if (newPassword.length < 6) {
+      return reply.code(400).send({ error: "Новый пароль должен содержать минимум 6 символов" });
+    }
+    const currentHash = hashPassword(currentPassword, student.email);
+    if (currentHash !== student.passwordHash) {
+      return reply.code(401).send({ error: "Текущий пароль неверен" });
+    }
+    await prisma.student.update({
+      where: { id: student.id },
+      data: { passwordHash: hashPassword(newPassword, student.email) },
+    });
+    return { success: true };
+  });
+
+  // DELETE /api/auth/exam-assignments/:id — cancel exam registration (student)
+  fastify.delete("/api/auth/exam-assignments/:id", async (req, reply) => {
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
+    if (!token) return reply.code(401).send({ error: "Требуется авторизация" });
+
+    const student = await prisma.student.findUnique({ where: { sessionToken: token } });
+    if (!student) return reply.code(401).send({ error: "Недействительный токен" });
+
+    const assignmentId = Number(req.params.id);
+    const assignment = await prisma.examAssignment.findUnique({
+      where: { id: assignmentId },
+    });
+
+    if (!assignment) return reply.code(404).send({ error: "Регистрация не найдена" });
+    if (assignment.studentId !== student.id) return reply.code(403).send({ error: "Нет доступа" });
+
+    // Check if exam already passed
+    const result = await prisma.result.findUnique({
+      where: { examAssignmentId: assignmentId },
+    });
+    if (result) return reply.code(400).send({ error: "Нельзя отменить регистрацию на уже завершённый экзамен" });
+
+    await prisma.examAssignment.delete({ where: { id: assignmentId } });
+    return { success: true };
+  });
+
+  // POST /api/auth/logout
+  fastify.post("/api/auth/logout", async (req, reply) => {
+    const token = req.headers.authorization?.replace("Bearer ", "").trim();
+    if (token) {
+      await prisma.student.updateMany({
+        where: { sessionToken: token },
+        data: { sessionToken: null },
+      });
+    }
+    return reply.code(204).send();
+  });
+}

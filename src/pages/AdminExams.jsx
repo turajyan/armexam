@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { QUESTIONS as DATA_QUESTIONS, EXAMS as DATA_EXAMS, STUDENTS as DATA_STUDENTS } from "../data.js";
+import { useState, useEffect } from "react";
+import { api } from "../api.js";
+import { formatDate } from "../dateUtils.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
 
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
+const fmtDate = (d) => d ? formatDate(d) : "";
+
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const SECTIONS = ["Reading","Writing","Listening","Grammar","Vocabulary","Listening / Watching","Speaking","Free Writing"];
 const QTYPES_LIST = [
   { id:"single_choice", label:"Single Choice", icon:"◉" },
   { id:"multi_choice",  label:"Multi Choice",  icon:"☑" },
@@ -19,13 +21,6 @@ const QTYPES_LIST = [
   { id:"video",         label:"Video",         icon:"🎬" },
   { id:"voice",         label:"Voice",         icon:"🎤" },
 ];
-
-// ── Seed ─────────────────────────────────────────────────────────────────────
-const SEED_QUESTIONS = DATA_QUESTIONS;
-
-const SEED_STUDENTS = DATA_STUDENTS;
-
-const SEED_EXAMS = DATA_EXAMS.map(e=>({...e}));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STATUS_META = {
@@ -39,8 +34,8 @@ const STATUS_META = {
 const QTYPE_ICON = { single_choice:"◉", multi_choice:"☑", multi_select:"⊞", audio:"🎧", video:"🎬", fill_blank:"✎", writing:"✍" };
 const QTYPE_COLOR = { single_choice:"#60a5fa", multi_choice:"#a78bfa", multi_select:"#34d399", audio:"#f59e0b", video:"#f87171", fill_blank:"#e879f9", writing:"#94a3b8" };
 
-function totalPoints(qIds) {
-  return (qIds||[]).reduce((s,id)=>{ const q=SEED_QUESTIONS.find(q=>q.id===id); return s+(q?.points||0); },0);
+function totalPoints(qIds, allQs) {
+  return (qIds||[]).reduce((s,id)=>{ const q=(allQs||[]).find(q=>q.id===id); return s+(q?.points||0); },0);
 }
 
 // ── UI Atoms ──────────────────────────────────────────────────────────────────
@@ -137,7 +132,7 @@ function StepBar({ steps, current }) {
 // ── Exam Wizard ───────────────────────────────────────────────────────────────
 const WIZARD_STEPS = ["General","Questions","Students","Schedule"];
 
-function ExamWizard({ initial, onSave, onCancel }) {
+function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] }) {
   const isEdit = !!initial;
   const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true,
     subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }],
@@ -159,12 +154,17 @@ function ExamWizard({ initial, onSave, onCancel }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initial ? {...blank,...initial} : blank);
   const set = (k,v) => setForm(p=>({...p,[k]:v}));
+  const [allQuestions, setAllQuestions] = useState([]);
 
-  const availableQs = SEED_QUESTIONS.filter(q => !form.level || q.level === form.level || form.level === "all");
+  useEffect(() => {
+    api.getQuestions().then(data => setAllQuestions(Array.isArray(data) ? data : [])).catch(()=>{});
+  }, []);
+
+  const availableQs = allQuestions.filter(q => !form.level || q.level === form.level || form.level === "all");
   const toggleQ = (id) => set("questionIds", form.questionIds.includes(id) ? form.questionIds.filter(x=>x!==id) : [...form.questionIds,id]);
   const toggleStudent = (id) => set("assignedTo", form.assignedTo.includes(id) ? form.assignedTo.filter(x=>x!==id) : [...form.assignedTo,id]);
 
-  const pts = totalPoints(form.questionIds);
+  const pts = totalPoints(form.questionIds, allQuestions);
 
   // Subpool helpers — shared for both fixed and placement
   const fixedTotalQ = (form.subpools||[]).reduce((s,sp)=>s+sp.count,0);
@@ -282,14 +282,14 @@ function ExamWizard({ initial, onSave, onCancel }) {
                       <div style={{ padding:"12px 16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic" }}>No subpools — click "+ Add subpool" to define pools</div>
                     )}
                     {(row.subpools||[]).map((sp,idx)=>{
-                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length;
+                      const poolCount = allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length;
                       const ok = poolCount >= sp.count;
                       return (
                         <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 16px",borderBottom:`1px solid ${C.border}` }}>
                           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,width:20,textAlign:"center" }}>┗</span>
                           <select value={sp.section} onChange={e=>updateSubpool(row.level,idx,"section",e.target.value)}
                             style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",flex:"0 0 140px" }}>
-                            {SECTIONS.map(s=><option key={s} value={s}>{s}</option>)}
+                            {sections.map(s=><option key={s} value={s}>{s}</option>)}
                           </select>
                           <input type="number" min={1} max={20} value={sp.count}
                             onChange={e=>updateSubpool(row.level,idx,"count",e.target.value)}
@@ -380,7 +380,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
                 const lc = LEVEL_COLORS[row.level]||"#94a3b8";
                 const total = rowTotal(row);
                 const allOk = (row.subpools||[]).every(sp=>
-                  SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length >= sp.count
+                  allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length >= sp.count
                 );
                 return (
                   <div key={row.level}>
@@ -392,7 +392,7 @@ function ExamWizard({ initial, onSave, onCancel }) {
                       <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:allOk?C.success:"#f87171" }}>{allOk?"✓ OK":"✗ Error"}</span>
                     </div>
                     {(row.subpools||[]).map((sp,idx)=>{
-                      const poolCount = SEED_QUESTIONS.filter(q=>q.level===row.level&&q.section===sp.section).length;
+                      const poolCount = allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length;
                       const ok = poolCount >= sp.count;
                       return (
                         <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"7px 18px 7px 32px",borderBottom:`1px solid ${C.border}`,background:ok?"transparent":"#f8717106" }}>
@@ -436,13 +436,13 @@ function ExamWizard({ initial, onSave, onCancel }) {
             <div style={{ padding:"16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic",background:C.panel,borderRadius:10,textAlign:"center" }}>No sections added yet</div>
           )}
           {(form.subpools||[]).map((sp,idx)=>{
-            const poolCount = SEED_QUESTIONS.filter(q=>q.level===level&&q.section===sp.section).length;
+            const poolCount = allQuestions.filter(q=>q.level===level&&q.section===sp.section).length;
             const ok = poolCount >= sp.count;
             return (
               <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.panel,border:`1.5px solid ${ok?C.border2:"#f8717144"}`,borderRadius:10 }}>
                 <select value={sp.section} onChange={e=>updateFixedSP(idx,"section",e.target.value)}
                   style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",flex:"0 0 160px" }}>
-                  {SECTIONS.map(s=><option key={s} value={s}>{s}</option>)}
+                  {sections.map(s=><option key={s} value={s}>{s}</option>)}
                 </select>
                 <input type="number" min={1} max={30} value={sp.count}
                   onChange={e=>updateFixedSP(idx,"count",e.target.value)}
@@ -462,32 +462,19 @@ function ExamWizard({ initial, onSave, onCancel }) {
 
   // Step 2 — Students
   const step2 = (()=>{
-    const groups = [...new Set(SEED_STUDENTS.map(s=>s.group))];
-    const toggleGroup = (g) => {
-      const ids = SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
-      const allSel = ids.every(id=>form.assignedTo.includes(id));
-      set("assignedTo", allSel ? form.assignedTo.filter(id=>!ids.includes(id)) : [...new Set([...form.assignedTo,...ids])]);
-    };
+    const allSelected = students.length > 0 && students.every(s=>form.assignedTo.includes(s.id));
+    const toggleAll = () => set("assignedTo", allSelected ? [] : students.map(s=>s.id));
     return (
       <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
         <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
           <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.assignedTo.length}</span> students</span>
-          <div style={{ display:"flex",gap:8 }}>
-            <Btn small onClick={()=>set("assignedTo",SEED_STUDENTS.map(s=>s.id))}>Select All</Btn>
-            <Btn small onClick={()=>set("assignedTo",[])}>Clear</Btn>
-          </div>
-        </div>
-        {/* Groups */}
-        <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-          {groups.map(g=>{
-            const ids = SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
-            const allSel = ids.every(id=>form.assignedTo.includes(id));
-            return <button key={g} onClick={()=>toggleGroup(g)} style={{ background:allSel?C.info+"22":"transparent",border:`1px solid ${allSel?C.info:C.border2}`,borderRadius:8,padding:"6px 14px",color:allSel?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>{g} ({ids.length})</button>;
-          })}
+          <button onClick={toggleAll} style={{ background:allSelected?C.info+"22":"transparent",border:`1px solid ${allSelected?C.info:C.border2}`,borderRadius:8,padding:"6px 14px",color:allSelected?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>
+            {allSelected ? "Deselect All" : "Select All"}
+          </button>
         </div>
         {/* Student list */}
         <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:340,overflowY:"auto" }}>
-          {SEED_STUDENTS.map(s=>{
+          {students.map(s=>{
             const sel = form.assignedTo.includes(s.id);
             const lc = LEVEL_COLORS[s.level]||"#94a3b8";
             return (
@@ -502,8 +489,8 @@ function ExamWizard({ initial, onSave, onCancel }) {
                   <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500 }}>{s.name}</div>
                   <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
                 </div>
-                <Badge color="#60a5fa" small>{s.group}</Badge>
-                <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level}</span>
+                <Badge color="#94a3b8" small>#{s.id}</Badge>
+                <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level||"—"}</span>
               </div>
             );
           })}
@@ -600,11 +587,15 @@ function ExamWizard({ initial, onSave, onCancel }) {
 }
 
 // ── Exam Card ─────────────────────────────────────────────────────────────────
-function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
+function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, onPreview, allStudents = [] }) {
   const sm = STATUS_META[exam.status]||STATUS_META.draft;
   const lc = LEVEL_COLORS[exam.level]||"#94a3b8";
   const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
-  const assignedStudents = SEED_STUDENTS.filter(s=>exam.assignedTo.includes(s.id));
+  // assignments = [{ studentId, pin }] from backend; enrich with student name from allStudents
+  const assignments = (exam.assignments || []).map(a => ({
+    ...a,
+    student: allStudents.find(s => s.id === a.studentId),
+  }));
 
   return (
     <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"22px 24px",display:"flex",flexDirection:"column",gap:16,transition:"border .2s",cursor:"default" }}
@@ -629,9 +620,9 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
       <div style={{ display:"flex",gap:12 }}>
         {(exam.examType==="placement" ? [
           { icon:"📊",val:(exam.placementTemplate||[]).reduce((s,r)=>s+(r.subpools||[]).reduce((ss,sp)=>ss+sp.count,0),0)+" q",tip:"Total Questions" },
-          { icon:"🎚",val:"A1→C2",tip:"All Levels" },
+          { icon:"🎚",val:(()=>{ const lvls=(exam.placementTemplate||[]).map(r=>r.level).filter(Boolean); return lvls.length?lvls[0]+(lvls.length>1?"→"+lvls[lvls.length-1]:""):"—"; })(),tip:"Levels" },
           { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
-          { icon:"🎯",val:`${Math.min(...Object.values(exam.placementThresholds||{A1:60}))}%/lvl`,tip:"Per-level threshold" },
+          { icon:"🎯",val:(()=>{ const vals=Object.values(exam.placementThresholds||{}); return vals.length?Math.min(...vals)+"%/lvl":"—"; })(),tip:"Per-level threshold" },
         ] : [
           { icon:"📋",val:(exam.subpools||(exam.placementTemplate||[]).flatMap(r=>r.subpools||[])).reduce((s,sp)=>s+sp.count,0)+" q",tip:"Questions" },
           { icon:"🏆",val:pts+" pts",tip:"Total Points" },
@@ -649,33 +640,48 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
       {exam.startDate && (
         <div style={{ display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:9 }}>
           <span style={{ fontSize:13 }}>📅</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>{exam.startDate}{exam.endDate&&exam.endDate!==exam.startDate?" → "+exam.endDate:""}</span>
+          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>{fmtDate(exam.startDate)}{exam.endDate&&exam.endDate!==exam.startDate?" → "+fmtDate(exam.endDate):""}</span>
         </div>
       )}
 
-      {/* Assigned students */}
+      {/* Registered students with PINs */}
       <div>
         <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:8 }}>
-          Assigned Students · {assignedStudents.length}
+          Registered Students · {assignments.length}
         </div>
-        <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>
-          {assignedStudents.slice(0,5).map(s=>(
-            <div key={s.id} title={s.name} style={{ width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,border:`2px solid ${C.panel}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:C.text,fontFamily:"'DM Sans',sans-serif" }}>
-              {s.name[0]}
+        {assignments.length === 0
+          ? <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>None yet</span>
+          : <div style={{ display:"flex",flexDirection:"column",gap:4 }}>
+              {assignments.slice(0,4).map(a => (
+                <div key={a.studentId} style={{ display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8 }}>
+                  <div style={{ width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,color:C.text,flexShrink:0 }}>
+                    {a.student ? a.student.name[0] : "?"}
+                  </div>
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                      {a.student ? a.student.name : `#${a.studentId}`}
+                    </div>
+                  </div>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:5,padding:"1px 7px",letterSpacing:.8,flexShrink:0 }}>
+                    {a.pin}
+                  </span>
+                </div>
+              ))}
+              {assignments.length > 4 && (
+                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,paddingLeft:10 }}>
+                  +{assignments.length - 4} more
+                </div>
+              )}
             </div>
-          ))}
-          {assignedStudents.length>5 && (
-            <div style={{ width:30,height:30,borderRadius:"50%",background:C.dim,border:`2px solid ${C.panel}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.muted,fontFamily:"'DM Sans',sans-serif" }}>
-              +{assignedStudents.length-5}
-            </div>
-          )}
-          {assignedStudents.length===0 && <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>None yet</span>}
-        </div>
+        }
       </div>
 
       {/* Actions */}
       <div style={{ display:"flex",gap:8,paddingTop:4 }}>
         <Btn small onClick={()=>onEdit(exam)} style={{ flex:1 }}>✎ Edit</Btn>
+        <Btn small onClick={()=>onPreview(exam)} style={{ flex:1 }} variant="solid" color={C.purple+"22"}>
+          <span style={{ color:C.purple }}>▶ Preview</span>
+        </Btn>
         <Btn small onClick={()=>onAssign(exam)} style={{ flex:1 }} variant="solid" color={C.info+"22"}>
           <span style={{ color:C.info }}>+ Assign</span>
         </Btn>
@@ -690,32 +696,236 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults }) {
   );
 }
 
-// ── Assign Modal ──────────────────────────────────────────────────────────────
-function AssignModal({ exam, onClose, onSave }) {
-  const [assigned, setAssigned] = useState([...exam.assignedTo]);
-  const toggle = (id) => setAssigned(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
-  const groups = [...new Set(SEED_STUDENTS.map(s=>s.group))];
-  const toggleGroup = (g) => {
-    const ids = SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
-    const allSel = ids.every(id=>assigned.includes(id));
-    setAssigned(a=>allSel?a.filter(id=>!ids.includes(id)):[...new Set([...a,...ids])]);
+// ── Exam Preview (moderator: frontend-only test run, no DB save) ──────────────
+function ExamPreview({ exam, questions, onClose }) {
+  const [answers,  setAnswers]  = useState({});
+  const [current,  setCurrent]  = useState(0);
+  const [finished, setFinished] = useState(false);
+  const [score,    setScore]    = useState(null);
+
+  const q = questions[current];
+
+  const setAnswer = (qId, val) => setAnswers(a => ({ ...a, [qId]: val }));
+
+  const calcScore = () => {
+    let earned = 0, total = 0;
+    for (const q of questions) {
+      total += q.points;
+      const ans = answers[q.id];
+      if (q.type === "single_choice") {
+        if (Number(ans) === q.correct) earned += q.points;
+      } else if (q.type === "multi_choice" || q.type === "multi_select") {
+        const correct = Array.isArray(q.correct) ? q.correct : [q.correct];
+        const given   = Array.isArray(ans) ? ans : [];
+        if (correct.length === given.length && correct.every(c => given.includes(c))) earned += q.points;
+      } else if (q.type === "fill_blank") {
+        if ((ans||"").trim().toLowerCase() === (q.answer||"").trim().toLowerCase()) earned += q.points;
+      } else if (q.type === "writing" || q.type === "voice") {
+        // manual — count as 0 in preview
+      }
+    }
+    setScore({ earned, total, pct: total > 0 ? Math.round(earned/total*100) : 0 });
+    setFinished(true);
   };
+
+  if (finished && score) {
+    return (
+      <div style={{ fontFamily:"'DM Sans',sans-serif",textAlign:"center",padding:"20px 0" }}>
+        <div style={{ fontSize:48,marginBottom:12 }}>{score.pct >= 60 ? "🎉" : "📝"}</div>
+        <div style={{ fontSize:28,fontWeight:700,color:C.gold,marginBottom:8 }}>{score.pct}%</div>
+        <div style={{ color:C.muted,fontSize:14,marginBottom:4 }}>
+          Набрано: {score.earned} / {score.total} баллов
+        </div>
+        <div style={{ color:C.muted,fontSize:12,marginBottom:20 }}>
+          ⚠ Это тестовый прогон — результаты НЕ сохраняются в базу данных
+        </div>
+        <button onClick={()=>{setFinished(false);setAnswers({});setCurrent(0);setScore(null)}} style={{ background:C.gold+"22",border:`1px solid ${C.gold}44`,borderRadius:10,padding:"10px 24px",color:C.gold,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",marginRight:10 }}>
+          Пройти снова
+        </button>
+        <button onClick={onClose} style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 24px",color:C.text,fontWeight:500,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
+          Закрыть
+        </button>
+      </div>
+    );
+  }
+
+  if (!q) return <div style={{ color:C.muted,fontFamily:"'DM Sans',sans-serif" }}>Нет вопросов</div>;
+
+  const isMulti  = q.type === "multi_choice" || q.type === "multi_select";
+  const selected = answers[q.id] ?? (isMulti ? [] : null);
+
+  const toggleOpt = (idx) => {
+    if (!isMulti) { setAnswer(q.id, idx); return; }
+    const arr = Array.isArray(selected) ? selected : [];
+    setAnswer(q.id, arr.includes(idx) ? arr.filter(x=>x!==idx) : [...arr, idx]);
+  };
+
+  // Group questions by level for placement exams
+  const isPlacement = exam.examType === "placement";
+  const levels = isPlacement ? [...new Set(questions.map(q => q.level))] : [];
+
+  const isDotAnswered = (q) => {
+    const ans = answers[q.id];
+    if (ans === undefined || ans === null || ans === "") return false;
+    if (Array.isArray(ans)) return ans.length > 0;
+    return true;
+  };
+
+  return (
+    <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
+      {/* Progress */}
+      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:12 }}>
+        <span style={{ color:C.muted,fontSize:13 }}>Вопрос {current+1} / {questions.length}</span>
+        <div style={{ flex:1,height:4,background:C.border,borderRadius:2 }}>
+          <div style={{ width:`${((current+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s" }} />
+        </div>
+        <span style={{ color:C.muted,fontSize:11 }}>{q.points} балл · {q.level}</span>
+      </div>
+
+      {/* Dot navigation */}
+      {isPlacement ? (
+        <div style={{ display:"flex",gap:16,flexWrap:"wrap",marginBottom:18,padding:"10px 14px",background:C.panel,borderRadius:10,border:`1px solid ${C.border}` }}>
+          {levels.map(lvl => {
+            const lvlQs = questions.map((qq,i) => ({ qq, i })).filter(({ qq }) => qq.level === lvl);
+            return (
+              <div key={lvl} style={{ display:"flex",alignItems:"center",gap:5 }}>
+                <span style={{ fontSize:10,fontWeight:700,color:LEVEL_COLORS[lvl]||C.muted,minWidth:20 }}>{lvl}</span>
+                <div style={{ display:"flex",gap:4 }}>
+                  {lvlQs.map(({ qq, i }) => {
+                    const isCur = i === current;
+                    const isDone = isDotAnswered(qq);
+                    return (
+                      <button
+                        key={i}
+                        title={`${lvl} · Вопрос ${i+1}`}
+                        onClick={() => setCurrent(i)}
+                        style={{
+                          width:12,height:12,borderRadius:"50%",padding:0,cursor:"pointer",
+                          background: isCur ? C.gold : isDone ? C.gold+"88" : C.border2,
+                          border:`2px solid ${isCur ? C.gold : isDone ? C.gold+"55" : C.border2}`,
+                          outline: isCur ? `2px solid ${C.gold}44` : "none",
+                          outlineOffset:1,
+                          transition:"all .15s",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:18,padding:"10px 14px",background:C.panel,borderRadius:10,border:`1px solid ${C.border}` }}>
+          {questions.map((qq, i) => {
+            const isCur = i === current;
+            const isDone = isDotAnswered(qq);
+            return (
+              <button
+                key={i}
+                title={`Вопрос ${i+1}`}
+                onClick={() => setCurrent(i)}
+                style={{
+                  width:12,height:12,borderRadius:"50%",padding:0,cursor:"pointer",
+                  background: isCur ? C.gold : isDone ? C.gold+"88" : C.border2,
+                  border:`2px solid ${isCur ? C.gold : isDone ? C.gold+"55" : C.border2}`,
+                  outline: isCur ? `2px solid ${C.gold}44` : "none",
+                  outlineOffset:1,
+                  transition:"all .15s",
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Question text */}
+      <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 20px",marginBottom:16,fontSize:15,color:C.text,lineHeight:1.6 }}>
+        {q.text}
+      </div>
+
+      {/* Answer input */}
+      {(q.type === "single_choice" || q.type === "multi_choice" || q.type === "multi_select") && (
+        <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:20 }}>
+          {(q.options||[]).map((opt,i)=>{
+            const sel = isMulti ? (Array.isArray(selected)&&selected.includes(i)) : selected===i;
+            return (
+              <button key={i} onClick={()=>toggleOpt(i)} style={{
+                padding:"10px 16px",borderRadius:10,textAlign:"left",
+                background:sel?C.gold+"22":"transparent",
+                border:`1.5px solid ${sel?C.gold:C.border}`,
+                color:sel?C.gold:C.text,fontSize:14,cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif",
+              }}>{opt}</button>
+            );
+          })}
+        </div>
+      )}
+      {q.type === "fill_blank" && (
+        <input
+          value={answers[q.id]||""}
+          onChange={e=>setAnswer(q.id,e.target.value)}
+          placeholder="Введите ответ..."
+          style={{ width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,fontSize:14,outline:"none",fontFamily:"'DM Sans',sans-serif",marginBottom:20 }}
+        />
+      )}
+      {(q.type === "writing") && (
+        <textarea
+          rows={5}
+          value={answers[q.id]||""}
+          onChange={e=>setAnswer(q.id,e.target.value)}
+          placeholder={`Напишите ответ (${q.minWords||0}–${q.maxWords||999} слов)...`}
+          style={{ width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,fontSize:14,outline:"none",fontFamily:"'DM Sans',sans-serif",marginBottom:20,resize:"vertical" }}
+        />
+      )}
+      {q.type === "voice" && (
+        <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:16,marginBottom:20,color:C.muted,fontSize:13 }}>
+          🎤 Запись голоса — в режиме предпросмотра недоступна
+        </div>
+      )}
+
+      {/* Nav buttons */}
+      <div style={{ display:"flex",justifyContent:"space-between",gap:10 }}>
+        <button
+          disabled={current===0}
+          onClick={()=>setCurrent(c=>c-1)}
+          style={{ padding:"9px 20px",borderRadius:10,background:C.card,border:`1px solid ${C.border}`,color:current===0?C.muted:C.text,cursor:current===0?"not-allowed":"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:14 }}
+        >← Назад</button>
+        {current < questions.length - 1 ? (
+          <button onClick={()=>setCurrent(c=>c+1)} style={{ padding:"9px 20px",borderRadius:10,background:`linear-gradient(135deg,${C.gold},${C.goldDim})`,border:"none",color:"white",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
+            Далее →
+          </button>
+        ) : (
+          <button onClick={calcScore} style={{ padding:"9px 24px",borderRadius:10,background:`linear-gradient(135deg,${C.success},#16a34a)`,border:"none",color:"white",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
+            Завершить
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Assign Modal ──────────────────────────────────────────────────────────────
+function AssignModal({ exam, onClose, onSave, students = [] }) {
+  const [assigned, setAssigned] = useState([...exam.assignedTo]);
+  // existing PINs map: studentId -> pin (for already-assigned students)
+  const existingPins = Object.fromEntries((exam.assignments || []).map(a => [a.studentId, a.pin]));
+  const toggle = (id) => setAssigned(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
+  const allSelected = students.length > 0 && students.every(s=>assigned.includes(s.id));
+  const toggleAll = () => setAssigned(allSelected ? [] : students.map(s=>s.id));
   return (
     <Modal title="Assign Students" subtitle={exam.title} onClose={onClose}>
       <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14 }}>
         <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{assigned.length}</span></span>
-        <div style={{ display:"flex",gap:8 }}>
-          {groups.map(g=>{
-            const ids=SEED_STUDENTS.filter(s=>s.group===g).map(s=>s.id);
-            const allSel=ids.every(id=>assigned.includes(id));
-            return <button key={g} onClick={()=>toggleGroup(g)} style={{ background:allSel?C.info+"22":"transparent",border:`1px solid ${allSel?C.info:C.border2}`,borderRadius:8,padding:"5px 12px",color:allSel?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer" }}>{g}</button>;
-          })}
-        </div>
+        <button onClick={toggleAll} style={{ background:allSelected?C.info+"22":"transparent",border:`1px solid ${allSelected?C.info:C.border2}`,borderRadius:8,padding:"5px 14px",color:allSelected?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>
+          {allSelected ? "Deselect All" : "Select All"}
+        </button>
       </div>
       <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:360,overflowY:"auto",marginBottom:20 }}>
-        {SEED_STUDENTS.map(s=>{
+        {students.map(s=>{
           const sel=assigned.includes(s.id);
           const lc=LEVEL_COLORS[s.level]||"#94a3b8";
+          const pin=existingPins[s.id];
           return (
             <div key={s.id} onClick={()=>toggle(s.id)} style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:sel?C.info+"0e":C.panel,border:`1.5px solid ${sel?C.info+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .15s" }}>
               <div style={{ width:20,height:20,borderRadius:"50%",border:`2px solid ${sel?C.info:C.border2}`,background:sel?C.info+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
@@ -726,8 +936,12 @@ function AssignModal({ exam, onClose, onSave }) {
                 <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500 }}>{s.name}</div>
                 <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
               </div>
-              <Badge color="#60a5fa" small>{s.group}</Badge>
-              <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level}</span>
+              {pin && (
+                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:5,padding:"1px 7px",letterSpacing:.8 }}>
+                  {pin}
+                </span>
+              )}
+              <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level||"—"}</span>
             </div>
           );
         })}
@@ -741,29 +955,33 @@ function AssignModal({ exam, onClose, onSave }) {
 }
 
 // ── Results Preview ───────────────────────────────────────────────────────────
-function ResultsModal({ exam, onClose }) {
-  const students = SEED_STUDENTS.filter(s=>exam.assignedTo.includes(s.id));
-  const fakeScore = (id) => Math.floor(50 + (id*17+exam.id*7) % 45);
-  const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
+function ResultsModal({ exam, onClose, allStudents = [] }) {
+  const [results, setResults] = useState([]);
+  useEffect(() => {
+    api.getResults({ examId: exam.id }).then(setResults);
+  }, [exam.id]);
+
   return (
     <Modal title="Results" subtitle={exam.title} onClose={onClose}>
       <div style={{ display:"flex",flexDirection:"column",gap:8,maxHeight:420,overflowY:"auto" }}>
-        {students.map(s=>{
-          const sc = fakeScore(s.id);
-          const pct = Math.round((sc/pts)*100);
-          const pass = pct >= exam.passingScore;
+        {results.length === 0 && (
+          <div style={{ padding:"32px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>No results yet</div>
+        )}
+        {results.map(r=>{
+          const s = allStudents.find(x=>x.id===r.studentId) || r.student;
+          const pass = r.passed;
           return (
-            <div key={s.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10 }}>
-              <div style={{ width:34,height:34,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14 }}>{s.name[0]}</div>
+            <div key={r.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10 }}>
+              <div style={{ width:34,height:34,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14 }}>{s?.name?.[0]||"?"}</div>
               <div style={{ flex:1 }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500 }}>{s.name}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500 }}>{s?.name||"Unknown"}</div>
                 <div style={{ height:5,background:C.dim,borderRadius:3,marginTop:6,overflow:"hidden" }}>
-                  <div style={{ width:`${pct}%`,height:"100%",background:pass?C.success:C.danger,borderRadius:3,transition:"width .6s" }} />
+                  <div style={{ width:`${r.pct}%`,height:"100%",background:pass?C.success:C.danger,borderRadius:3,transition:"width .6s" }} />
                 </div>
               </div>
               <div style={{ textAlign:"right" }}>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color: pass?C.success:C.danger,fontWeight:700 }}>{sc}/{pts}</div>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color: pass?C.success:C.danger }}>{pct}% · {pass?"✓ Pass":"✕ Fail"}</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:pass?C.success:C.danger,fontWeight:700 }}>{r.score}/{r.totalPoints}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:pass?C.success:C.danger }}>{r.pct}% · {pass?"✓ Pass":"✕ Fail"}</div>
               </div>
             </div>
           );
@@ -786,7 +1004,10 @@ const NAV = [
 
 // ── Exams Page ────────────────────────────────────────────────────────────────
 function ExamsPage() {
-  const [exams, setExams] = useState(SEED_EXAMS);
+  const [exams, setExams] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [editing, setEditing] = useState(null);
   const [assigning, setAssigning] = useState(null);
@@ -795,6 +1016,14 @@ function ExamsPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterLevel, setFilterLevel] = useState("all");
   const [search, setSearch] = useState("");
+  const [previewing, setPreviewing] = useState(null);   // { exam, questions }
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  useEffect(() => {
+    Promise.all([api.getExams(), api.getStudents(), api.getSections()]).then(([e, s, secs]) => {
+      setExams(e); setStudents(s); setSections(secs.map(sec => sec.name)); setLoading(false);
+    });
+  }, []);
 
   const filtered = exams.filter(e=>{
     if (filterStatus!=="all" && e.status!==filterStatus) return false;
@@ -803,15 +1032,36 @@ function ExamsPage() {
     return true;
   });
 
-  const handleSave = (form) => {
-    if (modal==="edit") setExams(es=>es.map(e=>e.id===form.id?{...form}:e));
-    else setExams(es=>[{...form,id:Math.max(0,...es.map(x=>x.id))+1,createdAt:new Date().toISOString().slice(0,10)},...es]);
+  const handleSave = async (form) => {
+    if (modal==="edit") {
+      const updated = await api.updateExam(form.id, form);
+      setExams(es=>es.map(e=>e.id===updated.id?updated:e));
+    } else {
+      const created = await api.createExam(form);
+      setExams(es=>[created,...es]);
+    }
     setModal(null); setEditing(null);
   };
-  const handleDelete = (id) => { setExams(es=>es.filter(e=>e.id!==id)); setDeleteId(null); };
-  const handleAssignSave = (ids) => {
-    setExams(es=>es.map(e=>e.id===assigning.id?{...e,assignedTo:ids}:e));
+  const handleDelete = async (id) => {
+    await api.deleteExam(id);
+    setExams(es=>es.filter(e=>e.id!==id));
+    setDeleteId(null);
+  };
+  const handleAssignSave = async (ids) => {
+    const updated = await api.updateExam(assigning.id, { assignedTo: ids });
+    setExams(es=>es.map(e=>e.id===assigning.id?updated:e));
     setAssigning(null);
+  };
+  const handlePreview = async (exam) => {
+    setPreviewLoading(true);
+    try {
+      const questions = await api.getExamQuestions(exam.id, true);
+      setPreviewing({ exam, questions });
+    } catch (e) {
+      alert("Ошибка загрузки вопросов: " + e.message);
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   const statCounts = Object.fromEntries(Object.keys(STATUS_META).map(s=>[s,exams.filter(e=>e.status===s).length]));
@@ -851,16 +1101,20 @@ function ExamsPage() {
       </div>
 
       {/* Grid */}
-      {filtered.length===0 ? (
+      {loading ? (
+        <div style={{ textAlign:"center",padding:"60px",color:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:14 }}>Loading…</div>
+      ) : filtered.length===0 ? (
         <div style={{ textAlign:"center",padding:"60px",color:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:14 }}>No exams found</div>
       ) : (
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:18 }}>
           {filtered.map(exam=>(
             <ExamCard key={exam.id} exam={exam}
+              allStudents={students}
               onEdit={e=>{setEditing(e);setModal("edit")}}
               onDelete={id=>setDeleteId(id)}
               onAssign={e=>setAssigning(e)}
               onViewResults={e=>setViewingResults(e)}
+              onPreview={handlePreview}
             />
           ))}
         </div>
@@ -869,15 +1123,15 @@ function ExamsPage() {
       {/* Wizard Modal */}
       {(modal==="create"||modal==="edit") && (
         <Modal title={modal==="edit"?"Edit Exam":"New Exam"} subtitle="4-step wizard" onClose={()=>{setModal(null);setEditing(null)}} wide>
-          <ExamWizard initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} />
+          <ExamWizard initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} students={students} sections={sections} />
         </Modal>
       )}
 
       {/* Assign Modal */}
-      {assigning && <AssignModal exam={assigning} onClose={()=>setAssigning(null)} onSave={handleAssignSave} />}
+      {assigning && <AssignModal exam={assigning} onClose={()=>setAssigning(null)} onSave={handleAssignSave} students={students} />}
 
       {/* Results Modal */}
-      {viewingResults && <ResultsModal exam={viewingResults} onClose={()=>setViewingResults(null)} />}
+      {viewingResults && <ResultsModal exam={viewingResults} onClose={()=>setViewingResults(null)} allStudents={students} />}
 
       {/* Delete Confirm */}
       {deleteId && (
@@ -887,6 +1141,18 @@ function ExamsPage() {
             <Btn onClick={()=>setDeleteId(null)}>Cancel</Btn>
             <Btn variant="danger" onClick={()=>handleDelete(deleteId)}>✕ Delete</Btn>
           </div>
+        </Modal>
+      )}
+
+      {/* Preview Modal — loads questions without saving to DB */}
+      {previewLoading && (
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999 }}>
+          <div style={{ color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:16 }}>Загрузка вопросов...</div>
+        </div>
+      )}
+      {previewing && (
+        <Modal title={`Preview: ${previewing.exam.title}`} subtitle={`${previewing.questions.length} вопросов — только для просмотра, не сохраняется`} onClose={()=>setPreviewing(null)} wide>
+          <ExamPreview exam={previewing.exam} questions={previewing.questions} onClose={()=>setPreviewing(null)} />
         </Modal>
       )}
     </div>
