@@ -38,8 +38,30 @@ export default async function gradingRoutes(fastify) {
       where,
       orderBy: [{ gradedAt: "desc" }, { submittedAt: "desc" }],
       take: Math.min(Number(take ?? 200) || 200, 500),
-      include: {
-        exam:    { select: { id: true, title: true, examType: true, examCenterId: true } },
+      select: {
+        id: true, score: true, pct: true, passed: true, totalPoints: true, detectedLevel: true, submittedAt: true, gradedAt: true,
+        exam:    { select: { id: true, title: true, examType: true, examCenterId: true, level: true } },
+        student: { select: { id: true, name: true, email: true } },
+      },
+    });
+  });
+
+  // GET /api/grading/auto  — auto-graded results (no manual grading needed)
+  fastify.get("/api/grading/auto", { preHandler: adminHook }, async (req) => {
+    const { centerId, take } = req.query;
+    const where = { gradingStatus: "auto" };
+    if (centerId) {
+      where.exam = { examCenterId: Number(centerId) };
+    } else if (req.admin.role === "center_admin" && req.admin.centerId) {
+      where.exam = { examCenterId: req.admin.centerId };
+    }
+    return prisma.result.findMany({
+      where,
+      orderBy: { submittedAt: "desc" },
+      take: Math.min(Number(take ?? 200) || 200, 500),
+      select: {
+        id: true, score: true, pct: true, passed: true, totalPoints: true, detectedLevel: true, submittedAt: true,
+        exam:    { select: { id: true, title: true, examType: true, examCenterId: true, level: true } },
         student: { select: { id: true, name: true, email: true } },
       },
     });
@@ -51,7 +73,7 @@ export default async function gradingRoutes(fastify) {
     const result = await prisma.result.findUnique({
       where: { id: resultId },
       include: {
-        exam:    { select: { id: true, title: true, examType: true, subpools: true, placementTemplate: true, examCenterId: true } },
+        exam:    { select: { id: true, title: true, examType: true, subpools: true, placementTemplate: true, examCenterId: true, level: true, passingScore: true } },
         student: { select: { id: true, name: true, email: true } },
       },
     });
@@ -61,17 +83,24 @@ export default async function gradingRoutes(fastify) {
       return reply.code(403).send({ error: "Нет доступа к результатам этого центра" });
     }
 
-    // Gather question IDs from answers that are manual types
+    // Gather question IDs from answers
     const answers = result.answers ?? {};
     const questionIds = Object.keys(answers).map(Number).filter(Boolean);
+    
+    // For auto-graded results, get all questions; for pending/graded, only manual types
+    const isAutoGraded = result.gradingStatus === "auto";
+    let questionWhere = { id: { in: questionIds } };
+    if (!isAutoGraded) {
+      questionWhere.type = { in: ["writing", "voice"] };
+    }
     const questions = questionIds.length
       ? await prisma.question.findMany({
-          where: { id: { in: questionIds }, type: { in: ["writing", "voice"] } },
-          select: { id: true, type: true, text: true, points: true, level: true, minWords: true, maxWords: true, minSeconds: true, maxSeconds: true },
+          where: questionWhere,
+          select: { id: true, type: true, text: true, points: true, level: true, minWords: true, maxWords: true, minSeconds: true, maxSeconds: true, correct: true, answer: true },
         })
       : [];
 
-    return { ...result, gradableQuestions: questions };
+    return { ...result, gradableQuestions: isAutoGraded ? [] : questions, allQuestions: questions };
   });
 
   // POST /api/grading/:resultId  — submit grades for manual questions

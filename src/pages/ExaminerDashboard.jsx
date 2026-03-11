@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { formatDateTime } from "../dateUtils.js";
 
 const STATUS_COLOR = { approved: "#4cc98a", partial: "#c9a84c", declined: "#c94c6f" };
+const LEVEL_COLORS = { A1: "#4ade80", A2: "#86efac", B1: "#60a5fa", B2: "#93c5fd", C1: "#f59e0b", C2: "#fbbf24" };
 
 export default function ExaminerDashboard({ theme: T }) {
   const { t } = useTranslation();
@@ -14,9 +15,12 @@ export default function ExaminerDashboard({ theme: T }) {
   };
 
   const [stats, setStats] = useState(null);
-  const [tab, setTab] = useState("pending"); // pending | graded
+  const [tab, setTab] = useState("pending"); // pending | graded | auto
   const [pending, setPending] = useState([]);
   const [graded, setGraded] = useState([]);
+  const [auto, setAuto] = useState([]);
+  const [centers, setCenters] = useState([]);
+  const [centerFilter, setCenterFilter] = useState(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [selectedMode, setSelectedMode] = useState("grade"); // grade | view
@@ -30,9 +34,10 @@ export default function ExaminerDashboard({ theme: T }) {
   const load = async () => {
     setLoading(true);
     try {
-      const [s, p] = await Promise.all([api.getGradingStats(), api.getGradingPending()]);
+      const [s, p, c] = await Promise.all([api.getGradingStats(), api.getGradingPending(), api.getAllCenters()]);
       setStats(s);
       setPending(p);
+      setCenters(c || []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -43,11 +48,16 @@ export default function ExaminerDashboard({ theme: T }) {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    if (tab !== "graded") return;
-    api.getGradingGraded({ take: 200 })
-      .then(setGraded)
-      .catch(e => setError(e.message));
-  }, [tab]);
+    if (tab === "graded") {
+      api.getGradingGraded({ take: 200, ...(centerFilter ? { centerId: centerFilter } : {}) })
+        .then(setGraded)
+        .catch(e => setError(e.message));
+    } else if (tab === "auto") {
+      api.getGradingAuto({ take: 200, ...(centerFilter ? { centerId: centerFilter } : {}) })
+        .then(setAuto)
+        .catch(e => setError(e.message));
+    }
+  }, [tab, centerFilter]);
 
   // Persist grading drafts locally so examiner doesn't lose work on refresh/close
   useEffect(() => {
@@ -161,7 +171,8 @@ export default function ExaminerDashboard({ theme: T }) {
 
   // ── Result detail view (Focus Mode) ─────────────────────────────────────────
   if (selected) {
-    const questions = selected.gradableQuestions ?? [];
+    const isAutoGraded = selected.gradingStatus === "auto";
+    const questions = isAutoGraded ? (selected.allQuestions ?? []) : (selected.gradableQuestions ?? []);
     const currentQ = questions[activeQIdx] ?? null;
     const answer = currentQ ? selected.answers?.[currentQ.id] : null;
     const rawGrade = currentQ ? grades[currentQ.id] : null;
@@ -170,6 +181,111 @@ export default function ExaminerDashboard({ theme: T }) {
       : {};
     const readOnly = selectedMode === "view";
 
+    // Auto-graded result view
+    if (isAutoGraded && readOnly) {
+      const autoQuestions = selected.allQuestions ?? [];
+      return (
+        <>
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'DM Sans',sans-serif" }}>
+          {/* Header with result summary */}
+          <div style={{ padding: "16px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button onClick={() => setSelected(null)} style={backBtn(T)}>← {t("adm.back")}</button>
+            <div style={{ flex: 1, marginLeft: 16 }}>
+              <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}>
+                {selected.exam?.title}
+              </div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                {t("adm.e.student")}: {selected.student?.name} ({selected.student?.email})
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12, color: T.muted, marginBottom: 4 }}>{t("adm.e.score") || "Score"}</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: selected.passed ? "#4cc98a" : "#c94c6f" }}>
+                  {selected.pct || 0}%
+                </div>
+                <div style={{ fontSize: 11, color: T.muted }}>
+                  {selected.score || 0} / {selected.totalPoints || 0}
+                </div>
+              </div>
+              {selected.exam?.level && (
+                <span style={{ 
+                  fontSize: 12, fontWeight: 700, 
+                  color: LEVEL_COLORS[selected.exam.level] || T.muted,
+                  background: (LEVEL_COLORS[selected.exam.level] || T.muted) + "22",
+                  border: `1px solid ${(LEVEL_COLORS[selected.exam.level] || T.muted)}44`,
+                  borderRadius: 8, padding: "4px 12px",
+                }}>
+                  {selected.exam.level}
+                </span>
+              )}
+              <span style={{ 
+                fontSize: 11, fontWeight: 600,
+                color: selected.passed ? "#4cc98a" : "#c94c6f",
+                background: selected.passed ? "#4cc98a18" : "#c94c6f18",
+                padding: "4px 10px", borderRadius: 6,
+              }}>
+                {selected.passed ? "✓ Passed" : "✕ Failed"}
+              </span>
+            </div>
+          </div>
+
+          {/* Questions list */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+            <div style={{ maxWidth: 800, margin: "0 auto" }}>
+              <h3 style={{ fontSize: 14, color: T.muted, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>
+                {t("adm.e.questions") || "Questions"} ({autoQuestions.length})
+              </h3>
+              {autoQuestions.length === 0 ? (
+                <div style={{ color: T.muted, textAlign: "center", padding: 40 }}>
+                  {t("adm.e.no_questions") || "No questions found"}
+                </div>
+              ) : (
+                autoQuestions.map((q, idx) => {
+                  const studentAnswer = selected.answers?.[q.id];
+                  const isCorrect = studentAnswer === q.correctAnswer;
+                  return (
+                    <div key={q.id} style={{ 
+                      background: T.panel, border: `1px solid ${T.border}`, 
+                      borderRadius: 12, padding: 16, marginBottom: 12 
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                        <div style={{ fontSize: 11, color: T.muted, fontWeight: 600 }}>
+                          {idx + 1}. {q.type === "single_choice" ? "Single Choice" : q.type === "multi_choice" ? "Multi Choice" : q.type === "multi_select" ? "Multi Select" : q.type === "fill_blank" ? "Fill Blank" : q.type === "fill_wordbank" ? "Word Bank" : q.type === "writing" ? "Writing" : q.type === "voice" ? "Voice" : q.type}
+                        </div>
+                        <span style={{ fontSize: 10, color: T.muted }}>{q.points} pts</span>
+                      </div>
+                      <div style={{ fontSize: 14, color: T.text, marginBottom: 8, lineHeight: 1.5 }}>
+                        {q.text}
+                      </div>
+                      <div style={{ fontSize: 12, color: T.muted, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600 }}>Student answer: </span>
+                        <span style={{ color: T.text }}>{String(studentAnswer ?? "—")}</span>
+                      </div>
+                      {q.correct && (
+                        <div style={{ fontSize: 12, color: T.muted }}>
+                          <span style={{ fontWeight: 600 }}>Correct answer: </span>
+                          <span style={{ color: "#4cc98a" }}>{String(q.correct)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div style={{ padding: "16px 24px", borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "flex-end" }}>
+            <button onClick={() => setSelected(null)} style={primaryBtn(T)}>
+              {t("adm.close") || "Close"}
+            </button>
+          </div>
+        </div>
+        </>
+      );
+    }
+
+    // Manual grading view (pending/graded)
     return (
       <>
       <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'DM Sans',sans-serif" }}>
@@ -394,8 +510,9 @@ export default function ExaminerDashboard({ theme: T }) {
   }
 
   // ── List view ───────────────────────────────────────────────────────────────
-  const list = tab === "pending" ? pending : graded;
+  const list = tab === "pending" ? pending : tab === "graded" ? graded : auto;
   const filtered = list.filter(r => {
+    if (centerFilter && r.exam?.examCenterId !== centerFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -423,13 +540,34 @@ export default function ExaminerDashboard({ theme: T }) {
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Stats - clickable filters */}
       {stats && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <StatCard label={t("adm.e.pending")} value={stats.pending} color={T.gold} T={T} />
-            <StatCard label={t("adm.e.graded")} value={stats.graded} color={STATUS_COLOR.approved} T={T} />
-            <StatCard label={t("adm.e.auto")} value={stats.auto} color={T.muted} T={T} />
+            <StatCard 
+              label={t("adm.e.pending")} 
+              value={stats.pending} 
+              color={T.gold} 
+              T={T}
+              active={tab === "pending"}
+              onClick={() => setTab("pending")}
+            />
+            <StatCard 
+              label={t("adm.e.graded")} 
+              value={stats.graded} 
+              color={STATUS_COLOR.approved} 
+              T={T}
+              active={tab === "graded"}
+              onClick={() => setTab("graded")}
+            />
+            <StatCard 
+              label={t("adm.e.auto")} 
+              value={stats.auto} 
+              color={T.muted} 
+              T={T}
+              active={tab === "auto"}
+              onClick={() => setTab("auto")}
+            />
           </div>
         </div>
       )}
@@ -445,29 +583,34 @@ export default function ExaminerDashboard({ theme: T }) {
           placeholder={t("adm.e.search_placeholder") || "🔍  Search by exam / student / id..."}
           style={{ flex: "1 1 240px", background: T.panel, border: `1.5px solid ${T.border2 || T.border}`, borderRadius: 9, padding: "8px 14px", color: T.text, fontFamily: "'DM Sans',sans-serif", fontSize: 13, outline: "none" }}
         />
-        <div style={{ display: "flex", gap: 6 }}>
-          <Pill
-            label={(t("adm.e.pending") || "Pending") + (stats ? ` · ${stats.pending}` : "")}
-            active={tab === "pending"}
-            onClick={() => setTab("pending")}
-            color={T.gold}
-            T={T}
-          />
-          <Pill
-            label={(t("adm.e.graded") || "Graded") + (stats ? ` · ${stats.graded}` : "")}
-            active={tab === "graded"}
-            onClick={() => setTab("graded")}
-            color={STATUS_COLOR.approved}
-            T={T}
-          />
-        </div>
+        {centers.length > 0 && (
+          <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+            <Pill
+              label="All Centers"
+              active={centerFilter === null}
+              onClick={() => setCenterFilter(null)}
+              color={T.muted}
+              T={T}
+            />
+            {centers.slice(0, 5).map(c => (
+              <Pill
+                key={c.id}
+                label={c.name}
+                active={centerFilter === c.id}
+                onClick={() => setCenterFilter(c.id)}
+                color={T.muted}
+                T={T}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Table */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 1fr 140px 130px", gap: 14, padding: "11px 20px", borderBottom: `1px solid ${T.border}`, background: T.panel }}>
-          {["#", t("adm.e.exam") || "Exam", t("adm.e.student") || "Student", t("adm.e.submitted_at") || "Submitted", ""].map((h, i) => (
-            <span key={i} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase" }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden", overflowX: "auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(50px, 0.5fr) minmax(150px, 1.5fr) minmax(150px, 1.5fr) minmax(80px, 0.8fr) minmax(70px, 0.7fr) minmax(80px, 0.8fr) minmax(100px, 1fr)", gap: 14, padding: "11px 20px", borderBottom: `1px solid ${T.border}`, background: T.panel, minWidth: 800 }}>
+          {["#", t("adm.e.exam") || "Exam", t("adm.e.student") || "Student", t("adm.e.score") || "Score", t("adm.e.level") || "Level", t("adm.e.submitted_at") || "Submitted", ""].map((h, i) => (
+            <span key={i} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", whiteSpace: "nowrap" }}>
               {h}
             </span>
           ))}
@@ -479,13 +622,13 @@ export default function ExaminerDashboard({ theme: T }) {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: "48px", textAlign: "center", fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: T.muted }}>
-            {tab === "pending" ? (t("adm.e.no_pending") || "No pending results") : (t("adm.e.no_graded") || "No graded results")}
+            {tab === "pending" ? (t("adm.e.no_pending") || "No pending results") : tab === "graded" ? (t("adm.e.no_graded") || "No graded results") : (t("adm.e.no_auto") || "No auto-graded results")}
           </div>
         ) : (
           filtered.map(r => (
             <div
               key={r.id}
-              style={{ display: "grid", gridTemplateColumns: "70px 1fr 1fr 140px 130px", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: `1px solid ${T.border}`, transition: "background .15s" }}
+              style={{ display: "grid", gridTemplateColumns: "minmax(50px, 0.5fr) minmax(150px, 1.5fr) minmax(150px, 1.5fr) minmax(80px, 0.8fr) minmax(70px, 0.7fr) minmax(80px, 0.8fr) minmax(100px, 1fr)", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: `1px solid ${T.border}`, transition: "background .15s", minWidth: 800 }}
               onMouseEnter={e => { e.currentTarget.style.background = T.panel; }}
               onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
             >
@@ -506,6 +649,53 @@ export default function ExaminerDashboard({ theme: T }) {
                   {r.student?.email}
                 </div>
               </div>
+              {tab === "pending" ? (
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>—</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 600, color: r.passed ? "#4cc98a" : "#c94c6f" }}>
+                    {r.pct || 0}%
+                  </span>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: T.muted }}>
+                    {r.score || 0} / {r.totalPoints || 0}
+                  </span>
+                </div>
+              )}
+              {tab === "pending" ? (
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>—</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+                  {(() => {
+                    const level = tab === "auto" ? r.exam?.level : r.detectedLevel;
+                    const lc = LEVEL_COLORS[level] || T.muted;
+                    return (
+                      <span style={{ 
+                        fontFamily: "'DM Sans',sans-serif", 
+                        fontSize: 11, 
+                        fontWeight: 700, 
+                        color: lc,
+                        background: lc + "22",
+                        border: `1px solid ${lc}44`,
+                        borderRadius: 8,
+                        padding: "3px 10px",
+                      }}>
+                        {level || "—"}
+                      </span>
+                    );
+                  })()}
+                  <span style={{ 
+                    fontFamily: "'DM Sans',sans-serif", 
+                    fontSize: 9, 
+                    fontWeight: 600,
+                    color: r.passed ? "#4cc98a" : "#c94c6f",
+                    background: r.passed ? "#4cc98a18" : "#c94c6f18",
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                  }}>
+                    {r.passed ? "✓ Passed" : "✕ Failed"}
+                  </span>
+                </div>
+              )}
               <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: T.muted }}>
                 {formatDateTime(r.submittedAt)}
               </div>
@@ -644,8 +834,18 @@ function backBtn(T) {
   };
 }
 
-const StatCard = ({ label, value, color, T }) => (
-  <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
+const StatCard = ({ label, value, color, T, active, onClick }) => (
+  <div 
+    onClick={onClick}
+    style={{ 
+      background: active ? color + "18" : T.panel, 
+      border: `1px solid ${active ? color : T.border}`, 
+      borderRadius: 16, 
+      padding: 20, 
+      cursor: onClick ? "pointer" : "default",
+      transition: "all .15s",
+    }}
+  >
     <div style={{ fontSize: 28, fontWeight: 800, color }}>{value}</div>
     <div style={{ fontSize: 12, color: T.muted, fontWeight: 600, textTransform: "uppercase", marginTop: 4 }}>
       {label}
