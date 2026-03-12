@@ -379,23 +379,18 @@ export default async function resultsRoutes(fastify) {
       },
     });
     if (!result) return reply.code(404).send({ error: "Not found" });
-    if (result.gradingStatus === "graded") {
-      return reply.code(200).send({ already: true, result });
+    if (!["graded", "auto"].includes(result.gradingStatus)) {
+      return reply.code(400).send({ error: "Result must be graded before publishing" });
     }
 
-    const updated = await prisma.result.update({
-      where: { id: resultId },
-      data:  { gradingStatus: "graded",    gradedAt: result.gradedAt ?? new Date() },
-    });
-
-    // Fire-and-forget email — don't block HTTP response on SMTP
+    // Fire-and-forget email notification to student
     sendResultsReady({
       student: result.student,
       exam:    result.exam,
-      result:  updated,
+      result,
     }).catch(err => console.error("[mailer] sendResultsReady failed:", err));
 
-    return { published: true, result: updated };
+    return { published: true, result };
   });
 
   // GET /api/certificate/:id  — stream PDF certificate (student or admin)

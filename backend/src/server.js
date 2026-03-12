@@ -26,7 +26,7 @@ fastify.decorate("prisma", prisma);
 
 await fastify.register(cors, {
   origin: ["http://localhost:5173", "http://localhost:4173"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 });
 
 await fastify.register(questionsRoutes);
