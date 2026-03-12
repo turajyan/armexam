@@ -46,9 +46,46 @@ export const THEMES = {
   },
 };
 
+// ── URL helpers ───────────────────────────────────────────────────────────────
+function isRemoteUrl(url) {
+  return typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'));
+}
+
+/**
+ * Deep-clone sessionData and rewrite all media URLs using urlMap.
+ * urlMap: { "https://cdn.../file.mp3": "http://localhost:4000/api/media/abc123.mp3" }
+ * Handles both new schema (q.media[].url) and legacy fields (audioSrc, videoSrc, imageSrc).
+ */
+function rewriteSessionUrls(session, urlMap) {
+  if (!urlMap || Object.keys(urlMap).length === 0) return session;
+
+  // Deep clone questions array — avoid mutating the original
+  const questions = (session.questions ?? []).map(q => {
+    const qClone = { ...q };
+
+    // New schema: q.media = [{ type, url, maxPlays }, ...]
+    if (Array.isArray(q.media)) {
+      qClone.media = q.media.map(m => ({
+        ...m,
+        url: urlMap[m.url] ?? m.url,
+      }));
+    }
+
+    // Legacy single fields
+    if (q.audioSrc && urlMap[q.audioSrc]) qClone.audioSrc = urlMap[q.audioSrc];
+    if (q.videoSrc && urlMap[q.videoSrc]) qClone.videoSrc = urlMap[q.videoSrc];
+    if (q.imageSrc && urlMap[q.imageSrc]) qClone.imageSrc = urlMap[q.imageSrc];
+
+    return qClone;
+  });
+
+  return { ...session, questions };
+}
+
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('terminal-theme') || 'dark');
-  const [screen, setScreen] = useState('pin'); // pin | exam | result
+  const [screen, setScreen] = useState('pin'); // pin | prefetch | exam | result
+  const [prefetchProgress, setPrefetchProgress] = useState({ done: 0, total: 0, failed: 0 });
   const [session, setSession] = useState(null);
   const [result, setResult] = useState(null);
   const [backendUrl, setBackendUrl] = useState(BACKEND || 'http://localhost:4000');
@@ -62,55 +99,74 @@ export default function App() {
   const T = THEMES[theme] || THEMES.dark;
 
   const handleLogin = useCallback(async (sessionData) => {
-    setSession(sessionData);
-    setScreen('exam');
+    const bu = backendUrl ?? 'http://localhost:4000';
 
-    // ── Background media prefetch ────────────────────────────────────────────
-    // Collect all media URLs from the session questions and ask the terminal
-    // backend to cache them locally. This runs after the exam starts so it
-    // doesn't delay the PIN login, but completes well before the student
-    // reaches media-heavy sections (Listening / Speaking).
-    const urls = [];
+    // ── Step 1: extract all remote media URLs from questions ─────────────────
+    // Build a map: originalUrl → list of locations in the session data tree
+    // so we can do a clean rewrite without mutating the original object.
+    const urlSet = new Set();
     for (const q of sessionData.questions ?? []) {
       for (const m of q.media ?? []) {
-        if (m.url && (m.url.startsWith('http://') || m.url.startsWith('https://'))) {
-          urls.push(m.url);
-        }
+        if (isRemoteUrl(m.url)) urlSet.add(m.url);
       }
-      // Legacy single-field media
-      if (q.audioSrc?.startsWith('http')) urls.push(q.audioSrc);
-      if (q.videoSrc?.startsWith('http')) urls.push(q.videoSrc);
-      if (q.imageSrc?.startsWith('http')) urls.push(q.imageSrc);
+      if (isRemoteUrl(q.audioSrc)) urlSet.add(q.audioSrc);
+      if (isRemoteUrl(q.videoSrc)) urlSet.add(q.videoSrc);
+      if (isRemoteUrl(q.imageSrc)) urlSet.add(q.imageSrc);
     }
 
-    if (urls.length > 0) {
-      const bu = sessionData.backendUrl ?? backendUrl ?? 'http://localhost:4000';
-      try {
-        const r = await fetch(`${bu}/api/media/prefetch`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ urls: [...new Set(urls)] }), // deduplicate
-        });
-        if (r.ok) {
-          const d = await r.json();
-          console.log(`[prefetch] ${d.cached?.length ?? 0} files cached, ${d.failed?.length ?? 0} failed`);
-          // Rewrite media URLs in session to point to local cache
-          for (const q of sessionData.questions ?? []) {
-            for (const m of q.media ?? []) {
-              const match = d.cached?.find(c => c.url === m.url);
-              if (match) m.url = `${bu}/api/media/${match.filename}`;
-            }
-            for (const field of ['audioSrc', 'videoSrc', 'imageSrc']) {
-              const match = d.cached?.find(c => c.url === q[field]);
-              if (match) q[field] = `${bu}/api/media/${match.filename}`;
-            }
-          }
-          // Update session in state with rewritten URLs
-          setSession({ ...sessionData });
-        }
-      } catch (e) {
-        console.warn('[prefetch] Failed:', e.message, '— using original URLs');
-      }
+    const uniqueUrls = [...urlSet];
+
+    // ── Step 2: no media — skip straight to exam ──────────────────────────────
+    if (uniqueUrls.length === 0) {
+      setSession(sessionData);
+      setScreen('exam');
+      return;
     }
+
+    // ── Step 3: show prefetch loading screen ──────────────────────────────────
+    setPrefetchProgress({ done: 0, total: uniqueUrls.length, failed: 0 });
+    setSession(sessionData);       // store session (without URL rewrite yet)
+    setScreen('prefetch');         // show loading screen
+
+    // ── Step 4: prefetch via terminal backend ─────────────────────────────────
+    let urlMap = {};               // originalUrl → localUrl
+    try {
+      const resp = await fetch(`${bu}/api/media/prefetch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: uniqueUrls }),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const failed = data.failed?.length ?? 0;
+        const cached = data.cached ?? [];
+
+        setPrefetchProgress({ done: cached.length, total: uniqueUrls.length, failed });
+
+        // Build rewrite map: originalUrl → http://localhost:4000/api/media/filename
+        for (const entry of cached) {
+          urlMap[entry.url] = `${bu}/api/media/${entry.filename}`;
+        }
+
+        console.log(`[prefetch] ${cached.length}/${uniqueUrls.length} cached, ${failed} failed`);
+        if (failed > 0) {
+          data.failed.forEach(f => console.warn(`[prefetch] failed: ${f.url} — ${f.error}`));
+        }
+      } else {
+        console.warn('[prefetch] Backend returned', resp.status, '— using original URLs');
+      }
+    } catch (e) {
+      console.warn('[prefetch] Network error:', e.message, '— using original URLs');
+    }
+
+    // ── Step 5: deep-clone session and rewrite URLs ───────────────────────────
+    // Never mutate the original sessionData object.
+    const rewritten = rewriteSessionUrls(sessionData, urlMap);
+
+    // ── Step 6: enter exam ────────────────────────────────────────────────────
+    setSession(rewritten);
+    setScreen('exam');
   }, [backendUrl]);
 
   const handleFinish = useCallback((resultData) => {
@@ -142,12 +198,133 @@ export default function App() {
       {screen === 'pin' && (
         <PinScreen T={T} backendUrl={backendUrl} onLogin={handleLogin} />
       )}
+      {screen === 'prefetch' && session && (
+        <PrefetchScreen T={T} progress={prefetchProgress} session={session} />
+      )}
       {screen === 'exam' && session && (
         <ExamScreen T={T} session={session} backendUrl={backendUrl} onFinish={handleFinish} />
       )}
       {screen === 'result' && (
         <ResultScreen T={T} result={result} session={session} onDone={handleReturnToPin} />
       )}
+    </div>
+  );
+}
+
+// ── Prefetch loading screen ───────────────────────────────────────────────────
+function PrefetchScreen({ T, progress, session }) {
+  const { done, total, failed } = progress;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  // Derive section icons to show what's being prepared
+  const sections = session?.sections ?? [];
+  const hasListening = sections.some(s => s.category === 'LISTENING');
+  const hasSpeaking  = sections.some(s => s.category === 'SPEAKING');
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: T.bg,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      {/* Logo */}
+      <div style={{
+        fontFamily: "'Cormorant Garamond', serif",
+        fontSize: 28, fontWeight: 700, color: T.gold,
+        marginBottom: 48, letterSpacing: 2,
+      }}>Հ ArmExam</div>
+
+      {/* Spinner ring */}
+      <div style={{ position: 'relative', width: 96, height: 96, marginBottom: 32 }}>
+        <svg width="96" height="96" viewBox="0 0 96 96"
+          style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="48" cy="48" r="40"
+            fill="none" stroke={T.border} strokeWidth="5" />
+          <circle cx="48" cy="48" r="40"
+            fill="none" stroke={T.gold} strokeWidth="5"
+            strokeDasharray={`${2 * Math.PI * 40}`}
+            strokeDashoffset={`${2 * Math.PI * 40 * (1 - pct / 100)}`}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+          />
+        </svg>
+        {/* Percent in center */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 20, fontWeight: 700, color: T.gold,
+          fontFamily: "'DM Mono', monospace",
+        }}>{pct}%</div>
+      </div>
+
+      {/* Status text */}
+      <div style={{ fontSize: 16, fontWeight: 600, color: T.text, marginBottom: 8 }}>
+        Preparing your exam…
+      </div>
+      <div style={{ fontSize: 13, color: T.muted, marginBottom: 32 }}>
+        Caching media files for offline playback
+        {total > 0 && <span> · {done}/{total} files</span>}
+      </div>
+
+      {/* Section pills showing what's being cached */}
+      {(hasListening || hasSpeaking) && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 32 }}>
+          {hasListening && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 20,
+              background: '#a78bfa18', border: '1px solid #a78bfa33',
+              fontSize: 12, color: '#a78bfa',
+            }}>
+              🎧 <span>Listening audio</span>
+            </div>
+          )}
+          {hasSpeaking && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 20,
+              background: '#f8717118', border: '1px solid #f8717133',
+              fontSize: 12, color: '#f87171',
+            }}>
+              🎙 <span>Speaking prompts</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Progress bar */}
+      <div style={{
+        width: 320, height: 4,
+        background: T.border, borderRadius: 99, overflow: 'hidden',
+      }}>
+        <div style={{
+          height: '100%', borderRadius: 99,
+          background: `linear-gradient(90deg, ${T.gold}, ${T.gold}bb)`,
+          width: `${pct}%`,
+          transition: 'width 0.4s ease',
+        }} />
+      </div>
+
+      {/* Failed files warning */}
+      {failed > 0 && (
+        <div style={{
+          marginTop: 20, padding: '8px 16px',
+          background: '#f8717115', border: '1px solid #f8717133',
+          borderRadius: 10, fontSize: 12, color: '#f87171',
+        }}>
+          ⚠ {failed} file{failed > 1 ? 's' : ''} couldn't be cached — will stream live
+        </div>
+      )}
+
+      {/* Reassurance */}
+      <div style={{
+        position: 'absolute', bottom: 40,
+        fontSize: 11, color: T.muted, letterSpacing: 0.5,
+      }}>
+        Do not close this window
+      </div>
     </div>
   );
 }
