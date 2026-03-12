@@ -68,7 +68,7 @@ export default async function gradingRoutes(fastify) {
       orderBy: [{ gradedAt: "desc" }, { submittedAt: "desc" }],
       take: Math.min(Number(take ?? 200) || 200, 500),
       select: {
-        id: true, score: true, pct: true, passed: true, totalPoints: true, detectedLevel: true, submittedAt: true, gradedAt: true,
+        id: true, gradingStatus: true, score: true, pct: true, passed: true, totalPoints: true, detectedLevel: true, submittedAt: true, gradedAt: true,
         exam:    { select: { id: true, title: true, examType: true, examCenterId: true, level: true } },
         student: { select: { id: true, name: true, email: true } },
       },
@@ -90,7 +90,7 @@ export default async function gradingRoutes(fastify) {
       orderBy: { submittedAt: "desc" },
       take: Math.min(Number(take ?? 200) || 200, 500),
       select: {
-        id: true, score: true, pct: true, passed: true, totalPoints: true, detectedLevel: true, submittedAt: true,
+        id: true, gradingStatus: true, score: true, pct: true, passed: true, totalPoints: true, detectedLevel: true, submittedAt: true,
         exam:    { select: { id: true, title: true, examType: true, examCenterId: true, level: true } },
         student: { select: { id: true, name: true, email: true } },
       },
