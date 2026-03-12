@@ -16,145 +16,191 @@ function randPin(used) {
   return p;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SECTION DEFINITIONS  (name → category)
-// ═════════════════════════════════════════════════════════════════════════════
 const SECTIONS = [
-  { name: "Reading",   category: "READING"   },
-  { name: "Listening", category: "LISTENING" },
-  { name: "Speaking",  category: "SPEAKING"  },
-  { name: "Writing",   category: "WRITING"   },
-  { name: "Grammar",   category: "READING"   },  // free-nav like READING
-  { name: "Vocabulary",category: "READING"   },  // free-nav like READING
+  { name: "READING (Ընթերցում)",       category: "READING"   },
+  { name: "LISTENING (Լսում)",         category: "LISTENING" },
+  { name: "SPEAKING (Խոսում)",         category: "SPEAKING"  },
+  { name: "WRITING (Գրում)",           category: "WRITING"   },
+  { name: "GRAMMAR (Քերականություն)",  category: "READING"   },
+  { name: "VOCABULARY (Բառապաշար)",    category: "READING"   },
 ];
 
-// ═════════════════════════════════════════════════════════════════════════════
-// QUESTION BANK
-// Each entry maps to one Question row.
-// Fields: sectionName, type, level, points, prompt,
-//         contextText?, media?, content, config?
-// ═════════════════════════════════════════════════════════════════════════════
-
 const PTS = { A1:1, A2:1, B1:2, B2:3, C1:4, C2:5 };
+
+const R  = "READING (Ընթերցում)";
+const L  = "LISTENING (Լսում)";
+const SP = "SPEAKING (Խոսում)";
+const W  = "WRITING (Գրում)";
+const GR = "GRAMMAR (Քերականություն)";
+const VO = "VOCABULARY (Բառապաշար)";
 
 const QUESTIONS = [
 
   // ── READING › SINGLE_CHOICE ──────────────────────────────────────────────
   {
-    sectionName: "Reading", type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
-    contextText: "Անի սիրում է կարդալ գրքեր: Ամեն երեկո նա նստում է բազկաթոռին և կարդում:",
-    prompt: "Ի՞նչ է սիրում Անին:",
-    content: { options: ["Երգել", "Կարդալ գրքեր", "Խաղալ", "Քնել"], correct: 1 },
+    sectionName: R, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
+    contextText: "Tom is eight years old. He lives with his mother and father. He has one sister. Her name is Lucy. She is six years old. Tom likes football. Lucy likes cats.",
+    prompt: "How old is Lucy?",
+    content: { options: ["Six years old", "Eight years old", "Ten years old", "Five years old"], correct: 0 },
   },
   {
-    sectionName: "Reading", type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
-    contextText: "Այսօր երկուշաբթի է: Վաղը երեքշաբթի կլինի:",
-    prompt: "Ո՞ր օրն է վաղը:",
-    content: { options: ["Կիրակի", "Երկուշաբթի", "Երեքշաբթի", "Չորեքշաբթի"], correct: 2 },
+    sectionName: R, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
+    contextText: "The library opens at nine o'clock every morning. It closes at six o'clock in the evening. On Sundays it is closed.",
+    prompt: "When does the library close?",
+    content: { options: ["At five o'clock", "At nine o'clock", "At six o'clock", "At noon"], correct: 2 },
   },
   {
-    sectionName: "Reading", type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
-    contextText: "Մարկոն ուսանող է: Նա ամեն օր գնում է համալսարան ավտոբուսով: Տուն վերադառնալիս նա ոտքով է գնում:",
-    prompt: "Ինչպե՞ս է Մարկոն գնում տուն:",
-    content: { options: ["Ավտոբուսով", "Մեքենայով", "Ոտքով", "Հեծանիվով"], correct: 2 },
+    sectionName: R, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
+    contextText: "Anna works in a hospital. She is a nurse. She starts work at seven in the morning and finishes at three in the afternoon. She usually takes the bus to work but sometimes she walks when the weather is good.",
+    prompt: "How does Anna usually travel to work?",
+    content: { options: ["By car", "By bus", "On foot", "By train"], correct: 1 },
   },
   {
-    sectionName: "Reading", type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
-    contextText: "Չնայած ծախսերի ավելացմանը, ընկերությունը որոշեց ընդլայնել արտադրությունը: Ղեկավարությունը վստահ էր, որ շուկայի պահանջարկը կբավարարի ծախսերը:",
-    prompt: "Ո՞ւ ինչու ընկերությունը որոշեց ընդլայնվել:",
-    content: { options: ["Կառավարության ճնշման պատճառով", "Շուկայական պահանջարկի հույսով", "Ծախսերը կրճատելու համար", "Մրցակցությունը վերացնելու համար"], correct: 1 },
+    sectionName: R, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
+    contextText: "The new shopping centre opened last month. It has more than 80 shops, three restaurants, and a cinema. It is open every day from ten in the morning until nine at night. Parking is free for the first two hours.",
+    prompt: "What is true about the shopping centre?",
+    content: { options: ["It opened last year", "It has five restaurants", "Parking is always free", "It has more than 80 shops"], correct: 3 },
   },
   {
-    sectionName: "Reading", type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
-    contextText: "Կլիմայի փոփոխությունը ոչ միայն բնապահպանական, այլև սոցիալ-տնտեսական մարտահրավեր է: Զարգացող երկրները, որոնք ամենաքիչն են պատասխանատու արտանետումների համար, կրում են ամենամեծ հետևանքները:",
-    prompt: "Ո՞ր հիմնական հակասությունն է ընդգծված հատվածում:",
-    content: { options: ["Տնտեսական աճ vs. բնապահպանություն", "Պատասխանատվություն vs. հետևանքների կրում", "Արդյունաբերություն vs. գյուղատնտեսություն", "Կառավարություն vs. հասարակություն"], correct: 1 },
+    sectionName: R, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
+    contextText: "A recent study found that people who spend more than three hours a day on social media are more likely to feel lonely and depressed. However, researchers stress that the relationship is complex. Some people use social media to maintain friendships and this can have a positive effect on their wellbeing.",
+    prompt: "What do the researchers conclude about social media and mental health?",
+    content: { options: ["Social media always causes depression", "Social media always improves wellbeing", "The effect of social media on wellbeing is not straightforward", "People should stop using social media"], correct: 2 },
   },
   {
-    sectionName: "Reading", type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
-    contextText: "Պոստմոդեռնիզմը մերժում է մետա-ռոպիտիվ մեծ պատմություններն ու կոնսենսուսային ճշմարտությունը՝ փոխարինելով դրանք փոքր, մասնավոր ու հակասական ձայներով: Լիոտարը պնդում է, որ «Ի՞նչ է արդարություն» հարցը ոչ թե ունիվերսալ, այլ խաղի-կանոններ-կախված պատասխան ունի:",
-    prompt: "Ըստ հատվածի՝ ի՞նչ է հատկանշում պոստմոդեռն մոտեցումը արդարությանը:",
-    content: { options: ["Ունիվերսալ բարոյական համակարգի կիրառում", "Կոնտեքստային և հարաբերական սահմանում", "Ավանդական արժեքների վերաիմաստավորում", "Ռացիոնալ-բանականության գերակայություն"], correct: 1 },
+    sectionName: R, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
+    contextText: "The concept of 'nudge theory', developed by Thaler and Sunstein, suggests that positive reinforcement and indirect suggestions can influence people's behaviour without restricting their freedom of choice. Governments have increasingly adopted nudge strategies in public health campaigns, for instance by making healthy food options more prominent in cafeterias.",
+    prompt: "According to the passage, what is the key principle behind nudge theory?",
+    content: { options: [
+      "Forcing people to make healthy choices through legislation",
+      "Using financial penalties to change behaviour",
+      "Influencing decisions without removing individual freedom",
+      "Restricting access to unhealthy options",
+    ], correct: 2 },
   },
   {
-    sectionName: "Reading", type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
-    contextText: "Ժամանակակից նյարդագիտությունը ցույց է տալիս, որ ազատ կամքի ֆենոմենոլոգիական փորձը կարող է ուղեղի պատճառական գործընթացների ռետրոսպեկտիվ ռացիոնալացում լինել: Libet-ի փորձերը ցույց են տալիս, որ շարժման գիտակցված «որոշումը» հաջորդում է ուղեղի ակտիվությանը:",
-    prompt: "Ի՞նչ է հուշում Libet-ի հետազոտությունը ազատ կամքի վերաբերյալ:",
-    content: { options: ["Ազատ կամքը ուղեղային ֆիզիոլոգիայից անկախ է", "Գիտակցված որոշումը կարող է ուղեղային գործընթացներին հետևել", "Կամքը ամբողջությամբ դետերմինիստական է", "Նյարդային ֆիզիոլոգիան բավարար բացատրություն է"], correct: 1 },
+    sectionName: R, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
+    contextText: "Critics of globalization argue that the free movement of capital leads to a 'race to the bottom', whereby nations compete by lowering labour standards and environmental regulations to attract foreign investment. Proponents counter that integration into global markets ultimately raises living standards by generating growth and transferring technology to developing economies.",
+    prompt: "What does the 'race to the bottom' argument claim about globalization?",
+    content: { options: [
+      "Countries improve standards to attract investors",
+      "Nations weaken regulations to compete for investment",
+      "Technology transfer benefits developing nations",
+      "Economic growth equalises living standards globally",
+    ], correct: 1 },
+  },
+  {
+    sectionName: R, type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
+    contextText: "The Sapir-Whorf hypothesis, in its strong form, holds that language does not merely reflect thought but determines it — that speakers of different languages inhabit fundamentally different conceptual universes. While the strong version has largely been discredited, the weaker relativity hypothesis, which posits that language influences but does not wholly constrain cognition, retains empirical support.",
+    prompt: "What distinction does the passage draw between the strong and weak forms of the Sapir-Whorf hypothesis?",
+    content: { options: [
+      "The strong form has empirical support; the weak form does not",
+      "The strong form claims language shapes thought partially; the weak form claims it does so entirely",
+      "The strong form claims language determines thought; the weak form claims it merely influences it",
+      "Both forms are considered equally valid by contemporary linguists",
+    ], correct: 2 },
   },
 
   // ── READING › MULTIPLE_CHOICE ─────────────────────────────────────────────
   {
-    sectionName: "Reading", type: "MULTIPLE_CHOICE", level: "B1", points: PTS.B1,
-    contextText: "Հայաստանը լեռնային երկիր է: Այն ունի հարուստ պատմություն, հնագույն եկեղեցիներ, բնական արգելոցներ և համաշխարհային ճանաչում ստացած խոհանոց:",
-    prompt: "Ո՞ր երկուսն են ճիշտ Հայաստանի մասին: (Ընտրեք 2)",
-    content: { options: ["Ծովային երկիր է", "Հնագույն եկեղեցիներ ունի", "Անապատային լանդշաֆտ ունի", "Ունի հայտնի ազգային խոհանոց"], correct: [1, 3], requiredCount: 2 },
+    sectionName: R, type: "MULTIPLE_CHOICE", level: "B1", points: PTS.B1,
+    contextText: "Regular physical exercise has many well-documented benefits. It strengthens the cardiovascular system and helps maintain a healthy weight. Exercise also releases endorphins, which can reduce stress and improve mood. Additionally, it can lower the risk of type 2 diabetes and some forms of cancer.",
+    prompt: "According to the passage, which TWO of the following are benefits of exercise? (Choose 2)",
+    content: { options: ["Improves memory directly", "Reduces stress", "Eliminates the risk of all cancers", "Strengthens the heart"], correct: [1, 3], requiredCount: 2 },
   },
   {
-    sectionName: "Reading", type: "MULTIPLE_CHOICE", level: "B2", points: PTS.B2,
-    contextText: "Արհեստական բանականությունը փոխում է աշխատաշուկան: Որոշ մասնագիտություններ կվերանան, նորերը կստեղծվեն: Կրթությունը, ադaptivность-ը և ստեղծականությունը կդառնան առանցքային:",
-    prompt: "Ո՞ր երեք գործոններ կլինեն կարևոր AI-ի դարաշրջանում: (Ընտրեք 3)",
-    content: { options: ["Կրթություն", "Ֆիզիկական ուժ", "Ադaptivность", "Ավտոմատիզացված հմտություններ", "Ստեղծականություն"], correct: [0, 2, 4], requiredCount: 3 },
+    sectionName: R, type: "MULTIPLE_CHOICE", level: "B2", points: PTS.B2,
+    contextText: "Remote working has transformed the modern workplace. Employees report greater flexibility and reduced commuting time. However, companies face challenges maintaining team cohesion and monitoring productivity. Some workers struggle with isolation, blurring of work-life boundaries, and inadequate home office setups.",
+    prompt: "Which THREE challenges of remote working are mentioned? (Choose 3)",
+    content: { options: ["Reduced flexibility", "Difficulty maintaining team cohesion", "Higher commuting costs", "Isolation among workers", "Blurring of work-life boundaries"], correct: [1, 3, 4], requiredCount: 3 },
   },
 
   // ── READING › FILL_IN_THE_BLANKS ──────────────────────────────────────────
   {
-    sectionName: "Reading", type: "FILL_IN_THE_BLANKS", level: "A2", points: PTS.A2,
-    prompt: "Լրացրե՛ք բաց թողած բառերը:",
+    sectionName: R, type: "FILL_IN_THE_BLANKS", level: "A2", points: PTS.A2,
+    prompt: "Complete the text with the missing words.",
     content: {
       segments: [
-        { type: "text",  value: "Ես ամեն առավոտ " },
-        { type: "blank", id: 1, answer: "արթնանում" },
-        { type: "text",  value: " եմ ժամը ութին և " },
-        { type: "blank", id: 2, answer: "նախաճաշում" },
-        { type: "text",  value: " եմ տանը:" },
+        { type: "text",  value: "Every morning, David " },
+        { type: "blank", id: 1, answer: "wakes" },
+        { type: "text",  value: " up at seven o'clock. He " },
+        { type: "blank", id: 2, answer: "has" },
+        { type: "text",  value: " breakfast and then " },
+        { type: "blank", id: 3, answer: "goes" },
+        { type: "text",  value: " to work by bus." },
       ],
     },
   },
   {
-    sectionName: "Reading", type: "FILL_IN_THE_BLANKS", level: "B1", points: PTS.B1,
-    prompt: "Լրացրե՛ք բաց թողած բառերը՝ ըստ տեքստի:",
+    sectionName: R, type: "FILL_IN_THE_BLANKS", level: "B1", points: PTS.B1,
+    prompt: "Complete the passage with the correct words.",
     content: {
       segments: [
-        { type: "text",  value: "Շրջակա միջավայրի " },
-        { type: "blank", id: 1, answer: "պաշտպանությունը" },
-        { type: "text",  value: " ժամանակակից հասարակության " },
-        { type: "blank", id: 2, answer: "պատասխանատվությունն" },
-        { type: "text",  value: " է:" },
+        { type: "text",  value: "Climate change is one of the most " },
+        { type: "blank", id: 1, answer: "serious" },
+        { type: "text",  value: " challenges facing humanity. Scientists agree that global temperatures are " },
+        { type: "blank", id: 2, answer: "rising" },
+        { type: "text",  value: " due to greenhouse gas " },
+        { type: "blank", id: 3, answer: "emissions" },
+        { type: "text",  value: "." },
+      ],
+    },
+  },
+  {
+    sectionName: R, type: "FILL_IN_THE_BLANKS", level: "B2", points: PTS.B2,
+    prompt: "Complete the text with appropriate words.",
+    content: {
+      segments: [
+        { type: "text",  value: "Although the economy has shown signs of recovery, many households continue to " },
+        { type: "blank", id: 1, answer: "struggle" },
+        { type: "text",  value: " with the cost of living. Inflation has " },
+        { type: "blank", id: 2, answer: "eroded" },
+        { type: "text",  value: " real wages, making it harder for families to " },
+        { type: "blank", id: 3, answer: "afford" },
+        { type: "text",  value: " basic necessities." },
       ],
     },
   },
 
   // ── READING › DRAG_TO_TEXT ────────────────────────────────────────────────
   {
-    sectionName: "Reading", type: "DRAG_TO_TEXT", level: "A2", points: PTS.A2,
-    prompt: "Քաշե՛ք ճիշտ բառը յուրաքանչյուր բաց տեղ:",
+    sectionName: R, type: "DRAG_TO_TEXT", level: "A2", points: PTS.A2,
+    prompt: "Drag the correct word into each gap.",
     content: {
       text: "The sun {slot_1} in the east and {slot_2} in the west every day.",
-      wordBank: ["rises", "sets", "sleeps", "runs"],
+      wordBank: ["rises", "sets", "sleeps", "falls"],
       slots: { slot_1: "rises", slot_2: "sets" },
     },
   },
   {
-    sectionName: "Grammar", type: "DRAG_TO_TEXT", level: "B1", points: PTS.B1,
-    prompt: "Քաշե՛ք ճիշտ ձևն յուրաքանչյուր բաց տեղ:",
+    sectionName: GR, type: "DRAG_TO_TEXT", level: "B1", points: PTS.B1,
+    prompt: "Drag the correct form into each gap.",
     content: {
       text: "By the time she arrived, he {slot_1} already {slot_2} the report.",
       wordBank: ["had", "has", "finished", "finishing", "finish"],
       slots: { slot_1: "had", slot_2: "finished" },
     },
   },
+  {
+    sectionName: GR, type: "DRAG_TO_TEXT", level: "B2", points: PTS.B2,
+    prompt: "Drag the correct words to complete the sentence.",
+    content: {
+      text: "Not only {slot_1} she pass the exam, but she {slot_2} the highest score in the class.",
+      wordBank: ["did", "had", "also achieved", "was achieving", "achieve"],
+      slots: { slot_1: "did", slot_2: "also achieved" },
+    },
+  },
 
   // ── READING › TEXT_INSERTION ──────────────────────────────────────────────
   {
-    sectionName: "Reading", type: "TEXT_INSERTION", level: "B2", points: PTS.B2,
-    contextText: "Կլիմայական ճգնաժամի լուծումը բազմաբնույթ մոտեցում է պահանջում: [1] Պետությունները պետք է ընդունեն խիստ օրենսդրություն: [2] Անհատական վարքագծի փոփոխությունն անհրաժեշտ է: [3]",
-    prompt: "Ո՞ր նախադասությունը լավագույնս տեղավորվում է [2] նշանի մոտ:",
+    sectionName: R, type: "TEXT_INSERTION", level: "B2", points: PTS.B2,
+    contextText: "The internet has revolutionised how we access information. [1] Libraries still play an important role in communities. [2] Digital literacy has become an essential skill for all age groups. [3]",
+    prompt: "Choose which sentence best fits each gap.",
     content: {
       passages: [
-        "Արդյունաբերական ձեռնարկությունները պետք է կրճատեն արտանետումները:",
-        "Բնապահպանական կրթությունը պետք է ներառվի դպրոցական ծրագրերում:",
-        "Միջազգային հաստատությունները ֆինանսավորում են հետազոտությունները:",
+        "However, not everyone has reliable access to online resources.",
+        "They provide free access to books and quiet study spaces.",
+        "Schools and employers increasingly require basic computer skills.",
       ],
       markers: [{ id: 1, correct: 0 }, { id: 2, correct: 1 }, { id: 3, correct: 2 }],
     },
@@ -162,73 +208,73 @@ const QUESTIONS = [
 
   // ── READING › DRAG_AND_DROP_TABLE ────────────────────────────────────────
   {
-    sectionName: "Reading", type: "DRAG_AND_DROP_TABLE", level: "B1", points: PTS.B1,
-    prompt: "Բաժանե՛ք հետևյալ փաստերը ճիշտ սյունակներում:",
+    sectionName: R, type: "DRAG_AND_DROP_TABLE", level: "B1", points: PTS.B1,
+    prompt: "Sort the items into the correct columns.",
     content: {
       columns: [
-        { id: "col_adv", title: "Առավելություններ" },
-        { id: "col_dis", title: "Թերություններ" },
+        { id: "col_adv", title: "Advantages" },
+        { id: "col_dis", title: "Disadvantages" },
       ],
       items: [
-        { id: "i1", text: "Ժամանակի խնայողություն" },
-        { id: "i2", text: "Կախվածություն տեխնոլոգիաներից" },
-        { id: "i3", text: "Հաղորդակցության բարելավում" },
-        { id: "i4", text: "Անձնական շփման կրճատում" },
+        { id: "i1", text: "Saves travel time" },
+        { id: "i2", text: "Feeling isolated from colleagues" },
+        { id: "i3", text: "More flexibility in working hours" },
+        { id: "i4", text: "Difficulty separating work from home life" },
       ],
       correct: { i1: "col_adv", i2: "col_dis", i3: "col_adv", i4: "col_dis" },
     },
   },
   {
-    sectionName: "Reading", type: "DRAG_AND_DROP_TABLE", level: "C1", points: PTS.C1,
-    prompt: "Դասակարգե՛ք հետևյալ գաղափարները:",
+    sectionName: R, type: "DRAG_AND_DROP_TABLE", level: "C1", points: PTS.C1,
+    prompt: "Classify the following statements under the correct heading.",
     content: {
       columns: [
-        { id: "col_mod", title: "Մոդեռնիզմ" },
-        { id: "col_post", title: "Պոստմոդեռնիզմ" },
-        { id: "col_both", title: "Երկուսն էլ" },
+        { id: "col_re", title: "Renewable Energy" },
+        { id: "col_fo", title: "Fossil Fuels" },
+        { id: "col_bo", title: "Both" },
       ],
       items: [
-        { id: "i1", text: "Ունիվերսալ ճշմարտության հավատ" },
-        { id: "i2", text: "Ոճերի բազմազանություն" },
-        { id: "i3", text: "Ռեflексivность" },
-        { id: "i4", text: "Մեծ ռոպիտիվ մերժում" },
+        { id: "i1", text: "Contributes to energy security" },
+        { id: "i2", text: "Produces carbon dioxide emissions" },
+        { id: "i3", text: "Requires significant infrastructure investment" },
+        { id: "i4", text: "Powered by solar or wind sources" },
       ],
-      correct: { i1: "col_mod", i2: "col_both", i3: "col_both", i4: "col_post" },
+      correct: { i1: "col_bo", i2: "col_fo", i3: "col_bo", i4: "col_re" },
     },
   },
 
   // ── GRAMMAR › SINGLE_CHOICE ───────────────────────────────────────────────
   {
-    sectionName: "Grammar", type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
-    prompt: "Ընտրե՛ք ճիշտ ձևը: «Ես ___ ուսանող եմ»",
-    content: { options: ["մի", "այս", "կ", ""], correct: 3 },
+    sectionName: GR, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
+    prompt: "Choose the correct form: 'There ___ a cat in the garden.'",
+    content: { options: ["are", "is", "am", "be"], correct: 1 },
   },
   {
-    sectionName: "Grammar", type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
-    prompt: "Ո՞ր ձևն է ճիշտ: She ___ to school every day.",
+    sectionName: GR, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
+    prompt: "Choose the correct form: 'She ___ to school every day.'",
     content: { options: ["go", "goes", "going", "gone"], correct: 1 },
   },
   {
-    sectionName: "Grammar", type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
-    prompt: "Ո՞ր ձևն է ճիշտ: If I ___ you, I would apologise.",
-    content: { options: ["am", "was", "were", "be"], correct: 2 },
+    sectionName: GR, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
+    prompt: "Choose the correct form: 'If I ___ you, I would apologise immediately.'",
+    content: { options: ["am", "was", "were", "will be"], correct: 2 },
   },
   {
-    sectionName: "Grammar", type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
-    prompt: "Ընտրե՛ք ճիշտ ձևը: The report ___ by the committee before the deadline.",
+    sectionName: GR, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
+    prompt: "Choose the correct form: 'The report ___ by the committee before the deadline.'",
     content: { options: ["was submitted", "submitted", "had submitted", "has been submitting"], correct: 0 },
   },
   {
-    sectionName: "Grammar", type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
-    prompt: "Ընտրե՛ք ճիշտ ձևը: ___ he to resign, the company would face a leadership crisis.",
+    sectionName: GR, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
+    prompt: "Choose the correct form: '___ he to resign, the board would face a serious crisis.'",
     content: { options: ["If", "Were", "Should", "Had"], correct: 1 },
   },
   {
-    sectionName: "Grammar", type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
-    prompt: "Ո՞ր նախադասությունն է ոճականորեն ճիշտ ֆորմալ ակադեմիական գրի համար:",
+    sectionName: GR, type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
+    prompt: "Which sentence is stylistically correct for formal academic writing?",
     content: { options: [
       "The data shows that there is a big difference.",
-      "The data indicates a statistically significant divergence.",
+      "The data indicate a statistically significant divergence.",
       "The data is showing us a very different picture.",
       "As the data shows, things are quite different.",
     ], correct: 1 },
@@ -236,73 +282,73 @@ const QUESTIONS = [
 
   // ── VOCABULARY › SINGLE_CHOICE ────────────────────────────────────────────
   {
-    sectionName: "Vocabulary", type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
-    prompt: "«Բարև» բառի անգլերեն թարգմանությունն է:",
-    content: { options: ["Goodbye", "Hello", "Sorry", "Please"], correct: 1 },
+    sectionName: VO, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
+    prompt: "What does the word 'big' mean?",
+    content: { options: ["Small", "Fast", "Large", "Slow"], correct: 2 },
   },
   {
-    sectionName: "Vocabulary", type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
-    prompt: "Ո՞ր բառն է «happy»-ի հոմանիշը:",
+    sectionName: VO, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
+    prompt: "Which word is a synonym of 'happy'?",
     content: { options: ["Sad", "Angry", "Joyful", "Tired"], correct: 2 },
   },
   {
-    sectionName: "Vocabulary", type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
-    prompt: "Ո՞ր բառն է ճիշտ: The medicine had several unexpected ___.",
+    sectionName: VO, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
+    prompt: "Choose the correct collocation: 'The medicine had several unexpected ___.'",
     content: { options: ["side effects", "side causes", "after effects", "by-products"], correct: 0 },
   },
   {
-    sectionName: "Vocabulary", type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
-    prompt: "Ո՞ր բառն է «ameliorate»-ի ամենամոտ իմաստը:",
+    sectionName: VO, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
+    prompt: "Which word is closest in meaning to 'ameliorate'?",
     content: { options: ["Worsen", "Improve", "Ignore", "Measure"], correct: 1 },
   },
   {
-    sectionName: "Vocabulary", type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
-    prompt: "Ո՞ր բառն է ամենաճշգրիտ: The politician's speech was deliberately ___, designed to mean different things to different audiences.",
+    sectionName: VO, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
+    prompt: "Choose the most precise word: 'The politician's speech was deliberately ___, designed to mean different things to different audiences.'",
     content: { options: ["verbose", "ambiguous", "concise", "inflammatory"], correct: 1 },
   },
   {
-    sectionName: "Vocabulary", type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
-    prompt: "Ո՞ր բառն է լրացնում նախադասությունը: The critic's ___ review dismantled the author's central thesis with surgical precision.",
+    sectionName: VO, type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
+    prompt: "Choose the best word: 'The critic's ___ review dismantled the author's central thesis with surgical precision.'",
     content: { options: ["perfunctory", "trenchant", "sycophantic", "laconic"], correct: 1 },
   },
 
-  // ── LISTENING › SINGLE_CHOICE (with audio) ────────────────────────────────
+  // ── LISTENING › SINGLE_CHOICE ────────────────────────────────────────────
   {
-    sectionName: "Listening", type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
-    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-Mère-Église_p1020648.ogg", maxPlays: 2 }],
-    prompt: "Լսե՛ք ձայնագրությունը: Ի՞նչ են պատվիրում:",
-    content: { options: ["Սուրճ", "Թեյ", "Հյութ", "Ջուր"], correct: 0 },
+    sectionName: L, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
+    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-M%C3%A8re-%C3%89glise_p1020648.ogg", maxPlays: 2 }],
+    prompt: "Listen to the recording. What is the main sound you can hear?",
+    content: { options: ["Traffic noise", "Nature sounds", "A conversation", "Music"], correct: 1 },
   },
   {
-    sectionName: "Listening", type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
+    sectionName: L, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
     media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/1/19/MiniSunflower.ogg", maxPlays: 2 }],
-    prompt: "Լսե՛ք և ընտրե՛ք հիմնական թեման:",
-    content: { options: ["Բնություն", "Երաժշտություն", "Սպորտ", "Ճամփորդություն"], correct: 0 },
+    prompt: "Listen and choose the best description of the audio.",
+    content: { options: ["A news report", "A piece of music", "A weather forecast", "A sports commentary"], correct: 1 },
   },
   {
-    sectionName: "Listening", type: "MULTIPLE_CHOICE", level: "B2", points: PTS.B2,
+    sectionName: L, type: "MULTIPLE_CHOICE", level: "B2", points: PTS.B2,
     media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Vespers_of_Holy_Saturday_%28sample%29.ogg", maxPlays: 1 }],
-    prompt: "Լսե՛ք: Ո՞ր երկու պնդումն են ճիշտ: (Ընտրեք 2)",
+    prompt: "Listen and select the TWO correct statements. (Choose 2)",
     content: {
-      options: ["Կատարվում է եկեղեցում", "Ձայնը մենակատար է", "Դա կրոնական երաժշտություն է", "Ձայնն էլեկտրոնային է"],
+      options: ["It is performed in a religious context", "It is a solo instrument piece", "It involves vocal performance", "It uses electronic sound effects"],
       correct: [0, 2], requiredCount: 2,
     },
   },
   {
-    sectionName: "Listening", type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
+    sectionName: L, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
     media: [{ type: "video", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e6/Bison_at_Yellowstone.ogv/Bison_at_Yellowstone.ogv.360p.ogv", maxPlays: 1 }],
-    prompt: "Դիտե՛ք տեսանյութը: Ո՞ր թեման է գերակշռում:",
-    content: { options: ["Կենդանիների կյանքը բնության մեջ", "Արդյունաբերություն", "Քաղաքային կյանք", "Ծովային հետազոտություն"], correct: 0 },
+    prompt: "Watch the video. What is the primary subject?",
+    content: { options: ["Wildlife in a natural habitat", "Industrial activity", "Urban environment", "Marine research"], correct: 0 },
   },
 
   // ── LISTENING › IMAGE_CLICK ───────────────────────────────────────────────
   {
-    sectionName: "Listening", type: "IMAGE_CLICK", level: "B1", points: PTS.B1,
+    sectionName: L, type: "IMAGE_CLICK", level: "B1", points: PTS.B1,
     media: [
-      { type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-Mère-Église_p1020648.ogg", maxPlays: 2 },
+      { type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-M%C3%A8re-%C3%89glise_p1020648.ogg", maxPlays: 2 },
       { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/800px-Good_Food_Display_-_NCI_Visuals_Online.jpg" },
     ],
-    prompt: "Լսե՛ք: Կlikkerez el a la zona de la imagen que mencionan.",
+    prompt: "Listen and click on the area of the image that is described.",
     content: {
       hotspots: [
         { id: "hs1", x: 20.0, y: 30.0, width: 20.0, height: 20.0, correct: true  },
@@ -314,14 +360,14 @@ const QUESTIONS = [
 
   // ── LISTENING › DRAG_AND_DROP_IMAGE ──────────────────────────────────────
   {
-    sectionName: "Listening", type: "DRAG_AND_DROP_IMAGE", level: "C1", points: PTS.C1,
+    sectionName: L, type: "DRAG_AND_DROP_IMAGE", level: "C1", points: PTS.C1,
     media: [{ type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Aras_river_basin_map.png/640px-Aras_river_basin_map.png" }],
-    prompt: "Քաշե՛ք երկրների անունները քարտեզի ճիշտ տեղերը:",
+    prompt: "Drag the country labels to the correct locations on the map.",
     content: {
       labels: [
-        { id: "lbl1", text: "Հայաստան" },
-        { id: "lbl2", text: "Թուրքիա" },
-        { id: "lbl3", text: "Ադրբեջան" },
+        { id: "lbl1", text: "Armenia" },
+        { id: "lbl2", text: "Turkey" },
+        { id: "lbl3", text: "Azerbaijan" },
       ],
       hotspots: [
         { id: "hs1", x: 55.0, y: 40.0, correct: "lbl1" },
@@ -333,12 +379,10 @@ const QUESTIONS = [
 
   // ── SPEAKING ──────────────────────────────────────────────────────────────
   {
-    sectionName: "Speaking", type: "SPEAKING_INDEPENDENT", level: "A1", points: PTS.A1,
-    prompt: "Ներկայացե՛ք հայերեն: Ասե՛ք ձեր անունը, տարիքը և ապրելու վայրը:",
+    sectionName: SP, type: "SPEAKING_INDEPENDENT", level: "A1", points: PTS.A1,
+    prompt: "Introduce yourself. Say your name, your age, and where you live. (45 seconds)",
     content: {
-      prepSeconds: 15,
-      recordSeconds: 45,
-      maxAttempts: 2,
+      prepSeconds: 15, recordSeconds: 45, maxAttempts: 2,
       rubrics: [
         { id: "fluency",       label: "Fluency & Coherence",  maxScore: 5 },
         { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
@@ -348,12 +392,10 @@ const QUESTIONS = [
     },
   },
   {
-    sectionName: "Speaking", type: "SPEAKING_INDEPENDENT", level: "B1", points: PTS.B1,
-    prompt: "Պատմե՛ք ձեր սիրած եղանակի մասին: Ինչ կարող եք անել այդ եղանակին: (30-90 վ)",
+    sectionName: SP, type: "SPEAKING_INDEPENDENT", level: "B1", points: PTS.B1,
+    prompt: "Describe your hometown. What do you like and dislike about it? (90 seconds)",
     content: {
-      prepSeconds: 30,
-      recordSeconds: 90,
-      maxAttempts: 1,
+      prepSeconds: 30, recordSeconds: 90, maxAttempts: 1,
       rubrics: [
         { id: "fluency",       label: "Fluency & Coherence",  maxScore: 5 },
         { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
@@ -363,14 +405,25 @@ const QUESTIONS = [
     },
   },
   {
-    sectionName: "Speaking", type: "SPEAKING_INTEGRATED", level: "C1", points: PTS.C1,
-    contextText: "Կարդացե՛ք հետևյալ տեքստը, ապա լսե՛ք ձայնագրությունը և ձեր պատասխանում համեմատե՛ք երկու աղբյուրի տեսակետները:",
+    sectionName: SP, type: "SPEAKING_INDEPENDENT", level: "B2", points: PTS.B2,
+    prompt: "Do you think social media has a positive or negative effect on society? Give reasons and examples. (2 minutes)",
+    content: {
+      prepSeconds: 45, recordSeconds: 120, maxAttempts: 1,
+      rubrics: [
+        { id: "fluency",       label: "Fluency & Coherence",  maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+        { id: "pronunciation", label: "Pronunciation",        maxScore: 5 },
+      ],
+    },
+  },
+  {
+    sectionName: SP, type: "SPEAKING_INTEGRATED", level: "C1", points: PTS.C1,
+    contextText: "Read the following passage, then listen to the audio. In your response, compare the viewpoints presented in both sources.",
     media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Vespers_of_Holy_Saturday_%28sample%29.ogg", maxPlays: 1 }],
-    prompt: "Ելնելով տեքստից և ձայնագրությունից՝ բացատրե՛ք, թե ինչպես է ժամանակակից տեխնոլոգիան ազդում մշակութային ավանդույթների վրա:",
+    prompt: "Using both the text and the audio, explain how modern technology influences cultural traditions.",
     content: {
-      prepSeconds: 45,
-      recordSeconds: 120,
-      maxAttempts: 1,
+      prepSeconds: 45, recordSeconds: 120, maxAttempts: 1,
       rubrics: [
         { id: "fluency",       label: "Fluency & Coherence",  maxScore: 5 },
         { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
@@ -382,11 +435,10 @@ const QUESTIONS = [
 
   // ── WRITING ───────────────────────────────────────────────────────────────
   {
-    sectionName: "Writing", type: "WRITING_INDEPENDENT", level: "B1", points: PTS.B1,
-    prompt: "Գրե՛ք 100-150 բառ ձեր սիրած ժամանցի մասին: Ինչու՞ եք սիրում այն:",
+    sectionName: W, type: "WRITING_INDEPENDENT", level: "B1", points: PTS.B1,
+    prompt: "Write about a person who has influenced your life. Who are they and why are they important to you? (100–150 words)",
     content: {
-      minWords: 100,
-      maxWords: 150,
+      minWords: 100, maxWords: 150,
       rubrics: [
         { id: "task_response", label: "Task Response",        maxScore: 5 },
         { id: "coherence",     label: "Coherence & Cohesion", maxScore: 5 },
@@ -396,11 +448,10 @@ const QUESTIONS = [
     },
   },
   {
-    sectionName: "Writing", type: "WRITING_INDEPENDENT", level: "B2", points: PTS.B2,
-    prompt: "«Տեխնոլոգիաները ժամանակակից կյանքն ավելի հեշտ են դարձնում»: Համաձա՞յն եք: Հիմնավորե՛ք ձեր կարծիքը 150-200 բառով:",
+    sectionName: W, type: "WRITING_INDEPENDENT", level: "B2", points: PTS.B2,
+    prompt: "'The benefits of living in a city outweigh the disadvantages.' To what extent do you agree? Give reasons and examples. (150–200 words)",
     content: {
-      minWords: 150,
-      maxWords: 200,
+      minWords: 150, maxWords: 200,
       rubrics: [
         { id: "task_response", label: "Task Response",        maxScore: 5 },
         { id: "coherence",     label: "Coherence & Cohesion", maxScore: 5 },
@@ -410,13 +461,12 @@ const QUESTIONS = [
     },
   },
   {
-    sectionName: "Writing", type: "WRITING_INTEGRATED", level: "C1", points: PTS.C1,
-    contextText: "Կարդացե՛ք հետևյալ հատվածը արհեստական բանականության ազդեցության մասին կրթության ոլորտում:\n\nԱրհեստական բանականության ներդրումը կրթության մեջ ստեղծում է հնարավորություններ անհատականացված ուսուցման համար: Այնուամենայնիվ, քննադատները կարծում են, որ մարդ-ուսուցչի դերը կրճատելը կհանգեցնի հուզական-սոցիալական կրթության անկման:",
+    sectionName: W, type: "WRITING_INTEGRATED", level: "C1", points: PTS.C1,
+    contextText: "Read the following passage about artificial intelligence in education:\n\nThe integration of AI into education offers opportunities for personalised learning pathways. Adaptive systems can identify gaps in student knowledge and adjust content accordingly. Critics, however, argue that reducing the role of human teachers risks undermining the social and emotional dimensions of education.",
     media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/1/19/MiniSunflower.ogg", maxPlays: 2 }],
-    prompt: "Ելնելով ինչպես տեքստից, այնպես էլ ձայնագրությունից՝ գրե՛ք 200-250 բառ արհեստական բանականության դերի և սահմանափակումների մասին կրթության ոլորտում:",
+    prompt: "Drawing on both the text and the audio, write an essay discussing the role and limitations of artificial intelligence in education. (200–250 words)",
     content: {
-      minWords: 200,
-      maxWords: 250,
+      minWords: 200, maxWords: 250,
       rubrics: [
         { id: "task_response", label: "Task Response",        maxScore: 5 },
         { id: "coherence",     label: "Coherence & Cohesion", maxScore: 5 },
@@ -426,11 +476,10 @@ const QUESTIONS = [
     },
   },
   {
-    sectionName: "Writing", type: "WRITING_INDEPENDENT", level: "C2", points: PTS.C2,
-    prompt: "Ըստ Ֆուկոյի իշխանություն-գիտելիք հարաբերության տեսության՝ վերլուծե՛ք, թե ինչպես է կրթական ինստիտուտը վերարտադրում հեգեմոն դիսկուրսները: (250-350 բառ)",
+    sectionName: W, type: "WRITING_INDEPENDENT", level: "C2", points: PTS.C2,
+    prompt: "Critically evaluate the claim that economic growth and environmental sustainability are fundamentally incompatible goals. Use evidence and reasoned argument. (250–350 words)",
     content: {
-      minWords: 250,
-      maxWords: 350,
+      minWords: 250, maxWords: 350,
       rubrics: [
         { id: "task_response", label: "Task Response",        maxScore: 5 },
         { id: "coherence",     label: "Coherence & Cohesion", maxScore: 5 },
@@ -441,42 +490,32 @@ const QUESTIONS = [
   },
 ];
 
-// ═════════════════════════════════════════════════════════════════════════════
-// PLACEMENT TEMPLATE  (referenced by Exam rows)
-// ═════════════════════════════════════════════════════════════════════════════
 const PLACEMENT_TEMPLATE = [
-  { level: "A1", pointsEach: 1, subpools: [{ section: "Reading", count: 3 }, { section: "Grammar", count: 2 }] },
-  { level: "A2", pointsEach: 1, subpools: [{ section: "Reading", count: 3 }, { section: "Vocabulary", count: 2 }] },
-  { level: "B1", pointsEach: 2, subpools: [{ section: "Reading", count: 2 }, { section: "Listening", count: 2 }, { section: "Grammar", count: 1 }] },
-  { level: "B2", pointsEach: 2, subpools: [{ section: "Reading", count: 2 }, { section: "Listening", count: 2 }, { section: "Writing", count: 1 }] },
-  { level: "C1", pointsEach: 3, subpools: [{ section: "Reading", count: 2 }, { section: "Listening", count: 2 }, { section: "Speaking", count: 1 }] },
-  { level: "C2", pointsEach: 3, subpools: [{ section: "Reading", count: 2 }, { section: "Grammar", count: 2 }, { section: "Writing", count: 1 }] },
+  { level: "A1", pointsEach: 1, subpools: [{ section: R, count: 3 }, { section: GR, count: 2 }] },
+  { level: "A2", pointsEach: 1, subpools: [{ section: R, count: 3 }, { section: VO, count: 2 }] },
+  { level: "B1", pointsEach: 2, subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: GR, count: 1 }] },
+  { level: "B2", pointsEach: 2, subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: W, count: 1 }] },
+  { level: "C1", pointsEach: 3, subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: SP, count: 1 }] },
+  { level: "C2", pointsEach: 3, subpools: [{ section: R, count: 2 }, { section: GR, count: 2 }, { section: W, count: 1 }] },
 ];
 const PLACEMENT_THRESHOLDS = { A1: 60, A2: 60, B1: 65, B2: 65, C1: 70, C2: 70 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// STUDENTS
-// ═════════════════════════════════════════════════════════════════════════════
 const STUDENTS_DATA = [
-  { name: "Անի Հակոբյան",     email: "ani@example.am",    gender: "female", country: "Armenia", documentType: "passport", documentNumber: "AA123456", level: "B1" },
-  { name: "Արամ Պետրոսյան",   email: "aram@example.am",   gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID789012", level: "A2" },
-  { name: "Մарine Grigoryan",  email: "marine@example.am", gender: "female", country: "Georgia", documentType: "passport", documentNumber: "GE345678", level: "B2" },
-  { name: "Դавит Саргсян",     email: "davit@example.am",  gender: "male",   country: "Armenia", documentType: "passport", documentNumber: "AA001234", level: "C1" },
-  { name: "Наташа К.",         email: "natasha@example.am",gender: "female", country: "Russia",  documentType: "passport", documentNumber: "RU998877", level: "A2" },
-  { name: "Հайк Авагян",       email: "hayk@example.am",   gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID111222", level: "B2" },
-  { name: "Софья Адамян",      email: "sofia@example.am",  gender: "female", country: "France",  documentType: "passport", documentNumber: "FR556677", level: "A1" },
-  { name: "Артур Мкртчян",     email: "artur@example.am",  gender: "male",   country: "Armenia", documentType: "passport", documentNumber: "AA333444", level: "B1" },
-  { name: "Алина Н.",          email: "alina@example.am",  gender: "female", country: "USA",     documentType: "passport", documentNumber: "US223344", level: "A1" },
-  { name: "Карен Г.",          email: "karen@example.am",  gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID667788", level: "A2" },
+  { name: "Mariam Karapetyan",  email: "mariam@example.am",  gender: "female", country: "Armenia", documentType: "passport", documentNumber: "AA123456", level: "B1" },
+  { name: "Vazgen Sargsyan",    email: "vazgen@example.am",  gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID789012", level: "A2" },
+  { name: "Narine Grigoryan",   email: "narine@example.am",  gender: "female", country: "Armenia", documentType: "passport", documentNumber: "AA345678", level: "B2" },
+  { name: "Davit Petrosyan",    email: "davit@example.am",   gender: "male",   country: "Armenia", documentType: "passport", documentNumber: "AA001234", level: "C1" },
+  { name: "Ani Hakobyan",       email: "ani@example.am",     gender: "female", country: "Armenia", documentType: "id_card",  documentNumber: "ID556677", level: "A2" },
+  { name: "Hayk Avagyan",       email: "hayk@example.am",    gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID111222", level: "B2" },
+  { name: "Lusine Mkrtchyan",   email: "lusine@example.am",  gender: "female", country: "Armenia", documentType: "passport", documentNumber: "AA667788", level: "A1" },
+  { name: "Artur Poghosyan",    email: "artur@example.am",   gender: "male",   country: "Armenia", documentType: "passport", documentNumber: "AA333444", level: "B1" },
+  { name: "Sona Hovhannisyan",  email: "sona@example.am",    gender: "female", country: "Armenia", documentType: "passport", documentNumber: "AA778899", level: "A1" },
+  { name: "Karen Galstyan",     email: "karen@example.am",   gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID223344", level: "A2" },
 ];
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MAIN SEED FUNCTION
-// ═════════════════════════════════════════════════════════════════════════════
 async function main() {
   console.log("🌱 Seeding...\n");
 
-  // Wipe in safe order
   await prisma.result.deleteMany();
   await prisma.examAssignment.deleteMany();
   await prisma.exam.deleteMany();
@@ -487,7 +526,6 @@ async function main() {
   await prisma.question.deleteMany();
   await prisma.section.deleteMany();
 
-  // ── Sections ────────────────────────────────────────────────────────────
   const sectionMap = {};
   for (const s of SECTIONS) {
     const sec = await prisma.section.create({ data: { name: s.name, category: s.category } });
@@ -495,32 +533,24 @@ async function main() {
   }
   console.log(`✅ ${SECTIONS.length} sections`);
 
-  // ── Questions ───────────────────────────────────────────────────────────
   for (const q of QUESTIONS) {
     const { sectionName, ...rest } = q;
-    await prisma.question.create({
-      data: { ...rest, sectionId: sectionMap[sectionName] },
-    });
+    await prisma.question.create({ data: { ...rest, sectionId: sectionMap[sectionName] } });
   }
   console.log(`✅ ${QUESTIONS.length} questions`);
 
-  // ── Cities & Centers ────────────────────────────────────────────────────
   const cityData = [
-    { name: "Երևан",   center: { name: "ArmExam Կ. Երևան",   address: "Բաղрамян 24",  phone: "+374 10 123456", email: "yerevan@armexam.am"  } },
-    { name: "Гюмри",   center: { name: "ArmExam Կ. Гюмри",   address: "Арևмтян 1",    phone: "+374 312 12345", email: "gyumri@armexam.am"   } },
-    { name: "Вانаձор", center: { name: "ArmExam Կ. Вانаձор", address: "Кирови 5",     phone: "+374 322 12345", email: "vanadzor@armexam.am" } },
+    { name: "Yerevan",  center: { name: "ArmExam Center Yerevan",  address: "Baghramyan 24", phone: "+374 10 123456", email: "yerevan@armexam.am"  } },
+    { name: "Gyumri",   center: { name: "ArmExam Center Gyumri",   address: "Arevmtyan 1",   phone: "+374 312 12345", email: "gyumri@armexam.am"   } },
+    { name: "Vanadzor", center: { name: "ArmExam Center Vanadzor", address: "Kirovi 5",       phone: "+374 322 12345", email: "vanadzor@armexam.am" } },
   ];
   const centers = [];
   for (const { name, center } of cityData) {
-    const city = await prisma.city.create({
-      data: { name, centers: { create: [center] } },
-      include: { centers: true },
-    });
+    const city = await prisma.city.create({ data: { name, centers: { create: [center] } }, include: { centers: true } });
     centers.push(city.centers[0]);
   }
   console.log(`✅ ${centers.length} centers`);
 
-  // ── Placement exams ─────────────────────────────────────────────────────
   const placementExams = [];
   for (let i = 0; i < centers.length; i++) {
     const ex = await prisma.exam.create({
@@ -540,14 +570,13 @@ async function main() {
   }
   console.log(`✅ ${placementExams.length} placement exams`);
 
-  // ── Fixed exams ─────────────────────────────────────────────────────────
   const fixedDefs = [
-    { title: "Հайоц Лезу A1", level: "A1", passingScore: 60,
-      subpools: [{ section: "Reading", count: 3 }, { section: "Grammar", count: 2 }, { section: "Vocabulary", count: 2 }] },
-    { title: "Հайоц Лезу A2", level: "A2", passingScore: 60,
-      subpools: [{ section: "Reading", count: 3 }, { section: "Listening", count: 2 }, { section: "Grammar", count: 2 }] },
-    { title: "Հайоц Лезу B1", level: "B1", passingScore: 65,
-      subpools: [{ section: "Reading", count: 2 }, { section: "Listening", count: 2 }, { section: "Writing", count: 1 }, { section: "Grammar", count: 2 }] },
+    { title: "Armenian Language Certificate A1", level: "A1", passingScore: 60,
+      subpools: [{ section: R, count: 3 }, { section: GR, count: 2 }, { section: VO, count: 2 }] },
+    { title: "Armenian Language Certificate A2", level: "A2", passingScore: 60,
+      subpools: [{ section: R, count: 3 }, { section: L, count: 2 }, { section: GR, count: 2 }] },
+    { title: "Armenian Language Certificate B1", level: "B1", passingScore: 65,
+      subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: W, count: 1 }, { section: GR, count: 2 }] },
   ];
   const fixedExams = [];
   for (const fd of fixedDefs) {
@@ -556,8 +585,7 @@ async function main() {
         title: fd.title, examType: "fixed", level: fd.level,
         duration: 60, passingScore: fd.passingScore, shuffle: true,
         showResults: true, showQuestionLevel: true, showQuestionPoints: true,
-        subpools: fd.subpools,
-        examCenterId: centers[0].id,
+        subpools: fd.subpools, examCenterId: centers[0].id,
         status: "active", isOpen: true,
         startDate: new Date("2026-04-01"), endDate: new Date("2026-06-30"),
         startTime: "09:00",
@@ -567,7 +595,6 @@ async function main() {
   }
   console.log(`✅ ${fixedExams.length} fixed exams`);
 
-  // ── Students + PIN assignments ──────────────────────────────────────────
   const usedPins = new Set();
   const createdStudents = [];
   for (let i = 0; i < STUDENTS_DATA.length; i++) {
@@ -575,49 +602,31 @@ async function main() {
     const exam = placementExams[i % placementExams.length];
     const pin  = randPin(usedPins);
     const student = await prisma.student.create({
-      data: {
-        ...s,
-        passwordHash: hashPassword("demo1234", s.email),
-        exams: { create: [{ examId: exam.id, pin }] },
-      },
+      data: { ...s, passwordHash: hashPassword("demo1234", s.email), exams: { create: [{ examId: exam.id, pin }] } },
     });
     createdStudents.push(student);
     console.log(`  👤 ${s.name.padEnd(22)} → PIN: ${pin}`);
   }
   console.log(`✅ ${createdStudents.length} students`);
 
-  // ── Demo results ─────────────────────────────────────────────────────────
-  const [ani, aram, marine, davit, hayk, artur] = createdStudents;
+  const [mariam, vazgen, narine, davit, ani, hayk, lusine, artur] = createdStudents;
 
-  // Fixed: Ani passed A1, A2, B1
   for (let i = 0; i < 3; i++) {
     const exam = fixedExams[i];
     const pct  = [82, 76, 65][i];
     const pin  = randPin(usedPins);
-    const existingAssign = await prisma.examAssignment.findUnique({
-      where: { examId_studentId: { examId: exam.id, studentId: ani.id } },
-    });
-    if (!existingAssign) {
-      await prisma.examAssignment.create({ data: { examId: exam.id, studentId: ani.id, pin } });
-    }
-    await prisma.result.create({
-      data: { examId: exam.id, studentId: ani.id, score: pct, totalPoints: 100, pct, passed: true, gradingStatus: "auto", submittedAt: new Date(`2025-0${2 + i * 2}-15`) },
-    });
+    const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: exam.id, studentId: mariam.id } } });
+    if (!ea) await prisma.examAssignment.create({ data: { examId: exam.id, studentId: mariam.id, pin } });
+    await prisma.result.create({ data: { examId: exam.id, studentId: mariam.id, score: pct, totalPoints: 100, pct, passed: true, gradingStatus: "auto", submittedAt: new Date(`2025-0${2 + i * 2}-15`) } });
   }
-  // Fixed: Aram failed A1
+
   {
     const pin = randPin(usedPins);
-    const existingAssign = await prisma.examAssignment.findUnique({
-      where: { examId_studentId: { examId: fixedExams[0].id, studentId: aram.id } },
-    });
-    if (!existingAssign) {
-      await prisma.examAssignment.create({ data: { examId: fixedExams[0].id, studentId: aram.id, pin } });
-    }
-    await prisma.result.create({
-      data: { examId: fixedExams[0].id, studentId: aram.id, score: 47, totalPoints: 100, pct: 47, passed: false, gradingStatus: "auto", submittedAt: new Date("2025-03-10") },
-    });
+    const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: fixedExams[0].id, studentId: vazgen.id } } });
+    if (!ea) await prisma.examAssignment.create({ data: { examId: fixedExams[0].id, studentId: vazgen.id, pin } });
+    await prisma.result.create({ data: { examId: fixedExams[0].id, studentId: vazgen.id, score: 47, totalPoints: 100, pct: 47, passed: false, gradingStatus: "auto", submittedAt: new Date("2025-03-10") } });
   }
-  // Placement: Davit → B2, Hayk → C1, Artur → below minimum
+
   const placementResultDefs = [
     { student: davit, levelStats: { A1:{earnedPts:5,maxPts:5,pct:100,passed:true}, A2:{earnedPts:5,maxPts:5,pct:100,passed:true}, B1:{earnedPts:8,maxPts:10,pct:80,passed:true}, B2:{earnedPts:7,maxPts:10,pct:70,passed:true}, C1:{earnedPts:6,maxPts:15,pct:40,passed:false}, C2:{earnedPts:4,maxPts:15,pct:27,passed:false} }, detectedLevel:"B2", passed:true,  date:"2025-02-01" },
     { student: hayk,  levelStats: { A1:{earnedPts:5,maxPts:5,pct:100,passed:true}, A2:{earnedPts:5,maxPts:5,pct:100,passed:true}, B1:{earnedPts:9,maxPts:10,pct:90,passed:true}, B2:{earnedPts:8,maxPts:10,pct:80,passed:true}, C1:{earnedPts:11,maxPts:15,pct:73,passed:true}, C2:{earnedPts:6,maxPts:15,pct:40,passed:false} }, detectedLevel:"C1", passed:true,  date:"2025-02-14" },
@@ -628,60 +637,36 @@ async function main() {
     const totalPts  = Object.values(rd.levelStats).reduce((s, l) => s + l.maxPts, 0);
     const earnedPts = Object.values(rd.levelStats).reduce((s, l) => s + l.earnedPts, 0);
     const pct = Math.round((earnedPts / totalPts) * 100);
-    const existingAssign = await prisma.examAssignment.findUnique({
-      where: { examId_studentId: { examId: exam.id, studentId: rd.student.id } },
-    });
-    if (!existingAssign) {
-      await prisma.examAssignment.create({ data: { examId: exam.id, studentId: rd.student.id, pin: randPin(usedPins) } });
-    }
-    await prisma.result.create({
-      data: { examId: exam.id, studentId: rd.student.id, score: earnedPts, totalPoints: totalPts, pct, passed: rd.passed, detectedLevel: rd.detectedLevel, levelStats: rd.levelStats, gradingStatus: "auto", submittedAt: new Date(rd.date) },
-    });
+    const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: exam.id, studentId: rd.student.id } } });
+    if (!ea) await prisma.examAssignment.create({ data: { examId: exam.id, studentId: rd.student.id, pin: randPin(usedPins) } });
+    await prisma.result.create({ data: { examId: exam.id, studentId: rd.student.id, score: earnedPts, totalPoints: totalPts, pct, passed: rd.passed, detectedLevel: rd.detectedLevel, levelStats: rd.levelStats, gradingStatus: "auto", submittedAt: new Date(rd.date) } });
     console.log(`  🎯 ${rd.student.name} → ${rd.detectedLevel ?? "below min"} | ${pct}%`);
   }
-  // Pending manual grading: Marine
+
   {
     const exam = fixedExams[1];
     const pin  = randPin(usedPins);
-    const existingAssign = await prisma.examAssignment.findUnique({
-      where: { examId_studentId: { examId: exam.id, studentId: marine.id } },
-    });
-    if (!existingAssign) {
-      await prisma.examAssignment.create({ data: { examId: exam.id, studentId: marine.id, pin } });
-    }
+    const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: exam.id, studentId: narine.id } } });
+    if (!ea) await prisma.examAssignment.create({ data: { examId: exam.id, studentId: narine.id, pin } });
     const speakingQs = await prisma.question.findMany({ where: { type: { in: ["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"] } }, take: 2 });
     const pendingAnswers = {};
-    for (const q of speakingQs) {
-      pendingAnswers[q.id] = q.type.startsWith("SPEAKING") ? "/voice/demo-marine.webm" : "Ես կարծում եմ, որ...";
-    }
-    await prisma.result.create({
-      data: { examId: exam.id, studentId: marine.id, score: 0, totalPoints: speakingQs.reduce((s,q)=>s+q.points,0), pct: 0, passed: null, answers: pendingAnswers, gradingStatus: "pending", submittedAt: new Date("2025-03-01") },
-    });
-    console.log(`  ⏳ Marine → pending manual grading`);
+    for (const q of speakingQs) { pendingAnswers[q.id] = q.type.startsWith("SPEAKING") ? "/voice/demo-narine.webm" : "I believe that..."; }
+    await prisma.result.create({ data: { examId: exam.id, studentId: narine.id, score: 0, totalPoints: speakingQs.reduce((s,q)=>s+q.points,0), pct: 0, passed: null, answers: pendingAnswers, gradingStatus: "pending", submittedAt: new Date("2025-03-01") } });
+    console.log(`  ⏳ Narine → pending manual grading`);
   }
-  // Graded: Davit and Hayk — speaking/writing manually graded
+
   {
-    const exam = fixedExams[1]; // A2 fixed exam (has speaking/writing questions)
-    const manualQs = await prisma.question.findMany({
-      where: { type: { in: ["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"] } },
-      take: 3,
-    });
-    // Get examiner admin for gradedById
+    const exam = fixedExams[1];
+    const manualQs = await prisma.question.findMany({ where: { type: { in: ["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"] } }, take: 3 });
     const examinerAdmin = await prisma.admin.findUnique({ where: { email: "examiner@armexam.am" } });
     const graderId = examinerAdmin?.id ?? null;
-
     const gradedDefs = [
       { student: davit, scores: [4, 3, 7], date: "2025-01-20", label: "Davit" },
       { student: hayk,  scores: [5, 4, 8], date: "2025-01-28", label: "Hayk"  },
     ];
-
     for (const gd of gradedDefs) {
       if (!manualQs.length) break;
-      const answers = {};
-      const manualGrades = {};
-      let totalPts = 0;
-      let scoredPts = 0;
-
+      const answers = {}; const manualGrades = {}; let totalPts = 0; let scoredPts = 0;
       for (let i = 0; i < manualQs.length; i++) {
         const q = manualQs[i];
         const raw = gd.scores[i] ?? 3;
@@ -689,44 +674,25 @@ async function main() {
         const scaled = Math.round((raw / Math.max(max, 1)) * q.points);
         answers[q.id] = q.type.startsWith("SPEAKING") ? "/voice/demo.webm" : "Sample graded writing answer.";
         manualGrades[q.id] = { rawScore: raw, maxRawScore: max, scaledScore: scaled, feedback: "Good effort.", gradedAt: new Date(gd.date).toISOString() };
-        totalPts += q.points;
-        scoredPts += scaled;
+        totalPts += q.points; scoredPts += scaled;
       }
-
       const pct = totalPts > 0 ? Math.round((scoredPts / totalPts) * 100) : 0;
-      const existingAssign = await prisma.examAssignment.findUnique({
-        where: { examId_studentId: { examId: exam.id, studentId: gd.student.id } },
-      });
-      if (!existingAssign) {
-        await prisma.examAssignment.create({ data: { examId: exam.id, studentId: gd.student.id, pin: randPin(usedPins) } });
-      }
-      await prisma.result.create({
-        data: {
-          examId: exam.id, studentId: gd.student.id,
-          score: scoredPts, totalPoints: totalPts, pct, passed: pct >= 60,
-          answers, manualGrades,
-          gradingStatus: "graded",
-          gradedById: graderId,
-          gradedAt: new Date(gd.date),
-          submittedAt: new Date(gd.date),
-        },
-      });
+      const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: exam.id, studentId: gd.student.id } } });
+      if (!ea) await prisma.examAssignment.create({ data: { examId: exam.id, studentId: gd.student.id, pin: randPin(usedPins) } });
+      await prisma.result.create({ data: { examId: exam.id, studentId: gd.student.id, score: scoredPts, totalPoints: totalPts, pct, passed: pct >= 60, answers, manualGrades, gradingStatus: "graded", gradedById: graderId, gradedAt: new Date(gd.date), submittedAt: new Date(gd.date) } });
       console.log(`  ✏️  ${gd.label} → graded ${scoredPts}/${totalPts} (${pct}%)`);
     }
   }
   console.log("✅ Demo results");
 
-  // ── Admins ──────────────────────────────────────────────────────────────
   const adminDefs = [
-    { name: "Super Admin",  email: "admin@armexam.am",    password: "admin1234", role: "super_admin",  centerId: null        },
+    { name: "Super Admin",  email: "admin@armexam.am",    password: "admin1234", role: "super_admin",  centerId: null         },
     { name: "Center Admin", email: "center@armexam.am",   password: "demo1234",  role: "center_admin", centerId: centers[0].id },
-    { name: "Moderator",    email: "moder@armexam.am",    password: "demo1234",  role: "moderator",    centerId: null        },
-    { name: "Examiner",     email: "examiner@armexam.am", password: "demo1234",  role: "examiner",     centerId: null        },
+    { name: "Moderator",    email: "moder@armexam.am",    password: "demo1234",  role: "moderator",    centerId: null         },
+    { name: "Examiner",     email: "examiner@armexam.am", password: "demo1234",  role: "examiner",     centerId: null         },
   ];
   for (const a of adminDefs) {
-    await prisma.admin.create({
-      data: { name: a.name, email: a.email, role: a.role, centerId: a.centerId, status: "active", passwordHash: hashPassword(a.password, a.email) },
-    });
+    await prisma.admin.create({ data: { name: a.name, email: a.email, role: a.role, centerId: a.centerId, status: "active", passwordHash: hashPassword(a.password, a.email) } });
   }
   console.log(`✅ ${adminDefs.length} admins`);
 
