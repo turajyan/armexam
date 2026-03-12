@@ -91,6 +91,18 @@ export default function ExaminerDashboard({ theme: T }) {
   const setFb      = (qId, val) =>
     setFbDrafts(p => ({ ...p, [qId]: val }));
 
+  // ─── Queue list ────────────────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return queue.filter(r =>
+      !q ||
+      (r.student?.candidateCode ?? r.student?.name ?? "").toLowerCase().includes(q) ||
+      (r.student?.email ?? "").toLowerCase().includes(q) ||
+      r.exam?.title?.toLowerCase().includes(q) ||
+      String(r.id).includes(q)
+    );
+  }, [queue, search]);
+
   // ─── Detail view ───────────────────────────────────────────────────────────
   if (selected) {
     const qs       = selected.manualQuestions ?? [];
@@ -185,18 +197,6 @@ export default function ExaminerDashboard({ theme: T }) {
       </div>
     );
   }
-
-  // ─── Queue list ────────────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return queue.filter(r =>
-      !q ||
-      (r.student?.candidateCode ?? r.student?.name ?? "").toLowerCase().includes(q) ||
-      (r.student?.email ?? "").toLowerCase().includes(q) ||
-      r.exam?.title?.toLowerCase().includes(q) ||
-      String(r.id).includes(q)
-    );
-  }, [queue, search]);
 
   return (
     <div style={{ flex:1, overflowY:"auto", padding:"32px 40px",
