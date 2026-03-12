@@ -283,7 +283,7 @@ function DragToTextEditor({ content, onChange }) {
           Correct answers (JSON: {`{"slot_1":"rises"}`})
         </label>
         <input value={JSON.stringify(content.slots||{})} onChange={e => { try { onChange({ ...content, slots: JSON.parse(e.target.value) }); } catch {} }}
-          style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", fontFamily:"monospace" }} />
+          style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"monospace", fontSize:13, outline:"none" }} />
       </div>
     </div>
   );
