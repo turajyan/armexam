@@ -260,18 +260,29 @@ app.post('/api/session/finish', (req, res) => {
   s.finishedAt = new Date().toISOString();
   saveDB();
 
-  // Optionally push result to main backend
-  fetch(`${MAIN_API}/api/results`, {
+  // Push result to main backend using PIN-authenticated endpoint
+  fetch(`${MAIN_API}/api/terminal/result`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      examId: s.examId, studentId: s.studentId,
-      score: result.earnedPts, totalPoints: result.totalPts,
-      pct: result.score, passed: result.passed,
-      placementLevel: result.placementLevel,
-      answers: s.answers, source: 'terminal',
+      pin:          s.pin,
+      examId:       s.examId,
+      studentId:    s.studentId,
+      score:        result.earnedPts,
+      totalPoints:  result.totalPts,
+      pct:          result.score,
+      passed:       result.passed,
+      placementLevel: result.placementLevel ?? null,
+      answers:      s.answers,
     }),
-  }).catch(() => {}); // non-blocking
+  }).then(async r => {
+    if (!r.ok) {
+      const body = await r.text().catch(() => '');
+      console.error(`[finish] Failed to push result: ${r.status} ${body}`);
+    } else {
+      console.log(`[finish] Result pushed to main API for student ${s.studentId}`);
+    }
+  }).catch(e => console.error(`[finish] Push error: ${e.message}`));
 
   return res.json({ result, finishedAt: s.finishedAt });
 });

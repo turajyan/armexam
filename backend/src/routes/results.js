@@ -33,6 +33,52 @@ export default async function resultsRoutes(fastify) {
     return r;
   });
 
+  // POST /api/terminal/result — submit result from exam terminal (uses PIN auth, no student token)
+  fastify.post("/api/terminal/result", async (req, reply) => {
+    const { pin, examId, studentId, score, totalPoints, pct, passed, placementLevel, answers } = req.body ?? {};
+    if (!pin || examId == null || score == null || totalPoints == null || pct == null) {
+      return reply.code(400).send({ error: "pin, examId, score, totalPoints, pct are required" });
+    }
+
+    // Verify PIN belongs to this student + exam
+    const assignment = await prisma.examAssignment.findUnique({
+      where: { pin: String(pin).toUpperCase() },
+    });
+    if (!assignment) return reply.code(403).send({ error: "Invalid PIN" });
+    if (assignment.examId !== Number(examId) || assignment.studentId !== Number(studentId)) {
+      return reply.code(403).send({ error: "PIN mismatch" });
+    }
+
+    // Upsert — prevent duplicate results if terminal retries
+    const existing = await prisma.result.findFirst({
+      where: { examId: Number(examId), studentId: Number(studentId) },
+    });
+    if (existing) return reply.code(200).send(existing);
+
+    const result = await prisma.result.create({
+      data: {
+        examId:        Number(examId),
+        studentId:     Number(studentId),
+        score:         Number(score),
+        totalPoints:   Number(totalPoints),
+        pct:           Number(pct),
+        passed:        Boolean(passed),
+        answers:       answers ?? {},
+        detectedLevel: placementLevel ?? null,
+      },
+    });
+
+    // Update student level for placement exams
+    if (placementLevel) {
+      await prisma.student.update({
+        where: { id: Number(studentId) },
+        data: { level: placementLevel },
+      });
+    }
+
+    return reply.code(201).send(result);
+  });
+
   // POST /api/results  — requires student Bearer token
   fastify.post("/api/results", async (req, reply) => {
     const token = req.headers.authorization?.replace("Bearer ", "").trim();
