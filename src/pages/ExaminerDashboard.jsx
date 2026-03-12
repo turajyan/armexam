@@ -95,7 +95,7 @@ export default function ExaminerDashboard({ theme: T }) {
   if (selected) {
     const qs       = selected.manualQuestions ?? [];
     const grades   = selected.manualGrades ?? {};
-    const readOnly = selected.gradingStatus === "completed";
+    const readOnly = selected.gradingStatus === "graded" || selected.gradingStatus === "auto";
     const cq       = qs[activeIdx] ?? null;
 
     return (
@@ -111,7 +111,7 @@ export default function ExaminerDashboard({ theme: T }) {
           </div>
           <GradingRing qs={qs} grades={grades} T={T} />
           {readOnly && <StatusBadge status="completed" T={T} />}
-          {selected.gradingStatus === "completed" && (
+          {selected.gradingStatus === "graded" && (
             <PublishButton resultId={selected.id} T={T}
               onPublished={() => { setSelected(null); loadQueue(tab); }} />
           )}
@@ -280,16 +280,24 @@ export default function ExaminerDashboard({ theme: T }) {
             </div>
             <div style={{ fontSize:12, color:T.muted }}>{formatDateTime(r.submittedAt)}</div>
             <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-              {(r.manualQuestions ?? []).map(q => (
-                <span key={q.id} style={{
-                  fontSize:10, fontWeight:600, padding:"2px 7px", borderRadius:5,
-                  background: q.isGraded ? "#4ade8018" : T.gold+"18",
-                  color: q.isGraded ? "#4ade80" : T.gold,
-                  border:`1px solid ${q.isGraded ? "#4ade8044" : T.gold+"44"}`,
-                }}>
-                  {CAT_ICON[q.category]} {q.level}{q.isGraded ? " ✓" : ""}
-                </span>
-              ))}
+              {(r.manualQuestions ?? []).length > 0
+                ? (r.manualQuestions ?? []).map(q => (
+                    <span key={q.id} style={{
+                      fontSize:10, fontWeight:600, padding:"2px 7px", borderRadius:5,
+                      background: q.isGraded ? "#4ade8018" : T.gold+"18",
+                      color: q.isGraded ? "#4ade80" : T.gold,
+                      border:`1px solid ${q.isGraded ? "#4ade8044" : T.gold+"44"}`,
+                    }}>
+                      {CAT_ICON[q.category]} {q.level}{q.isGraded ? " ✓" : ""}
+                    </span>
+                  ))
+                : r.gradedCount > 0
+                  ? <span style={{ fontSize:10, fontWeight:600, padding:"2px 7px", borderRadius:5,
+                      background:"#4ade8018", color:"#4ade80", border:"1px solid #4ade8044" }}>
+                      ✓ {r.gradedCount} graded
+                    </span>
+                  : <span style={{ fontSize:11, color:T.muted }}>—</span>
+              }
               {r.pendingCount > 0 && (
                 <div style={{ fontSize:10, color:T.muted, width:"100%", marginTop:2 }}>
                   {r.pendingCount} remaining
@@ -299,7 +307,7 @@ export default function ExaminerDashboard({ theme: T }) {
             <StatusBadge status={r.gradingStatus} T={T} />
             <div style={{ display:"flex", justifyContent:"flex-end" }}>
               <button onClick={() => openResult(r)} style={primaryBtn(T)}>
-                {r.gradingStatus === "completed" ? "👁 View" : "Grade →"}
+                {(r.gradingStatus === "graded" || r.gradingStatus === "auto") ? "👁 View" : "Grade →"}
               </button>
             </div>
           </div>
