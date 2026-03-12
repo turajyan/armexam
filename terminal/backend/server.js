@@ -91,43 +91,79 @@ function buildQuestions(exam, questions) {
 }
 
 function calcResult(exam, questions, answers) {
-  let total = 0, earned = 0;
-  for (const q of questions) {
-    total += q.points;
+  // ── Score individual question ──────────────────────────────────────────────
+  function scoreQuestion(q) {
     const ans = answers[String(q.id)];
-    if (ans === undefined || ans === null || ans === '') continue;
+    if (ans === undefined || ans === null || ans === '') return 0;
     if (q.type === 'single_choice') {
-      if (Number(ans) === q.correct) earned += q.points;
-    } else if (q.type === 'multi_choice' || q.type === 'multi_select') {
+      return Number(ans) === q.correct ? q.points : 0;
+    }
+    if (q.type === 'multi_choice' || q.type === 'multi_select') {
       const u = new Set((Array.isArray(ans) ? ans : [ans]).map(Number));
       const c = new Set(q.correct);
-      if ([...u].every(x => c.has(x)) && u.size === c.size) earned += q.points;
-    } else if (q.type === 'fill_blank') {
-      const norm = s => String(s).trim().toLowerCase();
-      if (norm(ans) === norm(q.answer || q.correctAnswer || '')) earned += q.points;
+      return ([...u].every(x => c.has(x)) && u.size === c.size) ? q.points : 0;
     }
-    // writing / voice → manual grading
+    if (q.type === 'fill_blank') {
+      const norm = s => String(s).trim().toLowerCase();
+      return norm(ans) === norm(q.answer || q.correctAnswer || '') ? q.points : 0;
+    }
+    return 0; // writing / voice → manual grading
   }
-  const pct = total > 0 ? Math.round((earned / total) * 100) : 0;
 
   if (exam.examType === 'placement') {
-    // Placement: always determines a level, cannot "fail"
-    // but score must meet minimum threshold for each level
-    const thr = exam.placementThresholds || { A1: 20, A2: 35, B1: 50, B2: 65, C1: 75, C2: 85 };
-    let lvl = null;
-    for (const l of ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
-      if (pct >= (thr[l] ?? 20)) lvl = l;
+    // ── Per-level scoring ────────────────────────────────────────────────────
+    const thr = exam.placementThresholds || { A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 };
+    const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+    // Group questions by level
+    const byLevel = {};
+    for (const q of questions) {
+      if (!byLevel[q.level]) byLevel[q.level] = [];
+      byLevel[q.level].push(q);
     }
-    // Below minimum threshold → needs preparation, not placed
-    if (lvl === null) {
-      return { score: pct, earnedPts: earned, totalPts: total, placementLevel: null, passed: false, belowMinimum: true };
+
+    // Score each level
+    const levelResults = {};
+    let totalEarned = 0, totalPts = 0;
+    for (const lvl of LEVELS) {
+      const qs = byLevel[lvl] || [];
+      if (qs.length === 0) continue;
+      const maxPts  = qs.reduce((s, q) => s + q.points, 0);
+      const earnedPts = qs.reduce((s, q) => s + scoreQuestion(q), 0);
+      const pct = maxPts > 0 ? Math.round((earnedPts / maxPts) * 100) : 0;
+      levelResults[lvl] = { earnedPts, maxPts, pct, passed: pct >= (thr[lvl] ?? 60) };
+      totalEarned += earnedPts;
+      totalPts    += maxPts;
     }
-    return { score: pct, earnedPts: earned, totalPts: total, placementLevel: lvl, passed: true };
+
+    // Highest level where threshold is met
+    let placementLevel = null;
+    for (const lvl of LEVELS) {
+      if (levelResults[lvl]?.passed) placementLevel = lvl;
+    }
+
+    const overallPct = totalPts > 0 ? Math.round((totalEarned / totalPts) * 100) : 0;
+
+    return {
+      score:          overallPct,
+      earnedPts:      totalEarned,
+      totalPts,
+      placementLevel,                          // null = below minimum
+      passed:         placementLevel !== null,
+      belowMinimum:   placementLevel === null,
+      levelResults,                            // per-level breakdown for display
+    };
   }
 
-  // Fixed exam: pass/fail based on passingScore
+  // ── Fixed exam: simple pass/fail ──────────────────────────────────────────
+  let totalPts = 0, earned = 0;
+  for (const q of questions) {
+    totalPts += q.points;
+    earned   += scoreQuestion(q);
+  }
+  const pct = totalPts > 0 ? Math.round((earned / totalPts) * 100) : 0;
   const passingScore = exam.passingScore ?? 70;
-  return { score: pct, earnedPts: earned, totalPts: total, passed: pct >= passingScore, passingScore };
+  return { score: pct, earnedPts: earned, totalPts, passed: pct >= passingScore, passingScore };
 }
 
 // ── Express ───────────────────────────────────────────────────────────────────

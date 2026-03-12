@@ -44,7 +44,8 @@ function AnimatedScore({ score, T }) {
 
 export default function ResultScreen({ T, result: resultData, session, onDone }) {
   const result = resultData?.result || resultData || {};
-  const { score = 0, earnedPts = 0, totalPts = 0, passed, placementLevel, belowMinimum, passingScore } = result;
+  const { score = 0, earnedPts = 0, totalPts = 0, passed, placementLevel,
+          belowMinimum, passingScore, levelResults } = result;
   const isPlacement = session?.examType === 'placement';
   const statusColor = belowMinimum ? T.error : isPlacement ? T.blue : passed ? T.success : T.error;
   const plColor = LEVEL_COLORS[placementLevel] || T.gold;
@@ -132,6 +133,56 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
             </div>
           ))}
         </div>
+
+        {/* Per-level breakdown for placement */}
+        {isPlacement && levelResults && (
+          <div style={{
+            background: T.panel, border: `1px solid ${T.border2}`,
+            borderRadius: 14, padding: '16px 20px', marginBottom: 20, textAlign: 'left',
+          }}>
+            <div style={{ fontSize: 10, color: T.muted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12, fontFamily: "'DM Sans',sans-serif" }}>
+              Per-level breakdown
+            </div>
+            {['A1','A2','B1','B2','C1','C2'].map(lvl => {
+              const r = levelResults[lvl];
+              if (!r) return null;
+              const lc = LEVEL_COLORS[lvl] || T.muted;
+              const isTarget = lvl === placementLevel;
+              return (
+                <div key={lvl} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px',
+                  borderRadius: 8, marginBottom: 4,
+                  background: isTarget ? lc + '14' : 'transparent',
+                  border: `1px solid ${isTarget ? lc + '44' : 'transparent'}`,
+                }}>
+                  <span style={{
+                    fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 700,
+                    color: lc, background: lc + '18', borderRadius: 5,
+                    padding: '2px 8px', minWidth: 30, textAlign: 'center',
+                  }}>{lvl}</span>
+                  {/* Progress bar */}
+                  <div style={{ flex: 1, height: 6, background: T.border2, borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 99,
+                      width: `${r.pct}%`,
+                      background: r.passed ? lc : T.error,
+                      transition: 'width 1s ease',
+                    }} />
+                  </div>
+                  <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: r.passed ? lc : T.error, minWidth: 36, textAlign: 'right' }}>
+                    {r.pct}%
+                  </span>
+                  <span style={{ fontSize: 11, color: r.passed ? T.success : T.error, minWidth: 14 }}>
+                    {r.passed ? '✓' : '✗'}
+                  </span>
+                  {isTarget && (
+                    <span style={{ fontSize: 10, color: lc, fontWeight: 700, fontFamily: "'DM Sans',sans-serif" }}>← your level</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Student name */}
         <div style={{ fontSize: 14, color: T.muted, marginBottom: 28 }}>
