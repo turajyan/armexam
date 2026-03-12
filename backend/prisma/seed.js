@@ -659,6 +659,61 @@ async function main() {
     });
     console.log(`  ⏳ Marine → pending manual grading`);
   }
+  // Graded: Davit and Hayk — speaking/writing manually graded
+  {
+    const exam = fixedExams[1]; // A2 fixed exam (has speaking/writing questions)
+    const manualQs = await prisma.question.findMany({
+      where: { type: { in: ["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"] } },
+      take: 3,
+    });
+    // Get examiner admin for gradedById
+    const examinerAdmin = await prisma.admin.findUnique({ where: { email: "examiner@armexam.am" } });
+    const graderId = examinerAdmin?.id ?? null;
+
+    const gradedDefs = [
+      { student: davit, scores: [4, 3, 7], date: "2025-01-20", label: "Davit" },
+      { student: hayk,  scores: [5, 4, 8], date: "2025-01-28", label: "Hayk"  },
+    ];
+
+    for (const gd of gradedDefs) {
+      if (!manualQs.length) break;
+      const answers = {};
+      const manualGrades = {};
+      let totalPts = 0;
+      let scoredPts = 0;
+
+      for (let i = 0; i < manualQs.length; i++) {
+        const q = manualQs[i];
+        const raw = gd.scores[i] ?? 3;
+        const max = q.content?.rubrics?.reduce((s, r) => s + r.maxScore, 0) ?? 10;
+        const scaled = Math.round((raw / Math.max(max, 1)) * q.points);
+        answers[q.id] = q.type.startsWith("SPEAKING") ? "/voice/demo.webm" : "Sample graded writing answer.";
+        manualGrades[q.id] = { rawScore: raw, maxRawScore: max, scaledScore: scaled, feedback: "Good effort.", gradedAt: new Date(gd.date).toISOString() };
+        totalPts += q.points;
+        scoredPts += scaled;
+      }
+
+      const pct = totalPts > 0 ? Math.round((scoredPts / totalPts) * 100) : 0;
+      const existingAssign = await prisma.examAssignment.findUnique({
+        where: { examId_studentId: { examId: exam.id, studentId: gd.student.id } },
+      });
+      if (!existingAssign) {
+        await prisma.examAssignment.create({ data: { examId: exam.id, studentId: gd.student.id, pin: randPin(usedPins) } });
+      }
+      await prisma.result.create({
+        data: {
+          examId: exam.id, studentId: gd.student.id,
+          score: scoredPts, totalPoints: totalPts, pct, passed: pct >= 60,
+          answers, manualGrades,
+          gradingStatus: "graded",
+          gradedById: graderId,
+          gradedAt: new Date(gd.date),
+          submittedAt: new Date(gd.date),
+        },
+      });
+      console.log(`  ✏️  ${gd.label} → graded ${scoredPts}/${totalPts} (${pct}%)`);
+    }
+  }
   console.log("✅ Demo results");
 
   // ── Admins ──────────────────────────────────────────────────────────────
