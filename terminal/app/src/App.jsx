@@ -61,10 +61,57 @@ export default function App() {
 
   const T = THEMES[theme] || THEMES.dark;
 
-  const handleLogin = useCallback((sessionData) => {
+  const handleLogin = useCallback(async (sessionData) => {
     setSession(sessionData);
     setScreen('exam');
-  }, []);
+
+    // ── Background media prefetch ────────────────────────────────────────────
+    // Collect all media URLs from the session questions and ask the terminal
+    // backend to cache them locally. This runs after the exam starts so it
+    // doesn't delay the PIN login, but completes well before the student
+    // reaches media-heavy sections (Listening / Speaking).
+    const urls = [];
+    for (const q of sessionData.questions ?? []) {
+      for (const m of q.media ?? []) {
+        if (m.url && (m.url.startsWith('http://') || m.url.startsWith('https://'))) {
+          urls.push(m.url);
+        }
+      }
+      // Legacy single-field media
+      if (q.audioSrc?.startsWith('http')) urls.push(q.audioSrc);
+      if (q.videoSrc?.startsWith('http')) urls.push(q.videoSrc);
+      if (q.imageSrc?.startsWith('http')) urls.push(q.imageSrc);
+    }
+
+    if (urls.length > 0) {
+      const bu = sessionData.backendUrl ?? backendUrl ?? 'http://localhost:4000';
+      try {
+        const r = await fetch(`${bu}/api/media/prefetch`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls: [...new Set(urls)] }), // deduplicate
+        });
+        if (r.ok) {
+          const d = await r.json();
+          console.log(`[prefetch] ${d.cached?.length ?? 0} files cached, ${d.failed?.length ?? 0} failed`);
+          // Rewrite media URLs in session to point to local cache
+          for (const q of sessionData.questions ?? []) {
+            for (const m of q.media ?? []) {
+              const match = d.cached?.find(c => c.url === m.url);
+              if (match) m.url = `${bu}/api/media/${match.filename}`;
+            }
+            for (const field of ['audioSrc', 'videoSrc', 'imageSrc']) {
+              const match = d.cached?.find(c => c.url === q[field]);
+              if (match) q[field] = `${bu}/api/media/${match.filename}`;
+            }
+          }
+          // Update session in state with rewritten URLs
+          setSession({ ...sessionData });
+        }
+      } catch (e) {
+        console.warn('[prefetch] Failed:', e.message, '— using original URLs');
+      }
+    }
+  }, [backendUrl]);
 
   const handleFinish = useCallback((resultData) => {
     setResult(resultData);

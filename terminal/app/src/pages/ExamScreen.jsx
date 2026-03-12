@@ -175,12 +175,27 @@ function SpeakingRecorder({ question, sessionId, backendUrl, T, onRecorded }) {
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
       const url  = URL.createObjectURL(blob);
       setAudioUrl(url);
+
+      // ── SHA-256 integrity ────────────────────────────────────────────────
+      let sha256 = null;
+      try {
+        const buf    = await blob.arrayBuffer();
+        const digest = await crypto.subtle.digest('SHA-256', buf);
+        sha256 = Array.from(new Uint8Array(digest))
+          .map(b => b.toString(16).padStart(2, '0')).join('');
+      } catch {} // non-critical; backend accepts without hash too
+
       const form = new FormData();
       form.append('audio', blob, `q${question.id}_${sessionId}.webm`);
       form.append('sessionId', sessionId);
       form.append('questionId', String(question.id));
+      if (sha256) form.append('sha256', sha256);
+
       const r = await fetch(`${backendUrl}/api/session/voice`, { method:'POST', body:form });
-      if (!r.ok) throw new Error('Upload failed');
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || 'Upload failed');
+      }
       setPhase('done');
       onRecorded(question.id);
     } catch (e) {
@@ -729,14 +744,32 @@ export default function ExamScreen({ T, session, backendUrl, onFinish }) {
     }
   }, [answers, currentIndex]);
 
+  // ── Heartbeat: flush all answers to backend every 12s ─────────────────────
+  const answersRef = useRef(answers);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+
+  useEffect(() => {
+    const iv = setInterval(async () => {
+      if (Object.keys(answersRef.current).length === 0) return;
+      try {
+        await fetch(`${backendUrl}/api/session/heartbeat`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, answers: answersRef.current }),
+        });
+      } catch {} // silent — data already saved on each individual answer
+    }, 12_000);
+    return () => clearInterval(iv);
+  }, [sessionId, backendUrl]);
+
   const saveAnswer = async (questionId, value) => {
     setAnswers(prev => ({ ...prev, [String(questionId)]: value }));
+    answersRef.current = { ...answersRef.current, [String(questionId)]: value };
     try {
       await fetch(`${backendUrl}/api/session/answer`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, questionId, answer: value }),
       });
-    } catch {}
+    } catch {} // heartbeat will recover if this fails
   };
 
   const finish = async () => {

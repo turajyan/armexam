@@ -5,11 +5,14 @@
  */
 import express from 'express';
 import cors from 'cors';
-import { randomUUID } from 'crypto';
-import { readFileSync, existsSync, mkdirSync, writeFileSync, renameSync, createReadStream } from 'fs';
+import { randomUUID, createHash } from 'crypto';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, renameSync,
+         createReadStream, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import { pipeline } from 'stream/promises';
+import { createWriteStream } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT       = 4000;
@@ -26,7 +29,16 @@ const saveDB = () => writeFileSync(DB_FILE, JSON.stringify(db.data, null, 2));
 // ── Voice recordings ──────────────────────────────────────────────────────────
 const recDir = join(DATA_DIR, 'recordings');
 if (!existsSync(recDir)) mkdirSync(recDir, { recursive: true });
-const upload = multer({ dest: recDir, limits: { fileSize: 25 * 1024 * 1024 } });
+const upload = multer({ dest: recDir, limits: { fileSize: 50 * 1024 * 1024 } });
+
+// ── Media cache (pre-downloaded audio/video for offline playback) ──────────────
+const mediaDir = join(DATA_DIR, 'media');
+if (!existsSync(mediaDir)) mkdirSync(mediaDir, { recursive: true });
+
+// ── In-memory heartbeat store (survives only while process is alive) ───────────
+// Durable snapshots are written to session.answers in sessions.json on each heartbeat.
+// Key: sessionId → { answers, savedAt }
+const heartbeatCache = new Map();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
@@ -343,7 +355,17 @@ app.post('/api/session/start', async (req, res) => {
 
   // Resume existing active session for this PIN
   const existing = db.data.sessions.find(s => s.pin === pin.trim().toUpperCase() && s.status === 'active');
-  if (existing) return res.json({ ...existing, resumed: true });
+  if (existing) {
+    // Merge in-memory heartbeat cache (more current than disk) before returning
+    const cached = heartbeatCache.get(existing.sessionId);
+    if (cached) {
+      for (const [qid, val] of Object.entries(cached.answers)) {
+        existing.answers[String(qid)] = val;
+      }
+    }
+    console.log(`[resume] Session ${existing.sessionId} resumed with ${Object.keys(existing.answers).length} saved answers`);
+    return res.json({ ...existing, resumed: true, resumedAt: new Date().toISOString() });
+  }
 
   // Fetch from main backend
   let assignment;
@@ -432,27 +454,93 @@ app.post('/api/session/start', async (req, res) => {
   return res.json({ ...session, resumed: false });
 });
 
-/** POST /api/session/answer */
+// ── Heartbeat / autosave ─────────────────────────────────────────────────────
+/**
+ * POST /api/session/heartbeat
+ * Body: { sessionId, answers: { "42": "A", "43": "Some text..." } }
+ * Called every 10-15s by the terminal. Saves full answers snapshot.
+ * On PIN resume, this snapshot is returned so the student continues where they left off.
+ */
+app.post('/api/session/heartbeat', (req, res) => {
+  const { sessionId, answers } = req.body;
+  if (!sessionId || typeof answers !== 'object') {
+    return res.status(400).json({ error: 'sessionId and answers required' });
+  }
+  const s = db.data.sessions.find(s => s.sessionId === sessionId && s.status === 'active');
+  if (!s) return res.status(404).json({ error: 'Session not found' });
+
+  const now = new Date().toISOString();
+
+  // Merge incoming answers (never overwrite with undefined)
+  for (const [qid, val] of Object.entries(answers)) {
+    if (val !== undefined && val !== null) s.answers[String(qid)] = val;
+  }
+  s.lastHeartbeat = now;
+
+  // In-memory cache for instant resume
+  heartbeatCache.set(sessionId, { answers: { ...s.answers }, savedAt: now });
+
+  // Persist to disk (debounced by Node's event loop — fast enough)
+  saveDB();
+
+  return res.json({ ok: true, savedAt: now, answersCount: Object.keys(s.answers).length });
+});
+
+/** POST /api/session/answer — single answer save (still supported) */
 app.post('/api/session/answer', (req, res) => {
   const { sessionId, questionId, answer } = req.body;
   const s = db.data.sessions.find(s => s.sessionId === sessionId && s.status === 'active');
   if (!s) return res.status(404).json({ error: 'Session not found' });
   s.answers[String(questionId)] = answer;
+  s.lastHeartbeat = new Date().toISOString();
+  heartbeatCache.set(sessionId, { answers: { ...s.answers }, savedAt: s.lastHeartbeat });
   saveDB();
   return res.json({ ok: true });
 });
 
-/** POST /api/session/voice — upload voice recording */
-app.post('/api/session/voice', upload.single('audio'), (req, res) => {
-  const { sessionId, questionId } = req.body;
-  if (!sessionId || !req.file) return res.status(400).json({ error: 'sessionId and audio required' });
+/** POST /api/session/voice — upload voice recording with integrity check */
+app.post('/api/session/voice', upload.single('audio'), async (req, res) => {
+  const { sessionId, questionId, sha256 } = req.body;
+  if (!sessionId || !req.file) {
+    return res.status(400).json({ error: 'sessionId and audio file required' });
+  }
+
   const s = db.data.sessions.find(s => s.sessionId === sessionId && s.status === 'active');
   if (!s) return res.status(404).json({ error: 'Session not found' });
-  const dest = req.file.path + '.webm';
+
+  // ── Integrity check (optional but recommended) ─────────────────────────────
+  // Client sends SHA-256 hex of the blob before upload.
+  // We verify the stored file matches to catch corrupt transfers.
+  if (sha256) {
+    const fileData = readFileSync(req.file.path);
+    const actual   = createHash('sha256').update(fileData).digest('hex');
+    if (actual !== sha256.toLowerCase()) {
+      const { unlinkSync } = await import('fs');
+      try { unlinkSync(req.file.path); } catch {}
+      console.warn(`[voice] Integrity mismatch for session ${sessionId} q${questionId}`);
+      return res.status(422).json({ error: 'File integrity check failed — please re-record' });
+    }
+  }
+
+  // ── Save with .webm extension ──────────────────────────────────────────────
+  const filename = req.file.filename + '.webm';
+  const dest     = join(recDir, filename);
   renameSync(req.file.path, dest);
-  s.voiceRecordings[String(questionId)] = req.file.filename + '.webm';
+
+  // ── File size sanity check ────────────────────────────────────────────────
+  const stats = statSync(dest);
+  if (stats.size < 1024) {
+    // < 1 KB is almost certainly an empty/corrupt recording
+    console.warn(`[voice] Suspiciously small file (${stats.size}B) for session ${sessionId} q${questionId}`);
+  }
+
+  s.voiceRecordings[String(questionId)] = filename;
+  s.answers[String(questionId)] = 'recorded_' + questionId; // mark as answered
+  heartbeatCache.set(sessionId, { answers: { ...s.answers }, savedAt: new Date().toISOString() });
   saveDB();
-  return res.json({ ok: true, filename: req.file.filename + '.webm' });
+
+  console.log(`[voice] Saved ${filename} (${(stats.size/1024).toFixed(1)} KB) for q${questionId}`);
+  return res.json({ ok: true, filename, sizeBytes: stats.size });
 });
 
 /** POST /api/session/finish */
@@ -522,6 +610,94 @@ app.get('/voice/:filename', (req, res) => {
   res.setHeader('Content-Type', 'audio/webm');
   res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
   createReadStream(filePath).pipe(res);
+});
+
+// ── Media prefetch & local cache ──────────────────────────────────────────────
+/**
+ * POST /api/media/prefetch
+ * Body: { urls: ["https://cdn.example.com/audio1.mp3", ...] }
+ * Downloads each URL into the local media cache.
+ * Called when a session starts — terminal preloads all media before exam begins.
+ * Returns { cached: [...], failed: [...] }
+ */
+app.post('/api/media/prefetch', async (req, res) => {
+  const { urls } = req.body;
+  if (!Array.isArray(urls) || urls.length === 0) {
+    return res.status(400).json({ error: 'urls array required' });
+  }
+
+  const cached  = [];
+  const failed  = [];
+
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      try {
+        // Use URL hash as local filename to avoid collisions
+        const key      = createHash('md5').update(url).digest('hex');
+        const ext      = url.split('?')[0].split('.').pop().slice(0, 6) || 'bin';
+        const filename = `${key}.${ext}`;
+        const dest     = join(mediaDir, filename);
+
+        // Skip if already cached
+        if (existsSync(dest)) {
+          cached.push({ url, filename, fromCache: true });
+          return;
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const writer = createWriteStream(dest);
+        await pipeline(response.body, writer);
+
+        const size = statSync(dest).size;
+        cached.push({ url, filename, fromCache: false, sizeBytes: size });
+        console.log(`[prefetch] Cached ${filename} (${(size/1024).toFixed(1)} KB)`);
+      } catch (e) {
+        failed.push({ url, error: e.message });
+        console.warn(`[prefetch] Failed ${url}: ${e.message}`);
+      }
+    })
+  );
+
+  return res.json({ cached, failed, total: urls.length });
+});
+
+/**
+ * GET /api/media/:hash.:ext — serve cached media file
+ * Terminal replaces remote URLs with local ones after prefetch.
+ */
+app.get('/api/media/:filename', (req, res) => {
+  const safeName = req.params.filename.replace(/[^a-zA-Z0-9._-]/g, '');
+  const filePath = join(mediaDir, safeName);
+  if (!existsSync(filePath)) return res.status(404).json({ error: 'Not cached' });
+
+  // Detect MIME from extension
+  const ext  = safeName.split('.').pop().toLowerCase();
+  const mime = { mp3:'audio/mpeg', webm:'audio/webm', mp4:'video/mp4',
+                 ogg:'audio/ogg', wav:'audio/wav', jpg:'image/jpeg',
+                 jpeg:'image/jpeg', png:'image/png', gif:'image/gif' }[ext] || 'application/octet-stream';
+
+  res.setHeader('Content-Type', mime);
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  createReadStream(filePath).pipe(res);
+});
+
+/**
+ * GET /api/media/status
+ * Returns list of cached files with sizes — for admin diagnostics.
+ */
+app.get('/api/media/status', async (req, res) => {
+  try {
+    const { readdirSync } = await import('fs');
+    const files = readdirSync(mediaDir).map(f => {
+      const s = statSync(join(mediaDir, f));
+      return { filename: f, sizeBytes: s.size, mtime: s.mtime };
+    });
+    return res.json({ count: files.length, totalBytes: files.reduce((a, f) => a + f.sizeBytes, 0), files });
+  } catch {
+    return res.json({ count: 0, totalBytes: 0, files: [] });
+  }
 });
 
 app.get('/api/session/:id', (req, res) => {
