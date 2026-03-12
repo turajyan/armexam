@@ -262,29 +262,151 @@ function FillBlanksEditor({ content, onChange }) {
 }
 
 function DragToTextEditor({ content, onChange }) {
+  const [selWord, setSelWord] = useState("");
+  const textareaRef = useRef(null);
+
+  const text      = content.text     || "";
+  const wordBank  = content.wordBank || [];
+  const slots     = content.slots    || {};
+
+  // Count existing slots to auto-name next one
+  const nextSlotName = () => {
+    const nums = Object.keys(slots).map(k => parseInt(k.replace(/[^0-9]/g,""))).filter(Boolean);
+    return "slot_" + ((nums.length ? Math.max(...nums) : 0) + 1);
+  };
+
+  // Turn selected text in textarea into a slot
+  const addSlot = () => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const word = text.slice(start, end).trim();
+    if (!word) return;
+    const name = nextSlotName();
+    const newText = text.slice(0, start) + "{" + name + "}" + text.slice(end);
+    const newSlots = { ...slots, [name]: word };
+    const newWordBank = wordBank.includes(word) ? wordBank : [...wordBank, word];
+    onChange({ ...content, text: newText, slots: newSlots, wordBank: newWordBank });
+  };
+
+  // Remove a slot — replace {slot_N} back with its correct answer
+  const removeSlot = (name) => {
+    const newText = text.replace("{" + name + "}", slots[name] || name);
+    const newSlots = { ...slots };
+    delete newSlots[name];
+    const correctAnswers = Object.values(newSlots);
+    const newWordBank = wordBank.filter(w => correctAnswers.includes(w) || !Object.values(slots).includes(w));
+    onChange({ ...content, text: newText, slots: newSlots, wordBank: newWordBank });
+  };
+
+  // Add a distractor word to word bank
+  const [distractor, setDistractor] = useState("");
+  const addDistractor = () => {
+    const w = distractor.trim();
+    if (!w || wordBank.includes(w)) { setDistractor(""); return; }
+    onChange({ ...content, wordBank: [...wordBank, w] });
+    setDistractor("");
+  };
+  const removeFromBank = (w) => {
+    // Don't remove if it's a correct answer for a slot
+    if (Object.values(slots).includes(w)) return;
+    onChange({ ...content, wordBank: wordBank.filter(x => x !== w) });
+  };
+
+  // Parse text into segments for preview
+  const segments = [];
+  let remaining = text, segIdx = 0;
+  const slotPattern = /\{(slot_\d+)\}/g;
+  let match, lastIdx = 0;
+  slotPattern.lastIndex = 0;
+  while ((match = slotPattern.exec(text)) !== null) {
+    if (match.index > lastIdx) segments.push({ type:"text", val: text.slice(lastIdx, match.index) });
+    segments.push({ type:"slot", name: match[1], answer: slots[match[1]] || "?" });
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < text.length) segments.push({ type:"text", val: text.slice(lastIdx) });
+
+  const lbl = { fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:6 };
+  const chip = (color) => ({ display:"inline-flex", alignItems:"center", gap:5, background:color+"18", color, border:`1px solid ${color}33`, borderRadius:7, padding:"3px 10px", fontSize:12, fontWeight:600, fontFamily:"'DM Sans',sans-serif", cursor:"pointer", margin:"3px" });
+
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+
+      {/* Step 1 — text */}
       <div>
-        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:5 }}>
-          Text with {"{slot_N}"} placeholders
-        </label>
-        <input value={content.text || ""} onChange={e => onChange({ ...content, text: e.target.value })}
-          placeholder='e.g. The sun {slot_1} in the east.'
-          style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+        <label style={lbl}>① Введи текст, выдели слово, нажми «+ Слот»</label>
+        <div style={{ display:"flex", gap:8 }}>
+          <textarea ref={textareaRef} rows={3} value={text}
+            onChange={e => onChange({ ...content, text: e.target.value })}
+            onMouseUp={() => { const ta = textareaRef.current; setSelWord(ta ? text.slice(ta.selectionStart, ta.selectionEnd).trim() : ""); }}
+            onKeyUp={() => { const ta = textareaRef.current; setSelWord(ta ? text.slice(ta.selectionStart, ta.selectionEnd).trim() : ""); }}
+            placeholder="The sun ___ in the east every morning."
+            style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", resize:"vertical" }} />
+          <button onClick={addSlot} disabled={!selWord}
+            style={{ alignSelf:"flex-start", padding:"9px 16px", borderRadius:10, border:"none",
+              background: selWord ? "#f472b622" : C.dim, color: selWord ? "#f472b6" : C.muted,
+              fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, cursor: selWord ? "pointer" : "not-allowed",
+              whiteSpace:"nowrap", transition:"all .15s" }}>
+            + Слот{selWord ? `: «${selWord}»` : ""}
+          </button>
+        </div>
       </div>
+
+      {/* Step 2 — slots preview */}
+      {Object.keys(slots).length > 0 && (
+        <div>
+          <label style={lbl}>② Слоты (нажми × чтобы убрать)</label>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+            {Object.entries(slots).map(([name, answer]) => (
+              <span key={name} style={chip("#f472b6")}>
+                {"{"+name+"}"} = <b>{answer}</b>
+                <span onClick={() => removeSlot(name)} style={{ cursor:"pointer", opacity:.7, fontSize:14 }}>×</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 — preview */}
+      {text && (
+        <div>
+          <label style={lbl}>③ Превью вопроса</label>
+          <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"12px 16px", fontSize:14, color:C.text, fontFamily:"'DM Sans',sans-serif", lineHeight:1.8 }}>
+            {segments.map((seg, i) =>
+              seg.type === "text"
+                ? <span key={i}>{seg.val}</span>
+                : <span key={i} style={{ display:"inline-block", minWidth:70, background:"#f472b618", color:"#f472b6", border:"1.5px dashed #f472b688", borderRadius:6, padding:"1px 12px", margin:"0 3px", textAlign:"center", fontSize:13 }}>___</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Step 4 — word bank */}
       <div>
-        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:5 }}>Word bank (comma-separated)</label>
-        <input value={(content.wordBank||[]).join(", ")} onChange={e => onChange({ ...content, wordBank: e.target.value.split(",").map(s=>s.trim()).filter(Boolean) })}
-          placeholder="rises, sets, sleeps, runs"
-          style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+        <label style={lbl}>④ Word bank (правильные добавляются автоматически, добавь дистракторы)</label>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:8, minHeight:32 }}>
+          {wordBank.map(w => {
+            const isCorrect = Object.values(slots).includes(w);
+            return (
+              <span key={w} style={chip(isCorrect ? "#4ade80" : "#94a3b8")}>
+                {w}
+                {!isCorrect && <span onClick={() => removeFromBank(w)} style={{ cursor:"pointer", opacity:.7, fontSize:14 }}>×</span>}
+              </span>
+            );
+          })}
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <input value={distractor} onChange={e => setDistractor(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && addDistractor()}
+            placeholder="Добавить слово-дистрактор…"
+            style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"7px 12px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+          <button onClick={addDistractor}
+            style={{ padding:"7px 14px", borderRadius:9, border:"none", background:"#94a3b822", color:"#94a3b8", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+            + Добавить
+          </button>
+        </div>
       </div>
-      <div>
-        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:5 }}>
-          Correct answers (JSON: {`{"slot_1":"rises"}`})
-        </label>
-        <input value={JSON.stringify(content.slots||{})} onChange={e => { try { onChange({ ...content, slots: JSON.parse(e.target.value) }); } catch {} }}
-          style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"monospace", fontSize:13, outline:"none" }} />
-      </div>
+
     </div>
   );
 }
