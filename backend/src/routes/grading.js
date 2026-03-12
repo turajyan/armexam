@@ -1,7 +1,5 @@
 import { requireAdmin } from "../middleware/adminAuth.js";
 
-const MANUAL_TYPES = new Set(["writing", "voice"]);
-
 /**
  * Anonymise a result object for examiners.
  * - Replaces student name/email with a stable candidate code derived from student.id
@@ -102,75 +100,6 @@ export default async function gradingRoutes(fastify) {
 
   // GET /api/grading/:resultId moved to results.js (correct schema types + rubrics)
 
-  // POST /api/grading/:resultId  — submit grades for manual questions
-  fastify.post("/api/grading/:resultId", { preHandler: adminHook }, async (req, reply) => {
-    const resultId = Number(req.params.resultId);
-    const { grades } = req.body ?? {};
-    // grades: { [questionId]: { earnedPoints, status: "approved"|"partial"|"declined", notes } }
-
-    if (!grades || typeof grades !== "object") {
-      return reply.code(400).send({ error: "grades объект обязателен" });
-    }
-
-    const result = await prisma.result.findUnique({
-      where: { id: resultId },
-      include: { exam: { select: { passingScore: true, examCenterId: true } } },
-    });
-    if (!result) return reply.code(404).send({ error: "Результат не найден" });
-
-    if (req.admin.role === "center_admin" && result.exam.examCenterId !== req.admin.centerId) {
-      return reply.code(403).send({ error: "Нет доступа к результатам этого центра" });
-    }
-
-    // Fetch questions to validate points
-    const questionIds = Object.keys(grades).map(Number);
-    const questions   = await prisma.question.findMany({ where: { id: { in: questionIds } } });
-    const qMap        = Object.fromEntries(questions.map(q => [q.id, q]));
-
-    const manualGrades = {};
-    let manualEarned   = 0;
-    let manualTotal    = 0;
-
-    for (const [qIdStr, g] of Object.entries(grades)) {
-      const qId = Number(qIdStr);
-      const q   = qMap[qId];
-      if (!q) continue;
-      const maxPts     = q.points;
-      const earned     = Math.max(0, Math.min(maxPts, Number(g.earnedPoints ?? 0)));
-      const status     = ["approved","partial","declined"].includes(g.status) ? g.status : "partial";
-      manualGrades[qId] = { earnedPoints: earned, maxPoints: maxPts, status, notes: g.notes ?? "" };
-      manualEarned += earned;
-      manualTotal  += maxPts;
-    }
-
-    // Recalculate total score: existing auto score + manual score
-    // Auto score = result.score - (previous manual earned, if any)
-    const prevManual     = result.manualGrades ?? {};
-    const prevManualEarned = Object.values(prevManual).reduce((s, g) => s + (g.earnedPoints ?? 0), 0);
-    const autoScore      = result.score - prevManualEarned;
-    const newScore       = autoScore + manualEarned;
-    const newPct         = result.totalPoints > 0 ? Math.round((newScore / result.totalPoints) * 100) : 0;
-
-    const updated = await prisma.result.update({
-      where: { id: resultId },
-      data:  {
-        manualGrades,
-        gradingStatus: "graded",
-        gradedById:    req.admin.id,
-        gradedAt:      new Date(),
-        score:         newScore,
-        pct:           newPct,
-        passed:        result.totalPoints > 0
-          ? newPct >= (result.exam.passingScore ?? 0)
-          : result.passed,
-      },
-      include: {
-        exam:    { select: { id: true, title: true } },
-        student: { select: { id: true, name: true, email: true } },
-      },
-    });
-    return anonymize(updated, req.admin.role);
-  });
 
   // GET /api/grading/stats  — examiner stats overview
   fastify.get("/api/grading/stats", { preHandler: adminHook }, async (req) => {

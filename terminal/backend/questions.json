@@ -1,461 +1,526 @@
 [
   {
     "id": 1,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A1",
     "section": "Reading",
     "points": 1,
-    "text": "Ընտրի՛ր ճիշտ պատասխանը. «Ես ___ եմ»",
-    "options": [
-      "ուսանող",
-      "ուսանողի",
-      "ուսանողը",
-      "ուսանողին"
-    ],
-    "correct": 0
+    "content": {
+      "options": [
+        "ուսանող",
+        "ուսանողի",
+        "ուսանողը",
+        "ուսանողին"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ընտրի՛ր ճիշտ պատասխանը. «Ես ___ եմ»"
   },
   {
     "id": 2,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A1",
     "section": "Reading",
     "points": 1,
-    "text": "«Բարի լույս» — ե՞րբ ենք ասում",
-    "options": [
-      "երեկոյան",
-      "գիշերը",
-      "առավոտյան",
-      "կեսօրին"
-    ],
-    "correct": 2
+    "content": {
+      "options": [
+        "երեկոյան",
+        "գիշերը",
+        "առավոտյան",
+        "կեսօրին"
+      ],
+      "correct": 2
+    },
+    "prompt": "«Բարի լույս» — ե՞րբ ենք ասում"
   },
   {
     "id": 3,
-    "type": "fill_blank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "A1",
     "section": "Writing",
     "points": 1,
-    "text": "Լրացրո՛ւ բաց թողածը. «Նա ___ է գնում» (դպրոց)",
-    "answer": "դպրոց"
+    "content": {
+      "answers": [
+        "դպրոց"
+      ]
+    },
+    "prompt": "Լրացրո՛ւ բաց թողածը. «Նա ___ է գնում» (դպրոց)"
   },
   {
     "id": 4,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A1",
     "section": "Grammar",
     "points": 1,
-    "text": "Ո՞ր բառն է անուն",
-    "options": [
-      "վազել",
-      "կանաչ",
-      "տուն",
-      "արագ"
-    ],
-    "correct": 2
+    "content": {
+      "options": [
+        "վազել",
+        "կանաչ",
+        "տուն",
+        "արագ"
+      ],
+      "correct": 2
+    },
+    "prompt": "Ո՞ր բառն է անուն"
   },
   {
     "id": 5,
-    "type": "multi_choice",
+    "type": "MULTIPLE_CHOICE",
     "level": "A1",
     "section": "Vocabulary",
     "points": 1,
-    "text": "Ո՞ր բառերն են թվեր",
-    "options": [
-      "երկու",
-      "կարմիր",
-      "հինգ",
-      "մեծ",
-      "ութ"
-    ],
-    "correct": [
-      0,
-      2,
-      4
-    ]
+    "content": {
+      "options": [
+        "երկու",
+        "կարմիր",
+        "հինգ",
+        "մեծ",
+        "ութ"
+      ],
+      "correct": [
+        0,
+        2,
+        4
+      ]
+    },
+    "prompt": "Ո՞ր բառերն են թվեր"
   },
   {
     "id": 6,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A2",
     "section": "Reading",
     "points": 1,
-    "text": "Ընտրի՛ր ճիշտ ձևը. «Ես ___ դպրոց եմ գնում ամեն օր»",
-    "options": [
-      "դեպի",
-      "մոտ",
-      "կողքին",
-      "առաջ"
-    ],
-    "correct": 0
+    "content": {
+      "options": [
+        "դեպի",
+        "մոտ",
+        "կողքին",
+        "առաջ"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ընտրի՛ր ճիշտ ձևը. «Ես ___ դպրոց եմ գնում ամեն օր»"
   },
   {
     "id": 7,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A2",
     "section": "Grammar",
     "points": 1,
-    "text": "Ո՞ր նախադասությունն է ճիշտ",
-    "options": [
-      "Ես գնացի խանութ",
-      "Ես խանութ եմ գնացի",
-      "Ես խանութ գնացի եմ",
-      "Ես եմ խանութ գնացի"
-    ],
-    "correct": 0
+    "content": {
+      "options": [
+        "Ես գնացի խանութ",
+        "Ես խանութ եմ գնացի",
+        "Ես խանութ գնացի եմ",
+        "Ես եմ խանութ գնացի"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ո՞ր նախադասությունն է ճիշտ"
   },
   {
     "id": 8,
-    "type": "fill_blank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "A2",
     "section": "Writing",
     "points": 1,
-    "text": "Լրացրո՛ւ. «Նա ամեն օր ___ է ուտում» (նախաճաշ)",
-    "answer": "նախաճաշ"
+    "content": {
+      "answers": [
+        "նախաճաշ"
+      ]
+    },
+    "prompt": "Լրացրո՛ւ. «Նա ամեն օր ___ է ուտում» (նախաճաշ)"
   },
   {
     "id": 9,
-    "type": "multi_choice",
+    "type": "MULTIPLE_CHOICE",
     "level": "A2",
     "section": "Vocabulary",
     "points": 2,
-    "text": "Ո՞ր բառերն են կապված ընտանիքի հետ",
-    "options": [
-      "մայր",
-      "սեղան",
-      "հայր",
-      "լուսամուտ",
-      "քույր"
-    ],
-    "correct": [
-      0,
-      2,
-      4
-    ]
+    "content": {
+      "options": [
+        "մայր",
+        "սեղան",
+        "հայր",
+        "լուսամուտ",
+        "քույր"
+      ],
+      "correct": [
+        0,
+        2,
+        4
+      ]
+    },
+    "prompt": "Ո՞ր բառերն են կապված ընտանիքի հետ"
   },
   {
     "id": 10,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A2",
     "section": "Reading",
     "points": 1,
-    "text": "«Ես սիրում եմ երաժշտություն» — ի՞նչ է նշանակում",
-    "options": [
-      "I hate music",
-      "I love music",
-      "I hear music",
-      "I play music"
-    ],
-    "correct": 1
+    "content": {
+      "options": [
+        "I hate music",
+        "I love music",
+        "I hear music",
+        "I play music"
+      ],
+      "correct": 1
+    },
+    "prompt": "«Ես սիրում եմ երաժշտություն» — ի՞նչ է նշանակում"
   },
   {
     "id": 11,
-    "type": "multi_choice",
+    "type": "MULTIPLE_CHOICE",
     "level": "B1",
     "section": "Grammar",
     "points": 2,
-    "text": "Ո՞ր նախադասություններն են քերականորեն ճիշտ",
-    "options": [
-      "Նա գրքեր է կարդում",
-      "Ես երեկ կինո գնացի",
-      "Նրանք վաղը կգնան",
-      "Դու ճաշ ուտում ես արդեն"
-    ],
-    "correct": [
-      0,
-      1,
-      2
-    ]
+    "content": {
+      "options": [
+        "Նա գրքեր է կարդում",
+        "Ես երեկ կինո գնացի",
+        "Նրանք վաղը կգնան",
+        "Դու ճաշ ուտում ես արդեն"
+      ],
+      "correct": [
+        0,
+        1,
+        2
+      ]
+    },
+    "prompt": "Ո՞ր նախադասություններն են քերականորեն ճիշտ"
   },
   {
     "id": 12,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "B1",
     "section": "Reading",
     "points": 2,
-    "text": "Ո՞ր բառն է հոմանիշ «ուրախ»-ի",
-    "options": [
-      "տխուր",
-      "երջանիկ",
-      "հոգնած",
-      "բարկացած"
-    ],
-    "correct": 1
+    "content": {
+      "options": [
+        "տխուր",
+        "երջանիկ",
+        "հոգնած",
+        "բարկացած"
+      ],
+      "correct": 1
+    },
+    "prompt": "Ո՞ր բառն է հոմանիշ «ուրախ»-ի"
   },
   {
     "id": 13,
-    "type": "fill_blank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "B1",
     "section": "Writing",
     "points": 2,
-    "text": "Լրացրո՛ւ. «Եթե վաղը անձրև ___, ես տանը կմնամ» (գա)",
-    "answer": "գա"
+    "content": {
+      "answers": [
+        "գա"
+      ]
+    },
+    "prompt": "Լրացրո՛ւ. «Եթե վաղը անձրև ___, ես տանը կմնամ» (գա)"
   },
   {
     "id": 14,
-    "type": "multi_select",
+    "type": "MULTIPLE_CHOICE",
     "level": "B1",
     "section": "Vocabulary",
     "points": 2,
-    "text": "Ընտրի՛ր բոլոր բառերը, որոնք կապված են «եղանակ»-ի հետ",
-    "options": [
-      "արև",
-      "բժիշկ",
-      "անձրև",
-      "ձյուն",
-      "գիրք",
-      "քամի"
-    ],
-    "correct": [
-      0,
-      2,
-      3,
-      5
-    ]
+    "content": {
+      "options": [
+        "արև",
+        "բժիշկ",
+        "անձրև",
+        "ձյուն",
+        "գիրք",
+        "քամի"
+      ],
+      "correct": [
+        0,
+        2,
+        3,
+        5
+      ]
+    },
+    "prompt": "Ընտրի՛ր բոլոր բառերը, որոնք կապված են «եղանակ»-ի հետ"
   },
   {
     "id": 15,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "B1",
     "section": "Grammar",
     "points": 2,
-    "text": "Ո՞ր ձևն է ճիշտ. «Եթե ես ժամանակ ___, կկարդայի»",
-    "options": [
-      "ունեմ",
-      "ունենամ",
-      "ունեի",
-      "ունեցել եմ"
-    ],
-    "correct": 2
+    "content": {
+      "options": [
+        "ունեմ",
+        "ունենամ",
+        "ունեի",
+        "ունեցել եմ"
+      ],
+      "correct": 2
+    },
+    "prompt": "Ո՞ր ձևն է ճիշտ. «Եթե ես ժամանակ ___, կկարդայի»"
   },
   {
     "id": 16,
-    "type": "multi_select",
+    "type": "MULTIPLE_CHOICE",
     "level": "B2",
     "section": "Vocabulary",
     "points": 3,
-    "text": "Ընտրի՛ր բոլոր բառերը, որոնք կապված են «ճամփորդություն»-ի հետ",
-    "options": [
-      "ինքնաթիռ",
-      "բժիշկ",
-      "կայարան",
-      "ճամպրուկ",
-      "դպրոց",
-      "անձնագիր"
-    ],
-    "correct": [
-      0,
-      2,
-      3,
-      5
-    ]
+    "content": {
+      "options": [
+        "ինքնաթիռ",
+        "բժիշկ",
+        "կայարան",
+        "ճամպրուկ",
+        "դպրոց",
+        "անձնագիր"
+      ],
+      "correct": [
+        0,
+        2,
+        3,
+        5
+      ]
+    },
+    "prompt": "Ընտրի՛ր բոլոր բառերը, որոնք կապված են «ճամփորդություն»-ի հետ"
   },
   {
     "id": 17,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "B2",
     "section": "Reading",
     "points": 3,
-    "text": "Ո՞ր բառն է հականիշ «աղմկոտ»-ի",
-    "options": [
-      "բարձրաձայն",
-      "լուռ",
-      "ուժեղ",
-      "արագ"
-    ],
-    "correct": 1
+    "content": {
+      "options": [
+        "բարձրաձայն",
+        "լուռ",
+        "ուժեղ",
+        "արագ"
+      ],
+      "correct": 1
+    },
+    "prompt": "Ո՞ր բառն է հականիշ «աղմկոտ»-ի"
   },
   {
     "id": 18,
-    "type": "multi_choice",
+    "type": "MULTIPLE_CHOICE",
     "level": "B2",
     "section": "Grammar",
     "points": 3,
-    "text": "Ո՞ր ձևերն են ճիշտ",
-    "options": [
-      "Նա ասաց, որ կգա",
-      "Ես չգիտեի, թե ինչ անեմ",
-      "Երբ տեսա, ուրախացա",
-      "Կուզեի, եթե կарողanayir"
-    ],
-    "correct": [
-      0,
-      1,
-      2
-    ]
+    "content": {
+      "options": [
+        "Նա ասաց, որ կգա",
+        "Ես չգիտեի, թե ինչ անեմ",
+        "Երբ տեսա, ուրախացա",
+        "Կուզեի, եթե կарողanayir"
+      ],
+      "correct": [
+        0,
+        1,
+        2
+      ]
+    },
+    "prompt": "Ո՞ր ձևերն են ճիշտ"
   },
   {
     "id": 19,
-    "type": "fill_blank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "B2",
     "section": "Writing",
     "points": 3,
-    "text": "Լրացրո՛ւ. «Չ___ կողմից ստացված նամակը հասավ ուշ» (սպաս)",
-    "answer": "սպասված"
+    "content": {
+      "answers": [
+        "սպասված"
+      ]
+    },
+    "prompt": "Լրացրո՛ւ. «Չ___ կողմից ստացված նամակը հասավ ուշ» (սպաս)"
   },
   {
     "id": 20,
-    "type": "writing",
+    "type": "WRITING_INDEPENDENT",
     "level": "B2",
     "section": "Free Writing",
     "points": 5,
-    "text": "Գրի՛ր 80-100 բառ թեմայով. «Ի՞նչ կփոխեի իմ քաղաքում»",
     "minWords": 80,
-    "maxWords": 120
+    "maxWords": 120,
+    "prompt": "Գրի՛ր 80-100 բառ թեմայով. «Ի՞նչ կփոխեի իմ քաղաքում»"
   },
   {
     "id": 21,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "C1",
     "section": "Reading",
     "points": 4,
-    "text": "Ո՞ր արտահայտությունն է ճիշտ գործածված",
-    "options": [
-      "Ջուրը քարը կոտրեց",
-      "Ջուրը քարը փորեց",
-      "Ջուրը քար կտրեց",
-      "Ջուրը քարին ծակ արեց"
-    ],
-    "correct": 1
+    "content": {
+      "options": [
+        "Ջուրը քարը կոտրեց",
+        "Ջուրը քարը փորեց",
+        "Ջուրը քար կտրեց",
+        "Ջուրը քարին ծակ արեց"
+      ],
+      "correct": 1
+    },
+    "prompt": "Ո՞ր արտահայտությունն է ճիշտ գործածված"
   },
   {
     "id": 22,
-    "type": "multi_choice",
+    "type": "MULTIPLE_CHOICE",
     "level": "C1",
     "section": "Grammar",
     "points": 4,
-    "text": "Ո՞ր նախադասություններն են ոճական առումով ճիշտ",
-    "options": [
-      "Հանդիպումը կայացավ երեկ",
-      "Ժողովը տեղի ունեցավ",
-      "Նա ելույթ ունեցավ",
-      "Ես ասացի"
-    ],
-    "correct": [
-      0,
-      1,
-      2
-    ]
+    "content": {
+      "options": [
+        "Հանդիպումը կայացավ երեկ",
+        "Ժողովը տեղի ունեցավ",
+        "Նա ելույթ ունեցավ",
+        "Ես ասացի"
+      ],
+      "correct": [
+        0,
+        1,
+        2
+      ]
+    },
+    "prompt": "Ո՞ր նախադասություններն են ոճական առումով ճիշտ"
   },
   {
     "id": 23,
-    "type": "fill_blank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "C1",
     "section": "Writing",
     "points": 4,
-    "text": "Լրացրո՛ւ դարձվածքը. «Ոսկե ___ ունի» (ձեռքեր)",
-    "answer": "ձեռքեր"
+    "content": {
+      "answers": [
+        "ձեռքեր"
+      ]
+    },
+    "prompt": "Լրացրո՛ւ դարձվածքը. «Ոսկե ___ ունի» (ձեռքեր)"
   },
   {
     "id": 24,
-    "type": "multi_select",
+    "type": "MULTIPLE_CHOICE",
     "level": "C1",
     "section": "Vocabulary",
     "points": 4,
-    "text": "Ո՞ր բառերն են բարձր ոճի",
-    "options": [
-      "ակնկալել",
-      "ուզել",
-      "հայցել",
-      "ասել",
-      "հայտնել",
-      "ճռճռալ"
-    ],
-    "correct": [
-      0,
-      2,
-      4
-    ]
+    "content": {
+      "options": [
+        "ակնկալել",
+        "ուզել",
+        "հայցել",
+        "ասել",
+        "հայտնել",
+        "ճռճռալ"
+      ],
+      "correct": [
+        0,
+        2,
+        4
+      ]
+    },
+    "prompt": "Ո՞ր բառերն են բարձր ոճի"
   },
   {
     "id": 25,
-    "type": "writing",
+    "type": "WRITING_INDEPENDENT",
     "level": "C1",
     "section": "Free Writing",
     "points": 8,
-    "text": "Գրի՛ր 120-150 բառ. «Ժամանակակից հայերենի մարտահրավերները»",
     "minWords": 120,
-    "maxWords": 180
+    "maxWords": 180,
+    "prompt": "Գրի՛ր 120-150 բառ. «Ժամանակակից հայերենի մարտահրավերները»"
   },
   {
     "id": 26,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "C2",
     "section": "Reading",
     "points": 5,
-    "text": "Ո՞ր բառն է ճշգրիտ. «Հեղինակը ___ ոճ է գործածել» (պատկերավոր)",
-    "options": [
-      "փոխաբերական",
-      "ուղիղ",
-      "բառացի",
-      "զգացմունքային"
-    ],
-    "correct": 0
+    "content": {
+      "options": [
+        "փոխաբերական",
+        "ուղիղ",
+        "բառացի",
+        "զգացմունքային"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ո՞ր բառն է ճշգրիտ. «Հեղինակը ___ ոճ է գործածել» (պատկերավոր)"
   },
   {
     "id": 27,
-    "type": "multi_choice",
+    "type": "MULTIPLE_CHOICE",
     "level": "C2",
     "section": "Grammar",
     "points": 5,
-    "text": "Ո՞ր նախադասություններն են ճիշտ կազմված",
-    "options": [
-      "Այն, ինչ ասացիր, ճշմարիտ է",
-      "Ով ջանա՝ կհասնի",
-      "Ուր գնաս, ես կգամ",
-      "Թեեւ հոգնած էր, շարունակեց"
-    ],
-    "correct": [
-      0,
-      1,
-      2,
-      3
-    ]
+    "content": {
+      "options": [
+        "Այն, ինչ ասացիր, ճշմարիտ է",
+        "Ով ջանա՝ կհասնի",
+        "Ուր գնաս, ես կգամ",
+        "Թեեւ հոգնած էր, շարունակեց"
+      ],
+      "correct": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "prompt": "Ո՞ր նախադասություններն են ճիշտ կազմված"
   },
   {
     "id": 28,
-    "type": "fill_blank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "C2",
     "section": "Writing",
     "points": 5,
-    "text": "Լրացրո՛ւ. «___ չէ, ով բոլորին հաճոյանա» (մարդ)",
-    "answer": "մարդ"
+    "content": {
+      "answers": [
+        "մարդ"
+      ]
+    },
+    "prompt": "Լրացրո՛ւ. «___ չէ, ով բոլորին հաճոյանա» (մարդ)"
   },
   {
     "id": 29,
-    "type": "multi_select",
+    "type": "MULTIPLE_CHOICE",
     "level": "C2",
     "section": "Vocabulary",
     "points": 5,
-    "text": "Ո՞ր բառերն են արխաիզմներ",
-    "options": [
-      "շնորհ",
-      "ոգի",
-      "յուր",
-      "նա",
-      "ահա",
-      "ես"
-    ],
-    "correct": [
-      2
-    ]
+    "content": {
+      "options": [
+        "շնորհ",
+        "ոգի",
+        "յուր",
+        "նա",
+        "ահա",
+        "ես"
+      ],
+      "correct": [
+        2
+      ]
+    },
+    "prompt": "Ո՞ր բառերն են արխաիզմներ"
   },
   {
     "id": 30,
-    "type": "writing",
+    "type": "WRITING_INDEPENDENT",
     "level": "C2",
     "section": "Free Writing",
     "points": 10,
-    "text": "Գրի՛ր 150-200 բառ. «Գրականության դերը ազգային ինքնության պահպանման մեջ»",
     "minWords": 150,
-    "maxWords": 220
+    "maxWords": 220,
+    "prompt": "Գրի՛ր 150-200 բառ. «Գրականության դերը ազգային ինքնության պահպանման մեջ»"
   },
   {
     "id": 31,
-    "type": "fill_wordbank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "A2",
     "section": "Grammar",
     "points": 2,
-    "text": "Տեղադրի՛ր բառերը ճիշտ տեղերում:",
     "segments": [
       {
         "type": "text",
@@ -487,15 +552,15 @@
     "correct": [
       1,
       0
-    ]
+    ],
+    "prompt": "Տեղադրի՛ր բառերը ճիշտ տեղերում:"
   },
   {
     "id": 32,
-    "type": "fill_wordbank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "B1",
     "section": "Vocabulary",
     "points": 3,
-    "text": "Լրացրո՛ւ նախադասությունները ճիշտ բառերով:",
     "segments": [
       {
         "type": "text",
@@ -527,352 +592,391 @@
     "correct": [
       1,
       0
-    ]
+    ],
+    "prompt": "Լրացրո՛ւ նախադասությունները ճիշտ բառերով:"
   },
   {
     "id": 33,
-    "type": "audio",
+    "type": "SINGLE_CHOICE",
     "level": "A2",
     "section": "Listening",
     "points": 2,
-    "text": "Լսի՛ր ձայնագրությունը և ընտրի՛ր ճիշտ պատասխանը. Ո՞ւր է գնում խոսողը:",
     "audioSrc": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
     "maxPlays": 2,
     "pauseSeconds": 10,
-    "options": [
-      "Դպրոց",
-      "Խանութ",
-      "Բժիշկ",
-      "Կայարան"
-    ],
-    "correct": 0,
     "status": "published",
-    "createdAt": "2025-04-01"
+    "createdAt": "2025-04-01",
+    "content": {
+      "options": [
+        "Դպրոց",
+        "Խանութ",
+        "Բժիշկ",
+        "Կայարան"
+      ],
+      "correct": 0
+    },
+    "prompt": "Լսի՛ր ձայնագրությունը և ընտրի՛ր ճիշտ պատասխանը. Ո՞ւր է գնում խոսողը:"
   },
   {
     "id": 34,
-    "type": "audio",
+    "type": "SINGLE_CHOICE",
     "level": "B1",
     "section": "Listening",
     "points": 3,
-    "text": "Լսի՛ր երկխոսությունը. Ի՞նչ է ուզում գնել Արամը:",
     "audioSrc": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
     "maxPlays": 2,
     "pauseSeconds": 15,
-    "options": [
-      "Գիրք",
-      "Հագուստ",
-      "Սնունդ",
-      "Նվեր"
-    ],
-    "correct": 2,
     "status": "published",
-    "createdAt": "2025-04-02"
+    "createdAt": "2025-04-02",
+    "content": {
+      "options": [
+        "Գիրք",
+        "Հագուստ",
+        "Սնունդ",
+        "Նվեր"
+      ],
+      "correct": 2
+    },
+    "prompt": "Լսի՛ր երկխոսությունը. Ի՞նչ է ուզում գնել Արամը:"
   },
   {
     "id": 35,
-    "type": "video",
+    "type": "SINGLE_CHOICE",
     "level": "B2",
     "section": "Listening / Տեսնել",
     "points": 4,
-    "text": "Դիտի՛ր հատվածը. Ո՞ր թեմայի մասին է պատմում բանախոսը:",
     "videoSrc": "https://www.w3schools.com/html/mov_bbb.mp4",
     "maxPlays": 1,
-    "options": [
-      "Բնապահպանություն",
-      "Տնտեսություն",
-      "Կրթություն",
-      "Մշակույթ"
-    ],
-    "correct": 0,
     "status": "published",
-    "createdAt": "2025-04-03"
+    "createdAt": "2025-04-03",
+    "content": {
+      "options": [
+        "Բնապահպանություն",
+        "Տնտեսություն",
+        "Կրթություն",
+        "Մշակույթ"
+      ],
+      "correct": 0
+    },
+    "prompt": "Դիտի՛ր հատվածը. Ո՞ր թեմայի մասին է պատմում բանախոսը:"
   },
   {
     "id": 36,
-    "type": "video",
+    "type": "SINGLE_CHOICE",
     "level": "C1",
     "section": "Listening / Տեսնել",
     "points": 5,
-    "text": "Դիտի՛ր հարցազրույցը. Ի՞նչ խնդիր է բարձրացնում հյուրը:",
     "videoSrc": "https://www.w3schools.com/html/movie.mp4",
     "maxPlays": 1,
-    "options": [
-      "Լեզվի պահպանում",
-      "Տեխնոլոգիա",
-      "Սպորտ",
-      "Արվեստ"
-    ],
-    "correct": 0,
     "status": "published",
-    "createdAt": "2025-04-04"
+    "createdAt": "2025-04-04",
+    "content": {
+      "options": [
+        "Լեզվի պահպանում",
+        "Տեխնոլոգիա",
+        "Սպորտ",
+        "Արվեստ"
+      ],
+      "correct": 0
+    },
+    "prompt": "Դիտի՛ր հարցազրույցը. Ի՞նչ խնդիր է բարձրացնում հյուրը:"
   },
   {
     "id": 37,
-    "type": "voice",
+    "type": "SPEAKING_INDEPENDENT",
     "level": "B1",
     "section": "Speaking",
     "points": 3,
-    "text": "Ձայնագրի՛ր պատասխանդ. «Պատմի՛ր քո սիրած տոնի մասին» (30–60 վրկյան).",
     "maxSeconds": 60,
     "minSeconds": 15,
     "maxAttempts": 2,
     "status": "published",
-    "createdAt": "2025-04-05"
+    "createdAt": "2025-04-05",
+    "prompt": "Ձայնագրի՛ր պատասխանդ. «Պատմի՛ր քո սիրած տոնի մասին» (30–60 վրկյան)."
   },
   {
     "id": 38,
-    "type": "voice",
+    "type": "SPEAKING_INDEPENDENT",
     "level": "C1",
     "section": "Speaking",
     "points": 5,
-    "text": "Ձայնագրի՛ր. «Ի՞նչ կմնտեիր զամանակակիչ հայերենի զարգացման մասին» (45–90 վրկյան).",
     "maxSeconds": 90,
     "minSeconds": 30,
     "maxAttempts": 2,
     "status": "published",
-    "createdAt": "2025-04-06"
+    "createdAt": "2025-04-06",
+    "prompt": "Ձայնագրի՛ր. «Ի՞նչ կմնտեիր զամանակակիչ հայերենի զարգացման մասին» (45–90 վրկյան)."
   },
   {
     "id": 39,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A1",
     "section": "Reading",
     "points": 1,
-    "text": "Ո՞ր բառն է ճիշտ. «Ես ___ եմ»",
-    "options": [
-      "ուրախ",
-      "ուրախ են",
-      "ուրախ ենք",
-      "ուրախ է"
-    ],
-    "correct": 0,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "ուրախ",
+        "ուրախ են",
+        "ուրախ ենք",
+        "ուրախ է"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ո՞ր բառն է ճիշտ. «Ես ___ եմ»"
   },
   {
     "id": 40,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A1",
     "section": "Grammar",
     "points": 1,
-    "text": "Ո՞ր նախադասությունն է ճիշտ կազմված",
-    "options": [
-      "Ես գնում եմ",
-      "Ես եմ",
-      "Գնում ես",
-      "Եմ գնում"
-    ],
-    "correct": 0,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Ես գնում եմ",
+        "Ես եմ",
+        "Գնում ես",
+        "Եմ գնում"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ո՞ր նախադասությունն է ճիշտ կազմված"
   },
   {
     "id": 41,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A2",
     "section": "Reading",
     "points": 1,
-    "text": "«Նա ամեն օր վաղ արթնանում է» — ի՞նչ է նշանակում",
-    "options": [
-      "Ուշ քնում է",
-      "Ուշ արթնանում է",
-      "Վաղ արթնանում է",
-      "Երբեք չի քնում"
-    ],
-    "correct": 2,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Ուշ քնում է",
+        "Ուշ արթնանում է",
+        "Վաղ արթնանում է",
+        "Երբեք չի քնում"
+      ],
+      "correct": 2
+    },
+    "prompt": "«Նա ամեն օր վաղ արթնանում է» — ի՞նչ է նշանակում"
   },
   {
     "id": 42,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "A2",
     "section": "Vocabulary",
     "points": 1,
-    "text": "«Շուկա» բառի հոմանիշն է",
-    "options": [
-      "Այգի",
-      "Bazaar",
-      "Դպրոց",
-      "Հիվանդանոց"
-    ],
-    "correct": 1,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Այգի",
+        "Bazaar",
+        "Դպրոց",
+        "Հիվանդանոց"
+      ],
+      "correct": 1
+    },
+    "prompt": "«Շուկա» բառի հոմանիշն է"
   },
   {
     "id": 43,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "B1",
     "section": "Reading",
     "points": 2,
-    "text": "Ո՞ր նախադասությունն է կրավորական սեռով",
-    "options": [
-      "Նա գրեց նամակ",
-      "Նամակը գրվեց",
-      "Գրեց նամակ",
-      "Նամակ գրեցին"
-    ],
-    "correct": 1,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Նա գրեց նամակ",
+        "Նամակը գրվեց",
+        "Գրեց նամակ",
+        "Նամակ գրեցին"
+      ],
+      "correct": 1
+    },
+    "prompt": "Ո՞ր նախադասությունն է կրավորական սեռով"
   },
   {
     "id": 44,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "B1",
     "section": "Listening",
     "points": 2,
-    "text": "Ո՞ր արտահայտությունն է ճիշտ՝ հարցնելու համար ուղղություն",
-    "options": [
-      "Ո՞ւր է գնում",
-      "Ո՞ւր կգնաս",
-      "Ինչ՞ կանես",
-      "Ե՞ րբ կտեսնեք"
-    ],
-    "correct": 0,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Ո՞ւր է գնում",
+        "Ո՞ւր կգնաս",
+        "Ինչ՞ կանես",
+        "Ե՞ րբ կտեսնեք"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ո՞ր արտահայտությունն է ճիշտ՝ հարցնելու համար ուղղություն"
   },
   {
     "id": 45,
-    "type": "multi_choice",
+    "type": "MULTIPLE_CHOICE",
     "level": "B2",
     "section": "Reading",
     "points": 3,
-    "text": "Ո՞ր բառերն են բնութագրում լավ ղեկավարի հատկությունները",
-    "options": [
-      "Համբերատար",
-      "Ազնիվ",
-      "Ագրեսիվ",
-      "Կազմակերպված"
-    ],
-    "correct": [
-      0,
-      1,
-      3
-    ],
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Համբերատար",
+        "Ազնիվ",
+        "Ագրեսիվ",
+        "Կազմակերպված"
+      ],
+      "correct": [
+        0,
+        1,
+        3
+      ]
+    },
+    "prompt": "Ո՞ր բառերն են բնութագրում լավ ղեկավարի հատկությունները"
   },
   {
     "id": 46,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "B2",
     "section": "Listening",
     "points": 3,
-    "text": "Ո՞ր հոմանիշն է ճիշտ «լսել» բային",
-    "options": [
-      "Տեսնել",
-      "Ընկալել",
-      "Խոսել",
-      "Կարդալ"
-    ],
-    "correct": 1,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Տեսնել",
+        "Ընկալել",
+        "Խոսել",
+        "Կարդալ"
+      ],
+      "correct": 1
+    },
+    "prompt": "Ո՞ր հոմանիշն է ճիշտ «լսել» բային"
   },
   {
     "id": 47,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "B2",
     "section": "Listening",
     "points": 3,
-    "text": "Ի՞նչ է նշանակում «귀를 기울이다» հայերեն — ուշադիր լսել",
-    "options": [
-      "Ուշադիր լսել",
-      "Անտեսել",
-      "Պատասխանել",
-      "Հարցնել"
-    ],
-    "correct": 0,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Ուշադիր լսել",
+        "Անտեսել",
+        "Պատասխանել",
+        "Հարցնել"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ի՞նչ է նշանակում «귀를 기울이다» հայերեն — ուշադիր լսել"
   },
   {
     "id": 48,
-    "type": "multi_select",
+    "type": "MULTIPLE_CHOICE",
     "level": "C1",
     "section": "Reading",
     "points": 4,
-    "text": "Ո՞ր հատկանիշներն են բնորոշ գիտական ոճին",
-    "options": [
-      "Ճշգրտություն",
-      "Հուզականություն",
-      "Օբյեկտիվություն",
-      "Պատկերավորություն"
-    ],
-    "correct": [
-      0,
-      2
-    ],
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Ճշգրտություն",
+        "Հուզականություն",
+        "Օբյեկտիվություն",
+        "Պատկերավորություն"
+      ],
+      "correct": [
+        0,
+        2
+      ]
+    },
+    "prompt": "Ո՞ր հատկանիշներն են բնորոշ գիտական ոճին"
   },
   {
     "id": 49,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "C1",
     "section": "Listening",
     "points": 4,
-    "text": "Ո՞ր բառն է հոմանիշ «ընկալել»-ի",
-    "options": [
-      "Տեսնել",
-      "Հասկանալ",
-      "Կարդալ",
-      "Խոսել"
-    ],
-    "correct": 1,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Տեսնել",
+        "Հասկանալ",
+        "Կարդալ",
+        "Խոսել"
+      ],
+      "correct": 1
+    },
+    "prompt": "Ո՞ր բառն է հոմանիշ «ընկալել»-ի"
   },
   {
     "id": 50,
-    "type": "single_choice",
+    "type": "SINGLE_CHOICE",
     "level": "C1",
     "section": "Listening",
     "points": 4,
-    "text": "Ի՞նչ է նշանակում «ականջ դնել»",
-    "options": [
-      "Ուշադիր լսել",
-      "Ձայն հանել",
-      "Երգ երգել",
-      "Հեռախոս վերցնել"
-    ],
-    "correct": 0,
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Ուշադիր լսել",
+        "Ձայն հանել",
+        "Երգ երգել",
+        "Հեռախոս վերցնել"
+      ],
+      "correct": 0
+    },
+    "prompt": "Ի՞նչ է նշանակում «ականջ դնել»"
   },
   {
     "id": 51,
-    "type": "multi_select",
+    "type": "MULTIPLE_CHOICE",
     "level": "C2",
     "section": "Reading",
     "points": 5,
-    "text": "Ո՞ր արտահայտություններն ունեն փոխաբերական իմաստ",
-    "options": [
-      "Սիրտ կտրել",
-      "Ջուր խմել",
-      "Ձեռք մեկնել",
-      "Հաց ուտել"
-    ],
-    "correct": [
-      0,
-      2
-    ],
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "options": [
+        "Սիրտ կտրել",
+        "Ջուր խմել",
+        "Ձեռք մեկնել",
+        "Հաց ուտել"
+      ],
+      "correct": [
+        0,
+        2
+      ]
+    },
+    "prompt": "Ո՞ր արտահայտություններն ունեն փոխաբերական իմաստ"
   },
   {
     "id": 52,
-    "type": "fill_blank",
+    "type": "FILL_IN_THE_BLANKS",
     "level": "C2",
     "section": "Grammar",
     "points": 5,
-    "text": "Լրացրո՛ւ. «Եթե ավելի շատ կարդայի, ___ ավելի շատ բան» (իմանալ — անցյալ կատարյալ)",
-    "answer": "կիմանայի",
     "status": "published",
-    "createdAt": "2025-01-01"
+    "createdAt": "2025-01-01",
+    "content": {
+      "answers": [
+        "կիմանայի"
+      ]
+    },
+    "prompt": "Լրացրո՛ւ. «Եթե ավելի շատ կարդայի, ___ ավելի շատ բան» (իմանալ — անցյալ կատարյալ)"
   }
 ]

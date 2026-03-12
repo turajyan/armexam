@@ -2,6 +2,12 @@ import { requireAdmin } from "../middleware/adminAuth.js";
 import { sendResultsReady } from "../services/mailer.js";
 import { generateCertificate } from "../services/certificate.js";
 
+// Question types requiring human grading (no auto-scoring possible)
+const MANUAL_TYPES = [
+  "WRITING_INDEPENDENT", "WRITING_INTEGRATED",
+  "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED",
+];
+
 export default async function resultsRoutes(fastify) {
   const { prisma } = fastify;
   const adminHook = requireAdmin(prisma);
@@ -60,7 +66,6 @@ export default async function resultsRoutes(fastify) {
     if (existing) return reply.code(200).send(existing);
 
     // Use gradingStatus from terminal if provided, otherwise detect from answer keys
-    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
     let gradingStatus = terminalGradingStatus ?? "auto";
     if (!terminalGradingStatus) {
       const answerIds = Object.keys(answers ?? {}).map(Number).filter(Boolean);
@@ -143,7 +148,6 @@ export default async function resultsRoutes(fastify) {
     });
 
     // For each result, load the manual questions that were answered
-    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
     const enriched = await Promise.all(results.map(async (r) => {
       const answerIds = Object.keys(r.answers ?? {}).map(Number).filter(Boolean);
       const manualQs = answerIds.length
@@ -183,7 +187,6 @@ export default async function resultsRoutes(fastify) {
     });
     if (!result) return reply.code(404).send({ error: "Not found" });
 
-    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
     const answerIds = Object.keys(result.answers ?? {}).map(Number).filter(Boolean);
     const manualQs = answerIds.length
       ? await prisma.question.findMany({
@@ -259,7 +262,6 @@ export default async function resultsRoutes(fastify) {
     };
 
     // Check if all manual questions are now graded → finalize
-    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
     const answerIds = Object.keys(result.answers ?? {}).map(Number).filter(Boolean);
     const manualQs  = answerIds.length
       ? await prisma.question.findMany({ where: { id: { in: answerIds }, type: { in: MANUAL_TYPES } } })
@@ -324,7 +326,6 @@ export default async function resultsRoutes(fastify) {
     const manualTotal = Object.values(grades).reduce((s, g) => s + (g.scaledScore ?? 0), 0);
 
     // Recalculate auto score (all non-manual answers)
-    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
     const answerIds = Object.keys(result.answers ?? {}).map(Number).filter(Boolean);
     const manualIds = new Set(
       answerIds.length
