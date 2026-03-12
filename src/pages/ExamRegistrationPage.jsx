@@ -180,52 +180,13 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
             </>
           )}
 
-          {/* Step 3: Exams */}
+          {/* Step 3: Calendar */}
           {step === 3 && !loading && (
-            <>
-              <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, marginBottom: 16 }}>{t("ereg.available_exams")}</h3>
-              {exams.length === 0
-                ? <Empty T={T} text={t("ereg.no_exams")} />
-                : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {exams.map(exam => (
-                      <div key={exam.id} style={{
-                        background: T.card, border: `1px solid ${T.border}`,
-                        borderRadius: 12, padding: "16px",
-                      }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ color: T.text, fontWeight: 500, fontSize: 15, marginBottom: 6 }}>{exam.title}</div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                              {exam.level && <Tag T={T} color={T.info}>{exam.level}</Tag>}
-                              <Tag T={T} color={T.muted}>{exam.examType === "placement" ? "Placement" : "Fixed"}</Tag>
-                              <Tag T={T} color={T.muted}>{t("dash.min", { n: exam.duration })}</Tag>
-                              {exam.passingScore && <Tag T={T} color={T.success}>{t("ereg.passing", { pct: exam.passingScore })}</Tag>}
-                            </div>
-                            {exam.startDate && (
-                              <div style={{ color: T.muted, fontSize: 12 }}>
-                                {fmtDate(exam.startDate)} — {exam.endDate ? fmtDate(exam.endDate) : "..."}
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => registerForExam(exam)}
-                            style={{
-                              background: `linear-gradient(135deg,${T.gold},${T.goldDim})`,
-                              border: "none", borderRadius: 9, padding: "8px 16px",
-                              color: "white", fontWeight: 600, fontSize: 13, cursor: "pointer",
-                              fontFamily: "'DM Sans', sans-serif", flexShrink: 0,
-                            }}
-                          >
-                            {t("dash.reg_btn").replace(" →", "")}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              }
-            </>
+            <ExamCalendar
+              exams={exams} T={T} t={t}
+              onRegister={registerForExam}
+              loading={loading}
+            />
           )}
 
           {/* Step 4: PIN success */}
@@ -236,6 +197,260 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
       </div>
     </div>
   );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const LEVEL_COLOR = {
+  A1:'#4ade80', A2:'#86efac', B1:'#60a5fa', B2:'#93c5fd', C1:'#f59e0b', C2:'#fbbf24',
+};
+const MONTHS_EN = ['January','February','March','April','May','June',
+                   'July','August','September','October','November','December'];
+const DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function isoDate(d) {
+  // returns "YYYY-MM-DD" in local time
+  const dt = new Date(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+
+// ── ExamCalendar ───────────────────────────────────────────────────────────────
+function ExamCalendar({ exams, T, t, onRegister }) {
+  const today    = new Date();
+  const [year,  setYear]  = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());    // 0-based
+  const [picked, setPicked] = useState(null);              // "YYYY-MM-DD"
+
+  // Build map: "YYYY-MM-DD" → exam[]
+  const byDate = {};
+  for (const ex of exams) {
+    if (!ex.startDate) continue;
+    const key = isoDate(ex.startDate);
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(ex);
+  }
+
+  // Calendar grid
+  const firstDay  = new Date(year, month, 1).getDay();   // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const prevMonth = () => {
+    if (month === 0) { setMonth(11); setYear(y => y - 1); }
+    else setMonth(m => m - 1);
+    setPicked(null);
+  };
+  const nextMonth = () => {
+    if (month === 11) { setMonth(0); setYear(y => y + 1); }
+    else setMonth(m => m + 1);
+    setPicked(null);
+  };
+
+  const pickedExams = picked ? (byDate[picked] || []) : [];
+  const totalExams  = Object.values(byDate).reduce((s, a) => s + a.length, 0);
+
+  if (exams.length === 0) return (
+    <div style={{ textAlign:'center', padding:'48px 0', color:T.muted, fontSize:14 }}>
+      No open exams at this center yet.
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ fontSize:13, color:T.muted, marginBottom:16 }}>
+        {totalExams} exam session{totalExams !== 1 ? 's' : ''} available — select a date to register
+      </div>
+
+      {/* Month navigator */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+        marginBottom:16 }}>
+        <button onClick={prevMonth} style={navBtn(T)}>‹</button>
+        <span style={{ fontFamily:"'Cormorant Garamond',serif",
+          fontSize:20, fontWeight:700, color:T.text }}>
+          {MONTHS_EN[month]} {year}
+        </span>
+        <button onClick={nextMonth} style={navBtn(T)}>›</button>
+      </div>
+
+      {/* Day-of-week headers */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)',
+        marginBottom:6, gap:2 }}>
+        {DAYS_SHORT.map(d => (
+          <div key={d} style={{ textAlign:'center', fontSize:11,
+            color:T.muted, fontWeight:600, padding:'4px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Day cells */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:4, marginBottom:20 }}>
+        {cells.map((day, i) => {
+          if (!day) return <div key={`e${i}`} />;
+
+          const key      = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const hasExams = !!byDate[key];
+          const isToday  = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+          const isPicked = key === picked;
+          const isPast   = new Date(year, month, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+          return (
+            <div key={key}
+              onClick={() => hasExams && !isPast && setPicked(isPicked ? null : key)}
+              style={{
+                aspectRatio:'1', borderRadius:10,
+                display:'flex', flexDirection:'column',
+                alignItems:'center', justifyContent:'center',
+                cursor: hasExams && !isPast ? 'pointer' : 'default',
+                position:'relative',
+                background: isPicked ? T.gold
+                  : hasExams && !isPast ? T.gold+'15'
+                  : 'transparent',
+                border: isPicked ? `2px solid ${T.gold}`
+                  : isToday ? `2px solid ${T.gold}55`
+                  : hasExams && !isPast ? `1.5px solid ${T.gold}40`
+                  : `1px solid transparent`,
+                opacity: isPast ? 0.35 : 1,
+                transition:'all .15s',
+              }}>
+              <span style={{
+                fontSize:14, fontWeight: isToday || hasExams ? 700 : 400,
+                color: isPicked ? '#1a1200'
+                  : hasExams && !isPast ? T.gold
+                  : T.muted,
+              }}>{day}</span>
+
+              {/* Exam count dot */}
+              {hasExams && !isPast && (
+                <div style={{ display:'flex', gap:2, marginTop:2 }}>
+                  {(byDate[key] || []).slice(0,3).map((_, di) => (
+                    <div key={di} style={{
+                      width:4, height:4, borderRadius:'50%',
+                      background: isPicked ? '#1a1200' : T.gold,
+                    }} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Selected day exams */}
+      {picked && (
+        <div>
+          <div style={{ fontSize:12, color:T.muted, marginBottom:10,
+            letterSpacing:0.5, textTransform:'uppercase', fontWeight:600 }}>
+            {new Date(picked + 'T12:00:00').toLocaleDateString('en-US',
+              { weekday:'long', day:'numeric', month:'long' })}
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {pickedExams.map(exam => (
+              <ExamSlotCard key={exam.id} exam={exam} T={T} t={t}
+                onRegister={() => onRegister(exam)} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Legend */}
+      {!picked && (
+        <div style={{ display:'flex', gap:16, fontSize:11, color:T.muted, marginTop:4 }}>
+          <span style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <div style={{ width:10, height:10, borderRadius:3,
+              background:T.gold+'15', border:`1.5px solid ${T.gold}40` }} />
+            Has exams
+          </span>
+          <span style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <div style={{ width:10, height:10, borderRadius:3,
+              border:`2px solid ${T.gold}55` }} />
+            Today
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExamSlotCard({ exam, T, onRegister }) {
+  const lc = LEVEL_COLOR[exam.level] || T.muted;
+
+  return (
+    <div style={{
+      background:T.card, border:`1.5px solid ${T.border}`,
+      borderRadius:14, padding:'16px 18px',
+      display:'flex', alignItems:'center', gap:16,
+      transition:'border-color .15s',
+    }}
+    onMouseEnter={e => e.currentTarget.style.borderColor = T.gold+'66'}
+    onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
+    >
+      {/* Time block */}
+      <div style={{ textAlign:'center', flexShrink:0,
+        background:T.gold+'10', border:`1px solid ${T.gold}30`,
+        borderRadius:10, padding:'10px 14px', minWidth:58 }}>
+        {exam.startTime
+          ? <>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:18,
+                fontWeight:700, color:T.gold, lineHeight:1 }}>{exam.startTime}</div>
+              <div style={{ fontSize:10, color:T.muted, marginTop:3 }}>start</div>
+            </>
+          : <div style={{ fontSize:22 }}>📅</div>
+        }
+      </div>
+
+      {/* Info */}
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:15, fontWeight:600, color:T.text,
+          marginBottom:6, overflow:'hidden', textOverflow:'ellipsis',
+          whiteSpace:'nowrap' }}>{exam.title}</div>
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+          {exam.level && (
+            <span style={{ fontSize:11, color:lc,
+              background:lc+'18', borderRadius:5, padding:'2px 7px',
+              fontWeight:700 }}>{exam.level}</span>
+          )}
+          <span style={{ fontSize:11, color:T.muted,
+            background:T.border+'44', borderRadius:5, padding:'2px 7px' }}>
+            {exam.examType === 'placement' ? '📊 Placement' : '📝 Fixed'}
+          </span>
+          <span style={{ fontSize:11, color:T.muted,
+            background:T.border+'44', borderRadius:5, padding:'2px 7px' }}>
+            ⏱ {exam.duration} min
+          </span>
+          {exam.passingScore && (
+            <span style={{ fontSize:11, color:'#4ade80',
+              background:'#4ade8018', borderRadius:5, padding:'2px 7px' }}>
+              pass {exam.passingScore}%
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Register button */}
+      <button onClick={onRegister} style={{
+        background:`linear-gradient(135deg,${T.gold},${T.gold}bb)`,
+        border:'none', borderRadius:10, padding:'10px 20px',
+        color:'#1a1200', fontWeight:700, fontSize:13, cursor:'pointer',
+        fontFamily:"'DM Sans',sans-serif", flexShrink:0,
+        boxShadow:`0 2px 12px ${T.gold}33`,
+        transition:'opacity .15s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity='0.85'}
+      onMouseLeave={e => e.currentTarget.style.opacity='1'}
+      >
+        Register →
+      </button>
+    </div>
+  );
+}
+
+function navBtn(T) {
+  return {
+    background:'transparent', border:`1px solid ${T.border}`,
+    borderRadius:8, width:32, height:32, cursor:'pointer',
+    color:T.text, fontSize:18, display:'flex',
+    alignItems:'center', justifyContent:'center',
+  };
 }
 
 function SelectCard({ T, onClick, children }) {

@@ -194,6 +194,7 @@ model Exam {
   isOpen       Boolean     @default(false)
   startDate    DateTime?
   endDate      DateTime?
+  startTime    String?    // e.g. "09:00" — when the exam session begins
 
   status    String   @default("active")  // active | draft | archived
   createdAt DateTime @default(now())
