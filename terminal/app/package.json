@@ -2,7 +2,7 @@
   "name": "armexam-terminal",
   "version": "1.0.0",
   "description": "ArmExam Exam Terminal — Kiosk Mode",
-  "main": "main.js",
+  "main": "main.cjs",
   "type": "module",
   "scripts": {
     "start": "electron .",
