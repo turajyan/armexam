@@ -664,6 +664,23 @@ app.post('/api/media/prefetch', async (req, res) => {
 });
 
 /**
+ * GET /api/media/status
+ * Returns list of cached files with sizes — for admin diagnostics.
+ */
+app.get('/api/media/status', async (req, res) => {
+  try {
+    const { readdirSync } = await import('fs');
+    const files = readdirSync(mediaDir).map(f => {
+      const s = statSync(join(mediaDir, f));
+      return { filename: f, sizeBytes: s.size, mtime: s.mtime };
+    });
+    return res.json({ count: files.length, totalBytes: files.reduce((a, f) => a + f.sizeBytes, 0), files });
+  } catch {
+    return res.json({ count: 0, totalBytes: 0, files: [] });
+  }
+});
+
+/**
  * GET /api/media/:hash.:ext — serve cached media file
  * Terminal replaces remote URLs with local ones after prefetch.
  */
@@ -683,23 +700,6 @@ app.get('/api/media/:filename', (req, res) => {
   createReadStream(filePath).pipe(res);
 });
 
-/**
- * GET /api/media/status
- * Returns list of cached files with sizes — for admin diagnostics.
- */
-app.get('/api/media/status', async (req, res) => {
-  try {
-    const { readdirSync } = await import('fs');
-    const files = readdirSync(mediaDir).map(f => {
-      const s = statSync(join(mediaDir, f));
-      return { filename: f, sizeBytes: s.size, mtime: s.mtime };
-    });
-    return res.json({ count: files.length, totalBytes: files.reduce((a, f) => a + f.sizeBytes, 0), files });
-  } catch {
-    return res.json({ count: 0, totalBytes: 0, files: [] });
-  }
-});
-
 app.get('/api/session/:id', (req, res) => {
   const s = db.data.sessions.find(s => s.sessionId === req.params.id);
   return s ? res.json(s) : res.status(404).json({ error: 'Not found' });
@@ -709,7 +709,6 @@ app.get('/api/sessions', (req, res) => {
   return res.json(db.data.sessions.map(({ questions, answers, voiceRecordings, pin, ...s }) => s));
 });
 
-app.get('/', (_, res) => res.redirect('/api/health'));
 app.get('/api/health', (_, res) => res.json({ ok: true, mainApi: MAIN_API, sessions: db.data.sessions.length }));
 
 app.get('/', (_, res) => {
