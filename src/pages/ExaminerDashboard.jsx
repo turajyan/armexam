@@ -110,7 +110,7 @@ export default function ExaminerDashboard({ theme: T }) {
             <div style={{ fontSize:12, color:T.muted }}>{candidateLabel(selected)}</div>
           </div>
           <GradingRing qs={qs} grades={grades} T={T} />
-          {readOnly && <StatusBadge status="completed" T={T} />}
+          {readOnly && <StatusBadge status={selected.gradingStatus} T={T} />}
           {selected.gradingStatus === "graded" && (
             <PublishButton resultId={selected.id} T={T}
               onPublished={() => { setSelected(null); loadQueue(tab); }} />
@@ -208,7 +208,7 @@ export default function ExaminerDashboard({ theme: T }) {
             Examiner Dashboard
           </h1>
           <p style={{ fontSize:13, color:T.muted, margin:0 }}>
-            Manual grading · Writing & Speaking · Rubric scoring
+            Manual grading · Writing & Speaking · Rubric scoring · rev.444f
           </p>
         </div>
         <button onClick={() => loadQueue(tab)} style={secondaryBtn(T)}>↻ Refresh</button>
