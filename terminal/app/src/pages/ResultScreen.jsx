@@ -47,7 +47,29 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
   const { score = 0, earnedPts = 0, totalPts = 0, passed, placementLevel,
           belowMinimum, passingScore, levelResults } = result;
   const isPlacement = session?.examType === 'placement';
-  const statusColor = belowMinimum ? T.error : isPlacement ? T.blue : passed ? T.success : T.error;
+
+  // Detect manual-grading questions (voice / writing)
+  const questions = session?.questions || [];
+  const manualQs  = questions.filter(q => q.type === 'voice' || q.type === 'writing');
+  const hasPending = manualQs.length > 0;
+
+  // For partial results: auto-only score excludes manual question points
+  const manualTotalPts = manualQs.reduce((s, q) => s + (q.points || 0), 0);
+  const autoTotalPts   = totalPts - manualTotalPts;
+  const autoScore      = hasPending
+    ? (autoTotalPts > 0 ? Math.round((earnedPts / autoTotalPts) * 100) : 0)
+    : score;
+
+  // If all questions are manual (unlikely but possible) → show pending state only
+  const allManual = autoTotalPts === 0 && hasPending;
+
+  const displayScore   = allManual ? 0 : autoScore;
+  const statusColor    = hasPending
+    ? T.warning
+    : belowMinimum ? T.error
+    : isPlacement  ? T.blue
+    : passed       ? T.success
+    : T.error;
   const plColor = LEVEL_COLORS[placementLevel] || T.gold;
 
   return (
@@ -77,16 +99,46 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
           fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 700, color: '#fff',
           boxShadow: `0 4px 20px ${statusColor}44`,
         }}>
-          {belowMinimum ? 'BELOW MINIMUM ✗' : isPlacement ? 'PLACEMENT RESULT' : passed ? 'PASSED ✓' : 'NOT PASSED ✗'}
+          {hasPending
+            ? '⏳ AWAITING GRADING'
+            : belowMinimum  ? 'BELOW MINIMUM ✗'
+            : isPlacement   ? 'PLACEMENT RESULT'
+            : passed        ? 'PASSED ✓'
+            : 'NOT PASSED ✗'}
         </div>
 
         {/* Score ring */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-          <AnimatedScore score={score} T={T} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: hasPending ? 8 : 24 }}>
+          <AnimatedScore score={displayScore} T={T} />
         </div>
 
+        {/* Pending manual grading notice — replaces normal result display */}
+        {hasPending && (
+          <div style={{
+            background: T.warning + '12', border: `1px solid ${T.warning}44`,
+            borderRadius: 16, padding: '20px 24px', marginBottom: 24, textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 30, marginBottom: 10 }}>🎙✍️</div>
+            <div style={{
+              fontFamily: "'DM Sans',sans-serif", fontSize: 15, fontWeight: 700,
+              color: T.warning, marginBottom: 8,
+            }}>
+              Your result is not final yet
+            </div>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.7 }}>
+              {autoTotalPts > 0
+                ? `Auto-graded score: ${earnedPts} / ${autoTotalPts} pts (${autoScore}%)`
+                : null}
+            </div>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.7, marginTop: 4 }}>
+              {manualQs.length} answer{manualQs.length > 1 ? 's' : ''} ({manualQs.map(q => q.type).join(', ')}) require examiner review.
+              Your final score will be available after grading.
+            </div>
+          </div>
+        )}
+
         {/* Placement level or below minimum message */}
-        {isPlacement && (
+        {isPlacement && !hasPending && (
           <div style={{ marginBottom: 24 }}>
             {belowMinimum ? (
               <div style={{
@@ -116,7 +168,8 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
           </div>
         )}
 
-        {/* Stats row */}
+        {/* Stats row — hidden when pending (score is partial/misleading) */}
+        {!hasPending && (
         <div style={{ display: 'flex', gap: 16, marginBottom: 28, justifyContent: 'center' }}>
           {[
             { label: 'Points', value: `${earnedPts} / ${totalPts}`, color: T.gold },
@@ -133,6 +186,7 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
             </div>
           ))}
         </div>
+        )} {/* end !hasPending stats row */}
 
         {/* Per-level breakdown for placement */}
         {isPlacement && levelResults && (
@@ -189,17 +243,6 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
           <span style={{ color: T.text, fontWeight: 600 }}>{session?.studentName}</span>
           {' · '}{session?.examTitle}
         </div>
-
-        {/* Writing/voice notice */}
-        {earnedPts < totalPts && (
-          <div style={{
-            background: T.warning + '15', border: `1px solid ${T.warning}33`,
-            borderRadius: 12, padding: '12px 16px', marginBottom: 24,
-            fontSize: 12, color: T.warning, lineHeight: 1.6,
-          }}>
-            ℹ Writing and voice answers require manual grading and will be scored separately by the examiner.
-          </div>
-        )}
 
         {/* Done button */}
         <button onClick={onDone} style={{
