@@ -547,7 +547,7 @@ function ScoreRing({ pct, T }) {
 function StatusBadge({ status, T }) {
   const color = STATUS_COLOR[status] ?? T.muted;
   return (
-    <span style={{ fontSize:11, fontWeight:700, padding:"3px 10px", borderRadius:8,
+    <span style={{ display:"inline-block", width:"fit-content", fontSize:11, fontWeight:700, padding:"3px 10px", borderRadius:8,
       color, background:color+"18", border:`1px solid ${color}44` }}>
       {status}
     </span>
