@@ -413,6 +413,104 @@ for (const lvl of LEVELS) {
   if (FREE_WRITING[lvl])for (const q of FREE_WRITING[lvl])QUESTIONS.push({ type:"writing",       level:lvl, section:"Free Writing",       points:pts, ...q });
 }
 
+// ─── MEDIA QUESTIONS (image / audio / video / voice) ─────────────────────────
+// Public-domain media URLs for demo/testing
+const MEDIA_QUESTIONS = [
+  // ── Image-based reading (single_choice) ──────────────────────────────────
+  {
+    type: "single_choice", level: "A1", section: "Reading", points: PTS.A1,
+    text: "Նայե՛ք նկարին: Ի՞նչ կա սեղանի վրա:",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/800px-Good_Food_Display_-_NCI_Visuals_Online.jpg",
+    options: ["Գրքեր և թղթեր", "Մրգեր և բանջարեղեն", "Համակարգիչ և ստեղնաշար", "Բաժակ և ափսե"],
+    correct: 1,
+  },
+  {
+    type: "single_choice", level: "B1", section: "Reading", points: PTS.B1,
+    text: "Ուշադիր կերպով նայե՛ք գծապատկերին: Ո՞ր ամիսն ունի ամենաբարձր ջերմաստիճան:",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Avg_temperature_in_Iran.png/640px-Avg_temperature_in_Iran.png",
+    options: ["Հունվար", "Ապրիլ", "Հուլիս", "Հոկտեմբեր"],
+    correct: 2,
+  },
+  {
+    type: "single_choice", level: "B2", section: "Reading", points: PTS.B2,
+    text: "Ուշադիր ուսումնասիրե՛ք քարտեզը: Ո՞ր ուղղությամբ է հոսում Արաքս գետը:",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Aras_river_basin_map.png/640px-Aras_river_basin_map.png",
+    options: ["Հյուսիսից հարավ", "Արևմուտքից արևելք", "Արևելքից արևմուտք", "Հարավից հյուսիս"],
+    correct: 1,
+  },
+
+  // ── Audio listening (single_choice with audioSrc) ─────────────────────────
+  {
+    type: "single_choice", level: "A2", section: "Listening", points: PTS.A2,
+    text: "Լսե՛ք ձայնագրությունը: Ի՞նչ են պատվիրում մարդիկ:",
+    audioSrc: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-Mère-Église_p1020648.ogg",
+    maxPlays: 2,
+    options: ["Սուրճ և թխվածք", "Թեյ և կիտրոն", "Հյութ և բլիթ", "Ջուր և հաց"],
+    correct: 0,
+  },
+  {
+    type: "single_choice", level: "B1", section: "Listening", points: PTS.B1,
+    text: "Լսե՛ք հաղորդումը: Ի՞նչ թեմայի մասին է խոսքը:",
+    audioSrc: "https://upload.wikimedia.org/wikipedia/commons/1/19/MiniSunflower.ogg",
+    maxPlays: 2,
+    options: ["Բնություն և բույսեր", "Երաժշտություն", "Սպորտ", "Ճամփորդություն"],
+    correct: 0,
+  },
+  {
+    type: "single_choice", level: "C1", section: "Listening", points: PTS.C1,
+    text: "Լսե՛ք բանախոսին: Ի՞նչ հիմնական գաղափար է արտահայտվում:",
+    audioSrc: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Vespers_of_Holy_Saturday_%28sample%29.ogg",
+    maxPlays: 1,
+    options: [
+      "Կրթության դերը հասարակության մեջ",
+      "Տեխնոլոգիաների ազդեցությունը",
+      "Բնապահպանության անհրաժեշտությունը",
+      "Ավանդույթների պահպանումը",
+    ],
+    correct: 3,
+  },
+
+  // ── Video listening/watching (single_choice with videoSrc) ────────────────
+  {
+    type: "single_choice", level: "A2", section: "Listening / Watching", points: PTS.A2,
+    text: "Դիտե՛ք տեսանյութը: Ի՞նչ եղանակ է ցուցադրված:",
+    videoSrc: "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/47/Wikipedia_Edit_2014.webm/Wikipedia_Edit_2014.webm.360p.webm",
+    maxPlays: 2,
+    options: ["Արևոտ", "Անձրևոտ", "Ձնավոր", "Ամպամած"],
+    correct: 0,
+  },
+  {
+    type: "single_choice", level: "B2", section: "Listening / Watching", points: PTS.B2,
+    text: "Դիտե՛ք հատվածը: Ո՞ր թեման է գերակշռում:",
+    videoSrc: "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e6/Bison_at_Yellowstone.ogv/Bison_at_Yellowstone.ogv.360p.ogv",
+    maxPlays: 1,
+    options: [
+      "Կենդանիների կյանքը բնության մեջ",
+      "Արդյունաբերական արտադրություն",
+      "Քաղաքային կյանքը",
+      "Ծովային հետազոտություններ",
+    ],
+    correct: 0,
+  },
+
+  // ── Voice / Speaking (voice type) ─────────────────────────────────────────
+  {
+    type: "voice", level: "A1", section: "Speaking", points: PTS.A1,
+    text: "Ձայնագրե՛ք ձեր ողջույնը: Ներկայացե՛ք հայերեն (անուն, տարիք, ձեր քաղաքը):",
+    minSeconds: 10, maxSeconds: 60, maxAttempts: 3,
+  },
+  {
+    type: "voice", level: "B1", section: "Speaking", points: PTS.B1,
+    text: "Պատմե՛ք ձեր սիրած եղանակի մասին: Ի՞նչ կարող եք անել այդ եղանակին: (30-90 վ)",
+    minSeconds: 30, maxSeconds: 90, maxAttempts: 2,
+  },
+  {
+    type: "voice", level: "C1", section: "Speaking", points: PTS.C1,
+    text: "Արտահայտե՛ք ձեր կարծիքը. «Թվային տեխնոլոգիաները դրական ազդեցություն ունե՞ն կրթության վրա»: Հիմնավորե՛ք (60-120 վ):",
+    minSeconds: 60, maxSeconds: 120, maxAttempts: 2,
+  },
+];
+
 // ─── CITIES & CENTERS ────────────────────────────────────────────────────────
 const CITIES_DATA = [
   { name:"Երևան",  center:{ name:"ArmExam Կ. Երևան",   address:"Բաղրամյան 24, Երևան 0019",  phone:"+374 10 123456",  email:"yerevan@armexam.am" } },
@@ -489,6 +587,21 @@ async function main() {
   }
   console.log(`✅ ${QUESTIONS.length} questions (5 × 8 sections × 6 levels)`);
 
+  // Media questions (image / audio / video / voice)
+  const createdMediaQs = [];
+  for (const q of MEDIA_QUESTIONS) {
+    const { section, imageUrl, ...rest } = q;
+    const created = await prisma.question.create({
+      data: {
+        ...rest,
+        ...(imageUrl ? { imageSrc: imageUrl } : {}),
+        sectionId: sectionMap[section] ?? sectionMap["Reading"],
+      },
+    });
+    createdMediaQs.push({ ...q, id: created.id });
+  }
+  console.log(`✅ ${createdMediaQs.length} media questions (image/audio/video/voice)`);
+
   // Cities & Centers
   const centers = [];
   for (const { name, center } of CITIES_DATA) {
@@ -560,7 +673,199 @@ async function main() {
   }
   console.log(`✅ ${STUDENTS_DATA.length} students`);
 
-  // Add certificate results for student Անի Հակոբյան (ani@example.am)
+  // ─── DEMO RESULTS ─────────────────────────────────────────────────────────
+  console.log("📊 Creating demo results...");
+
+  // Helper to make a fake answers object for auto-graded questions
+  function fakeAnswers(questionList, pctTarget) {
+    const ans = {};
+    for (const q of questionList) {
+      const hit = Math.random() * 100 < pctTarget;
+      if (q.type === "single_choice") {
+        ans[q.id] = hit ? q.correct : (q.correct + 1) % (q.options?.length || 4);
+      } else if (q.type === "multi_choice" || q.type === "multi_select") {
+        ans[q.id] = hit ? q.correct : [];
+      } else if (q.type === "fill_blank") {
+        ans[q.id] = hit ? (q.answer || "") : "wrong answer";
+      } else if (q.type === "writing") {
+        ans[q.id] = "Ուսանողի գրավոր պատասխան (demo):  Ես կարծում եմ, որ...";
+      } else if (q.type === "voice") {
+        ans[q.id] = "/media/demo-voice.webm";
+      }
+    }
+    return ans;
+  }
+
+  // ── 1. Fixed exam results (Անի — passed, Արամ — failed, Մարինե — passed) ──
+  const [aniStudent, aramStudent, marineStudent, davitStudent, haikStudent, artурStudent] =
+    await Promise.all([
+      prisma.student.findUnique({ where: { email: "ani@example.am" } }),
+      prisma.student.findUnique({ where: { email: "aram@example.am" } }),
+      prisma.student.findUnique({ where: { email: "marine@example.am" } }),
+      prisma.student.findUnique({ where: { email: "davit@example.am" } }),
+      prisma.student.findUnique({ where: { email: "hayk@example.am" } }),
+      prisma.student.findUnique({ where: { email: "artur@example.am" } }),
+    ]);
+
+  const fixedResultDefs = [
+    // Անի — passed A1, A2, B1
+    { student: aniStudent,   examIdx: 0, pct: 82, passed: true,  date: "2025-02-10" },
+    { student: aniStudent,   examIdx: 1, pct: 76, passed: true,  date: "2025-04-05" },
+    { student: aniStudent,   examIdx: 2, pct: 65, passed: true,  date: "2025-06-20" },
+    // Արամ — failed A1
+    { student: aramStudent,  examIdx: 0, pct: 47, passed: false, date: "2025-03-15" },
+    // Մարինե — passed A1
+    { student: marineStudent,examIdx: 0, pct: 91, passed: true,  date: "2025-03-22" },
+  ];
+
+  for (const rd of fixedResultDefs) {
+    if (!rd.student) continue;
+    const exam = createdFixedExams[rd.examIdx];
+    if (!exam) continue;
+    const pin = randPin(usedPins);
+    // Check assignment doesn't already exist
+    const existingAssign = await prisma.examAssignment.findUnique({
+      where: { examId_studentId: { examId: exam.id, studentId: rd.student.id } },
+    });
+    if (!existingAssign) {
+      await prisma.examAssignment.create({
+        data: { studentId: rd.student.id, examId: exam.id, pin },
+      });
+    }
+    await prisma.result.create({
+      data: {
+        examId: exam.id,
+        studentId: rd.student.id,
+        score: rd.pct,
+        totalPoints: 100,
+        pct: rd.pct,
+        passed: rd.passed,
+        gradingStatus: "auto",
+        submittedAt: new Date(rd.date),
+      },
+    });
+    console.log(`  📝 Fixed  ${rd.student.name} → ${exam.title} | ${rd.pct}% | ${rd.passed ? "✓ passed" : "✗ failed"}`);
+  }
+
+  // ── 2. Placement results (multiple scenarios) ─────────────────────────────
+  const placementExam = exams[0]; // Երևան placement exam
+  if (placementExam) {
+    const placementResultDefs = [
+      // Դավիթ — placed at B2
+      {
+        student: davitStudent,
+        levelStats: {
+          A1: { earnedPts: 5, maxPts: 5, pct: 100, passed: true },
+          A2: { earnedPts: 5, maxPts: 5, pct: 100, passed: true },
+          B1: { earnedPts: 8, maxPts: 10, pct: 80,  passed: true },
+          B2: { earnedPts: 6, maxPts: 10, pct: 60,  passed: true },
+          C1: { earnedPts: 7, maxPts: 15, pct: 47,  passed: false },
+          C2: { earnedPts: 5, maxPts: 15, pct: 33,  passed: false },
+        },
+        detectedLevel: "B2", passed: true, date: "2025-01-18",
+      },
+      // Հայկ — placed at C1
+      {
+        student: haikStudent,
+        levelStats: {
+          A1: { earnedPts: 5, maxPts: 5,  pct: 100, passed: true },
+          A2: { earnedPts: 5, maxPts: 5,  pct: 100, passed: true },
+          B1: { earnedPts: 9, maxPts: 10, pct: 90,  passed: true },
+          B2: { earnedPts: 8, maxPts: 10, pct: 80,  passed: true },
+          C1: { earnedPts: 10,maxPts: 15, pct: 67,  passed: true },
+          C2: { earnedPts: 6, maxPts: 15, pct: 40,  passed: false },
+        },
+        detectedLevel: "C1", passed: true, date: "2025-02-03",
+      },
+      // Արտուր — below minimum (A1 not passed)
+      {
+        student: artурStudent,
+        levelStats: {
+          A1: { earnedPts: 2, maxPts: 5,  pct: 40,  passed: false },
+          A2: { earnedPts: 1, maxPts: 5,  pct: 20,  passed: false },
+          B1: { earnedPts: 2, maxPts: 10, pct: 20,  passed: false },
+          B2: { earnedPts: 1, maxPts: 10, pct: 10,  passed: false },
+          C1: { earnedPts: 1, maxPts: 15, pct: 7,   passed: false },
+          C2: { earnedPts: 0, maxPts: 15, pct: 0,   passed: false },
+        },
+        detectedLevel: null, passed: false, date: "2025-02-14",
+      },
+    ];
+
+    for (const rd of placementResultDefs) {
+      if (!rd.student) continue;
+      // Compute totals from levelStats
+      const totalPts  = Object.values(rd.levelStats).reduce((s, l) => s + l.maxPts,   0);
+      const earnedPts = Object.values(rd.levelStats).reduce((s, l) => s + l.earnedPts, 0);
+      const pct       = Math.round((earnedPts / totalPts) * 100);
+
+      const existingAssign = await prisma.examAssignment.findUnique({
+        where: { examId_studentId: { examId: placementExam.id, studentId: rd.student.id } },
+      });
+      if (!existingAssign) {
+        await prisma.examAssignment.create({
+          data: { studentId: rd.student.id, examId: placementExam.id, pin: randPin(usedPins) },
+        });
+      }
+      await prisma.result.create({
+        data: {
+          examId: placementExam.id,
+          studentId: rd.student.id,
+          score: earnedPts,
+          totalPoints: totalPts,
+          pct,
+          passed: rd.passed,
+          detectedLevel: rd.detectedLevel,
+          levelStats: rd.levelStats,
+          gradingStatus: "auto",
+          submittedAt: new Date(rd.date),
+        },
+      });
+      console.log(`  🎯 Placement ${rd.student.name} → ${rd.detectedLevel ?? "below minimum"} | ${pct}% | ${rd.passed ? "✓ placed" : "✗ below min"}`);
+    }
+  }
+
+  // ── 3. Pending manual grading (voice + writing) ───────────────────────────
+  const voiceQs   = await prisma.question.findMany({ where: { type: "voice" },   take: 2 });
+  const writingQs = await prisma.question.findMany({ where: { type: "writing" }, take: 2 });
+  const manualQs  = [...voiceQs, ...writingQs];
+  const pendingStudent = marineStudent;
+  const pendingExam    = createdFixedExams[1] ?? createdFixedExams[0]; // A2
+
+  if (pendingStudent && pendingExam && manualQs.length > 0) {
+    const existingAssign = await prisma.examAssignment.findUnique({
+      where: { examId_studentId: { examId: pendingExam.id, studentId: pendingStudent.id } },
+    });
+    if (!existingAssign) {
+      await prisma.examAssignment.create({
+        data: { studentId: pendingStudent.id, examId: pendingExam.id, pin: randPin(usedPins) },
+      });
+    }
+    const pendingAnswers = {};
+    for (const q of manualQs) {
+      pendingAnswers[q.id] = q.type === "voice"
+        ? "/media/demo-voice-marine.webm"
+        : "Ես կարծում եմ, որ հայոց լեզուն ունի հարուստ պատմություն: Դա արտահայտվում է...";
+    }
+    const totalPts = manualQs.reduce((s, q) => s + q.points, 0);
+    await prisma.result.create({
+      data: {
+        examId: pendingExam.id,
+        studentId: pendingStudent.id,
+        score: 0, totalPoints: totalPts, pct: 0,
+        passed: null,
+        answers: pendingAnswers,
+        gradingStatus: "pending",
+        submittedAt: new Date("2025-03-01"),
+      },
+    });
+    console.log(`  ⏳ Pending  ${pendingStudent.name} → ${pendingExam.title} | awaiting manual grading`);
+  }
+  console.log("✅ Demo results created");
+
+  // Admins
+  const adminSeeds = [
+
   const aniStudent = await prisma.student.findUnique({ where: { email: "ani@example.am" } });
   if (aniStudent) {
     // Create exam assignments and results for A1, A2, B1 exams

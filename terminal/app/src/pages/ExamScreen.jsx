@@ -441,8 +441,13 @@ function QuestionCard({ q, index, total, answer, onAnswer, sessionId, backendUrl
       {/* Video */}
       {q.videoSrc && <VideoPlayer src={q.videoSrc} maxReplays={config.maxVideoReplays} T={T} />}
 
-      {/* Audio (standalone audio question) */}
-      {q.type === 'audio' && q.audioSrc && (
+      {/* Audio — shown for any question that has audioSrc */}
+      {q.audioSrc && (
+        <AudioPlayer src={q.audioSrc} maxReplays={config.maxAudioReplays} T={T} />
+      )}
+
+      {/* Audio standalone question — no extra render needed, handled above */}
+      {q.type === 'audio' && !q.audioSrc && (
         <AudioPlayer src={q.audioSrc} maxReplays={config.maxAudioReplays} T={T} />
       )}
 

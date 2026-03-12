@@ -6,7 +6,7 @@
 import express from 'express';
 import cors from 'cors';
 import { randomUUID } from 'crypto';
-import { readFileSync, existsSync, mkdirSync, writeFileSync, renameSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, renameSync, createReadStream } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -313,6 +313,12 @@ app.post('/api/session/finish', (req, res) => {
   s.finishedAt = new Date().toISOString();
   saveDB();
 
+  // Merge voice recording paths into answers for main API
+  const answersWithVoice = { ...s.answers };
+  for (const [qid, filename] of Object.entries(s.voiceRecordings || {})) {
+    answersWithVoice[qid] = `/voice/${filename}`; // relative URL served by terminal backend
+  }
+
   // Push result to main backend using PIN-authenticated endpoint
   fetch(`${MAIN_API}/api/terminal/result`, {
     method: 'POST',
@@ -328,7 +334,7 @@ app.post('/api/session/finish', (req, res) => {
       placementLevel: result.placementLevel ?? null,
       levelResults:   result.levelResults  ?? null,
       belowMinimum:   result.belowMinimum  ?? false,
-      answers:      s.answers,
+      answers:      answersWithVoice,
     }),
   }).then(async r => {
     if (!r.ok) {
@@ -340,6 +346,16 @@ app.post('/api/session/finish', (req, res) => {
   }).catch(e => console.error(`[finish] Push error: ${e.message}`));
 
   return res.json({ result, finishedAt: s.finishedAt });
+});
+
+/** GET /voice/:filename — serve recorded voice files (for examiner playback) */
+app.get('/voice/:filename', (req, res) => {
+  const safeName = req.params.filename.replace(/[^a-zA-Z0-9._-]/g, '');
+  const filePath = join(recDir, safeName);
+  if (!existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+  res.setHeader('Content-Type', 'audio/webm');
+  res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+  createReadStream(filePath).pipe(res);
 });
 
 app.get('/api/session/:id', (req, res) => {

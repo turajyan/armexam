@@ -33,9 +33,10 @@ model Question {
   segments    Json?    // { type: "text"|"blank", content?: string, id?: number }[]
   wordBank    Json?    // String[]
 
-  // Audio / Video
+  // Audio / Video / Image
   audioSrc    String?
   videoSrc    String?
+  imageSrc    String?
   maxPlays    Int?
   pauseSeconds Int?
 
