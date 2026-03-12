@@ -78,7 +78,8 @@ export default async function gradingRoutes(fastify) {
         student: { select: { id: true, name: true, email: true } },
       },
     });
-    return results.map(r => anonymize(r, req.admin.role));
+    const enriched = await enrichResults(prisma, results);
+    return enriched.map(r => anonymize(r, req.admin.role));
   });
 
   // GET /api/grading/graded  — recently graded results (manual grading completed)
