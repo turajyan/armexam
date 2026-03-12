@@ -268,6 +268,7 @@ app.get('/api/sessions', (req, res) => {
   return res.json(db.data.sessions.map(({ questions, answers, voiceRecordings, pin, ...s }) => s));
 });
 
+app.get('/', (_, res) => res.redirect('/api/health'));
 app.get('/api/health', (_, res) => res.json({ ok: true, mainApi: MAIN_API, sessions: db.data.sessions.length }));
 
 app.get('/', (_, res) => {
