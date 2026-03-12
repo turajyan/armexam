@@ -63,23 +63,66 @@ async function fetchQuestions() {
   return Array.isArray(data) ? data : (data.questions || data.items || []);
 }
 
+// Canonical level order used for sorting and ladder algorithm
+const LEVEL_ORDER = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+
 function buildQuestions(exam, questions) {
   const byLevelSection = (level, section) =>
     questions.filter(q => q.level === level && q.section === section);
 
   if (exam.examType === 'placement') {
-    const result = [];
+    // ── Step 1: collect questions grouped by section ─────────────────────
+    // Key: section name  →  Value: array of picked questions (shuffled within level)
+    const bySection = {};
+
     for (const row of exam.placementTemplate || []) {
       for (const sp of row.subpools || []) {
         const pool = byLevelSection(row.level, sp.section);
         if (pool.length < sp.count)
           throw new Error(`Not enough questions: ${row.level}/${sp.section} — need ${sp.count}, have ${pool.length}`);
-        shuffle(pool).slice(0, sp.count).forEach(q => result.push({ ...q, points: row.pointsEach }));
+        if (!bySection[sp.section]) bySection[sp.section] = [];
+        // Within one level+section: shuffle, then push
+        shuffle(pool).slice(0, sp.count).forEach(q =>
+          bySection[sp.section].push({ ...q, points: row.pointsEach })
+        );
       }
     }
+
+    // ── Step 2: sort each section's questions A1 → C2 ────────────────────
+    // Within one level questions stay shuffled (random order among peers).
+    // Across levels: strict ascending — A1 always before A2, etc.
+    for (const sec of Object.keys(bySection)) {
+      bySection[sec].sort((a, b) =>
+        (LEVEL_ORDER[a.level] ?? 99) - (LEVEL_ORDER[b.level] ?? 99)
+      );
+    }
+
+    // ── Step 3: interleave sections in section order, then assign orderIndex
+    // Section order: use the order sections first appear in placementTemplate subpools
+    const sectionOrder = [];
+    for (const row of exam.placementTemplate || []) {
+      for (const sp of row.subpools || []) {
+        if (!sectionOrder.includes(sp.section)) sectionOrder.push(sp.section);
+      }
+    }
+
+    // Build final flat array: all of section1 (A1→C2), then section2 (A1→C2), …
+    const result = [];
+    for (const sec of sectionOrder) {
+      if (bySection[sec]) result.push(...bySection[sec]);
+    }
+    // Any sections not in sectionOrder (shouldn't happen, but safety net)
+    for (const sec of Object.keys(bySection)) {
+      if (!sectionOrder.includes(sec)) result.push(...bySection[sec]);
+    }
+
+    // ── Step 4: stamp orderIndex ──────────────────────────────────────────
+    result.forEach((q, i) => { q.orderIndex = i + 1; });
+
     return result;
   }
-  // Fixed
+
+  // ── Fixed exam ────────────────────────────────────────────────────────────
   const result = [];
   for (const sp of exam.subpools || []) {
     const pool = byLevelSection(exam.level, sp.section);
@@ -87,7 +130,9 @@ function buildQuestions(exam, questions) {
       throw new Error(`Not enough questions: ${exam.level}/${sp.section} — need ${sp.count}, have ${pool.length}`);
     shuffle(pool).slice(0, sp.count).forEach(q => result.push({ ...q }));
   }
-  return exam.shuffle ? shuffle(result) : result;
+  const final = exam.shuffle ? shuffle(result) : result;
+  final.forEach((q, i) => { q.orderIndex = i + 1; });
+  return final;
 }
 
 function calcResult(exam, questions, answers) {
@@ -174,7 +219,7 @@ function calcResult(exam, questions, answers) {
   if (exam.examType === 'placement') {
     // ── Per-level scoring ────────────────────────────────────────────────────
     const thr = exam.placementThresholds || { A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 };
-    const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+    const LEVELS = Object.keys(LEVEL_ORDER); // ['A1','A2','B1','B2','C1','C2']
 
     // Group questions by level
     const byLevel = {};
