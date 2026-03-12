@@ -580,6 +580,27 @@ function ViewQuestion({ q, onEdit, onClose }) {
 
 
 // ── Questions Page ─────────────────────────────────────────────────────────────
+function StatsBar({ questions }) {
+  const total = questions.length;
+  const byType = NEW_TYPES.map(t => ({ ...t, count: questions.filter(q => q.type === t.id).length }))
+    .filter(t => t.count > 0);
+  return (
+    <div style={{ display:"flex", flexWrap:"wrap", gap:8, alignItems:"center" }}>
+      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginRight:4 }}>
+        {total} question{total!==1?"s":""}
+      </span>
+      {byType.map(t => (
+        <span key={t.id} style={{ display:"inline-block", width:"fit-content",
+          background:t.color+"18", color:t.color, border:`1px solid ${t.color}33`,
+          borderRadius:7, padding:"3px 10px", fontSize:11, fontWeight:600,
+          fontFamily:"'DM Sans',sans-serif" }}>
+          {t.icon} {t.label} {t.count}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function QuestionsPage() {
   const [questions, setQuestions] = useState([]);
   const [sections, setSections] = useState([]);
