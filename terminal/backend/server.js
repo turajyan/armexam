@@ -33,10 +33,25 @@ const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
 
 // Fetch full assignment data from main backend using PIN
 async function fetchPinData(pin) {
-  const res = await fetch(`${MAIN_API}/api/register/pin/${pin.trim().toUpperCase()}`);
+  const url = `${MAIN_API}/api/register/pin/${pin.trim().toUpperCase()}`;
+  console.log(`[PIN] Fetching: ${url}`);
+  let res;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    console.error(`[PIN] Network error: ${e.message}`);
+    throw new Error(`Network error connecting to main API (${MAIN_API}): ${e.message}`);
+  }
+  console.log(`[PIN] Response status: ${res.status}`);
   if (res.status === 404) throw new Error('PIN not found');
-  if (!res.ok) throw new Error(`Main API error: ${res.status}`);
-  return res.json();
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    console.error(`[PIN] Error body: ${body}`);
+    throw new Error(`Main API error: ${res.status} ${body}`);
+  }
+  const data = await res.json();
+  console.log(`[PIN] Got assignment for student: ${data.student?.name}, exam: ${data.exam?.title}`);
+  return data;
 }
 
 // Load questions from main API (questions bank)
@@ -129,8 +144,12 @@ app.post('/api/session/start', async (req, res) => {
   try {
     assignment = await fetchPinData(pin);
   } catch (e) {
+    console.error('[session/start] fetchPinData failed:', e.message);
     if (e.message === 'PIN not found') return res.status(401).json({ error: 'Invalid PIN code' });
-    return res.status(503).json({ error: 'Cannot reach main server: ' + e.message });
+    if (e.message.startsWith('Network error')) {
+      return res.status(503).json({ error: `Main API unavailable. Is the server running on ${MAIN_API}? (${e.message})` });
+    }
+    return res.status(503).json({ error: e.message });
   }
 
   const { student, exam } = assignment;
