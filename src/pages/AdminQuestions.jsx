@@ -745,11 +745,14 @@ function StudentPreview({ q, onClose }) {
   };
   useEffect(() => { initBank(); setChoiceAns(null); setMultiAns([]); setFillAns(""); setWritingAns("");
     setTPlaced({}); setTBank(null); setTDrag(null);
+    setImgClick(null);
   }, [q.id]);
   // DRAG_AND_DROP_TABLE state
   const [tPlaced, setTPlaced] = useState({});
   const [tBank,   setTBank]   = useState(null);
   const [tDrag,   setTDrag]   = useState(null);
+  // IMAGE_CLICK state
+  const [imgClick, setImgClick] = useState(null); // { x, y } in percent
 
   const bank = bankWords || [...(c.wordBank || [])];
 
@@ -1034,6 +1037,69 @@ function StudentPreview({ q, onClose }) {
               color:T.muted, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
             ↺ Reset
           </button>
+        </div>
+      );
+    }
+
+    if (type === "IMAGE_CLICK") {
+      const hotspots = c.hotspots || [];
+      const imgUrl   = (media[0] || {}).url;
+      const handleClick = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width)  * 100;
+        const y = ((e.clientY - rect.top)  / rect.height) * 100;
+        setImgClick({ x, y });
+      };
+      const hit = imgClick && hotspots.find(hs => {
+        const hw = hs.width  ?? 10;
+        const hh = hs.height ?? 10;
+        return imgClick.x >= hs.x && imgClick.x <= hs.x + hw &&
+               imgClick.y >= hs.y && imgClick.y <= hs.y + hh;
+      });
+
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {!imgUrl && (
+            <div style={{ background:"#ffffff06", borderRadius:12, padding:"32px",
+              textAlign:"center", color:T.muted, fontSize:13 }}>
+              No image attached — add an image in the Media section
+            </div>
+          )}
+          {imgUrl && (
+            <div style={{ position:"relative", display:"inline-block", cursor:"crosshair",
+              borderRadius:12, overflow:"hidden", userSelect:"none" }}
+              onClick={handleClick}>
+              <img src={imgUrl} alt="" style={{ width:"100%", display:"block", borderRadius:12 }} />
+              {/* Show click marker */}
+              {imgClick && (
+                <div style={{
+                  position:"absolute",
+                  left: imgClick.x + "%", top: imgClick.y + "%",
+                  transform:"translate(-50%,-50%)",
+                  width:22, height:22, borderRadius:"50%",
+                  background: hit ? "#4ade8066" : "#f8717166",
+                  border: `2px solid ${hit ? "#4ade80" : "#f87171"}`,
+                  pointerEvents:"none", transition:"all .15s",
+                }} />
+              )}
+            </div>
+          )}
+          {imgClick && (
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"center",
+              color: hit ? "#4ade80" : "#f87171" }}>
+              {hit ? "✓ Correct zone" : "✗ Try again"}
+              <button onClick={() => setImgClick(null)}
+                style={{ marginLeft:12, background:"transparent", border:"1px solid #ffffff22",
+                  borderRadius:6, padding:"3px 10px", color:T.muted, fontSize:11, cursor:"pointer" }}>
+                Reset
+              </button>
+            </div>
+          )}
+          {!imgClick && imgUrl && (
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted, textAlign:"center" }}>
+              Click on the image to mark your answer
+            </div>
+          )}
         </div>
       );
     }
