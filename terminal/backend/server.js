@@ -109,13 +109,25 @@ function calcResult(exam, questions, answers) {
     // writing / voice → manual grading
   }
   const pct = total > 0 ? Math.round((earned / total) * 100) : 0;
+
   if (exam.examType === 'placement') {
-    const thr = exam.placementThresholds || {};
-    let lvl = 'A1';
-    for (const l of ['A1','A2','B1','B2','C1','C2']) if (pct >= (thr[l] ?? 60)) lvl = l;
+    // Placement: always determines a level, cannot "fail"
+    // but score must meet minimum threshold for each level
+    const thr = exam.placementThresholds || { A1: 20, A2: 35, B1: 50, B2: 65, C1: 75, C2: 85 };
+    let lvl = null;
+    for (const l of ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
+      if (pct >= (thr[l] ?? 20)) lvl = l;
+    }
+    // Below minimum threshold → needs preparation, not placed
+    if (lvl === null) {
+      return { score: pct, earnedPts: earned, totalPts: total, placementLevel: null, passed: false, belowMinimum: true };
+    }
     return { score: pct, earnedPts: earned, totalPts: total, placementLevel: lvl, passed: true };
   }
-  return { score: pct, earnedPts: earned, totalPts: total, passed: pct >= (exam.passingScore ?? 70) };
+
+  // Fixed exam: pass/fail based on passingScore
+  const passingScore = exam.passingScore ?? 70;
+  return { score: pct, earnedPts: earned, totalPts: total, passed: pct >= passingScore, passingScore };
 }
 
 // ── Express ───────────────────────────────────────────────────────────────────
@@ -252,8 +264,13 @@ app.post('/api/session/finish', (req, res) => {
   const s = db.data.sessions.find(s => s.sessionId === sessionId);
   if (!s) return res.status(404).json({ error: 'Session not found' });
   const result = calcResult(
-    { examType: s.examType, subpools: [], placementThresholds: s.examConfig?.placementThresholds, passingScore: s.examConfig?.passingScore },
-    s.questions, s.answers
+    {
+      examType:           s.examType,
+      passingScore:       s.examConfig?.passingScore,
+      placementThresholds: s.examConfig?.placementThresholds,
+    },
+    s.questions,
+    s.answers
   );
   s.result = result;
   s.status = 'finished';

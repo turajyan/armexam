@@ -44,9 +44,9 @@ function AnimatedScore({ score, T }) {
 
 export default function ResultScreen({ T, result: resultData, session, onDone }) {
   const result = resultData?.result || resultData || {};
-  const { score = 0, earnedPts = 0, totalPts = 0, passed, placementLevel } = result;
+  const { score = 0, earnedPts = 0, totalPts = 0, passed, placementLevel, belowMinimum, passingScore } = result;
   const isPlacement = session?.examType === 'placement';
-  const statusColor = isPlacement ? T.blue : passed ? T.success : T.error;
+  const statusColor = belowMinimum ? T.error : isPlacement ? T.blue : passed ? T.success : T.error;
   const plColor = LEVEL_COLORS[placementLevel] || T.gold;
 
   return (
@@ -76,7 +76,7 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
           fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 700, color: '#fff',
           boxShadow: `0 4px 20px ${statusColor}44`,
         }}>
-          {isPlacement ? 'PLACEMENT RESULT' : passed ? 'PASSED ✓' : 'NOT PASSED'}
+          {belowMinimum ? 'BELOW MINIMUM ✗' : isPlacement ? 'PLACEMENT RESULT' : passed ? 'PASSED ✓' : 'NOT PASSED ✗'}
         </div>
 
         {/* Score ring */}
@@ -84,17 +84,34 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
           <AnimatedScore score={score} T={T} />
         </div>
 
-        {/* Placement level */}
-        {isPlacement && placementLevel && (
+        {/* Placement level or below minimum message */}
+        {isPlacement && (
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 13, color: T.muted, marginBottom: 10 }}>Your language level</div>
-            <div style={{
-              display: 'inline-block',
-              fontFamily: "'Cormorant Garamond',serif",
-              fontSize: 52, fontWeight: 700, color: plColor,
-              background: plColor + '18', border: `2px solid ${plColor}44`,
-              borderRadius: 20, padding: '10px 36px', lineHeight: 1,
-            }}>{placementLevel}</div>
+            {belowMinimum ? (
+              <div style={{
+                background: T.error + '15', border: `1px solid ${T.error}44`,
+                borderRadius: 16, padding: '16px 24px', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>📚</div>
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 600, color: T.error, marginBottom: 4 }}>
+                  Score too low for placement
+                </div>
+                <div style={{ fontSize: 12, color: T.muted }}>
+                  Additional preparation is recommended before retaking the test
+                </div>
+              </div>
+            ) : placementLevel && (
+              <>
+                <div style={{ fontSize: 13, color: T.muted, marginBottom: 10 }}>Your language level</div>
+                <div style={{
+                  display: 'inline-block',
+                  fontFamily: "'Cormorant Garamond',serif",
+                  fontSize: 52, fontWeight: 700, color: plColor,
+                  background: plColor + '18', border: `2px solid ${plColor}44`,
+                  borderRadius: 20, padding: '10px 36px', lineHeight: 1,
+                }}>{placementLevel}</div>
+              </>
+            )}
           </div>
         )}
 
@@ -103,6 +120,7 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
           {[
             { label: 'Points', value: `${earnedPts} / ${totalPts}`, color: T.gold },
             { label: 'Score', value: `${score}%`, color: statusColor },
+            !isPlacement && { label: 'Required', value: `${passingScore ?? 70}%`, color: T.muted },
             !isPlacement && { label: 'Status', value: passed ? 'Pass' : 'Fail', color: statusColor },
           ].filter(Boolean).map((s, i) => (
             <div key={i} style={{
@@ -145,8 +163,8 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
       </div>
 
       {/* Particles */}
-      {passed && !isPlacement && <Confetti T={T} color={T.success} />}
-      {isPlacement && <Confetti T={T} color={plColor} />}
+      {passed && !belowMinimum && !isPlacement && <Confetti T={T} color={T.success} />}
+      {passed && !belowMinimum && isPlacement && <Confetti T={T} color={plColor} />}
     </div>
   );
 }
