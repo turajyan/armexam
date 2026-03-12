@@ -220,10 +220,6 @@ export default async function questionsRoutes(fastify) {
     return rows;
   });
 
-  // GET /api/sections  — list all sections with category
-  fastify.get("/api/sections", { preHandler: adminHook }, async () => {
-    return prisma.section.findMany({ orderBy: { name: "asc" } });
-  });
 }
 
 
