@@ -531,6 +531,7 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
 
 // ── QRow (list row) ───────────────────────────────────────────────────────────
 function QRow({ q, onEdit, onDelete, onToggleStatus, onView }) {
+  const [rowPreview, setRowPreview] = useState(false);
   const ti = ntypeInfo(q.type);
   const lc = LEVEL_COLORS[q.level] || "#94a3b8";
   const hasAudio = (q.media||[]).some(m => m.type === "audio");
@@ -569,7 +570,9 @@ function QRow({ q, onEdit, onDelete, onToggleStatus, onView }) {
         {q.status==="published"?"● Published":"○ Draft"}
       </button>
 
+      {rowPreview && <StudentPreview q={q} onClose={() => setRowPreview(false)} />}
       <div style={{ display:"flex", gap:6, justifyContent:"flex-end" }}>
+        <button onClick={()=>setRowPreview(true)} title="Student preview" style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:"#60a5fa", fontSize:13, cursor:"pointer" }}>🎓</button>
         <button onClick={()=>onView(q)}   title="View"   style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.info||"#60a5fa", fontSize:13, cursor:"pointer" }}>👁</button>
         <button onClick={()=>onEdit(q)}   title="Edit"   style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.muted, fontSize:13, cursor:"pointer" }}>✎</button>
         <button onClick={()=>onDelete(q.id)} title="Delete" style={{ background:"transparent", border:`1px solid #f8717130`, borderRadius:7, padding:"5px 11px", color:"#f87171", fontSize:13, cursor:"pointer" }}>✕</button>
@@ -580,6 +583,7 @@ function QRow({ q, onEdit, onDelete, onToggleStatus, onView }) {
 
 // ── ViewQuestion ──────────────────────────────────────────────────────────────
 function ViewQuestion({ q, onEdit, onClose }) {
+  const [preview, setPreview] = useState(false);
   const ti = ntypeInfo(q.type);
   const lc = LEVEL_COLORS[q.level] || "#94a3b8";
   const media = Array.isArray(q.media) ? q.media : [];
@@ -692,14 +696,319 @@ function ViewQuestion({ q, onEdit, onClose }) {
         {renderContent()}
       </div>
 
+      {preview && <StudentPreview q={q} onClose={() => setPreview(false)} />}
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
         <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Close</button>
+        <button onClick={() => setPreview(true)} style={{ background:"#60a5fa18", border:"1px solid #60a5fa44", borderRadius:10, padding:"10px 22px", color:"#60a5fa", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer" }}>👁 Student View</button>
         <button onClick={onEdit} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 24px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 14px ${C.gold}44` }}>✎ Edit</button>
       </div>
     </div>
   );
 }
 
+
+// ── Student Preview ───────────────────────────────────────────────────────────
+// Renders the question exactly as a student would see it in the terminal UI
+function StudentPreview({ q, onClose }) {
+  const T = {
+    bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
+    text:"#e2e8f0", muted:"#475569", gold:"#c8a96e",
+    optionBg:"#ffffff08", optionSelected:"#c8a96e18", optionBorder:"#c8a96e66",
+    success:"#22c55e", danger:"#f87171",
+  };
+  const lc = LEVEL_COLORS[q.level] || "#94a3b8";
+  const ti = ntypeInfo(q.type);
+  const c  = q.content || {};
+  const media = Array.isArray(q.media) ? q.media : [];
+
+  // ── per-type interactive state ──────────────────────────────────────────
+  const [choiceAns,    setChoiceAns]    = useState(null);      // SINGLE_CHOICE
+  const [multiAns,     setMultiAns]     = useState([]);        // MULTIPLE_CHOICE
+  const [fillAns,      setFillAns]      = useState("");        // FILL_IN_THE_BLANKS
+  const [writingAns,   setWritingAns]   = useState("");        // WRITING
+  // DRAG_TO_TEXT
+  const [placed,       setPlaced]       = useState({});        // { slot_1: "word" }
+  const [bankWords,    setBankWords]    = useState(null);      // shuffled word bank
+  const [dragWord,     setDragWord]     = useState(null);      // currently dragging word
+
+  // Init shuffled bank when q changes
+  const initBank = () => {
+    const wb = [...(c.wordBank || [])];
+    for (let i = wb.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [wb[i], wb[j]] = [wb[j], wb[i]];
+    }
+    setBankWords(wb);
+    setPlaced({});
+  };
+  useEffect(() => { initBank(); setChoiceAns(null); setMultiAns([]); setFillAns(""); setWritingAns(""); }, [q.id]);
+
+  const bank = bankWords || [...(c.wordBank || [])];
+
+  // Drop word into slot
+  const dropIntoSlot = (slotName) => {
+    if (!dragWord) return;
+    const prev = placed[slotName];
+    setPlaced(p => ({ ...p, [slotName]: dragWord }));
+    // return previous word to bank if slot was occupied
+    setBankWords(bw => {
+      const next = (bw || []).filter(w => w !== dragWord);
+      return prev ? [...next, prev] : next;
+    });
+    setDragWord(null);
+  };
+  const returnToBank = (slotName) => {
+    const w = placed[slotName];
+    if (!w) return;
+    setPlaced(p => { const n = {...p}; delete n[slotName]; return n; });
+    setBankWords(bw => [...(bw||[]), w]);
+  };
+
+  // Parse DRAG_TO_TEXT text into segments
+  const parseDragText = (text) => {
+    const segs = [];
+    const rx = /\{(slot_\d+)\}/g;
+    let last = 0, m;
+    rx.lastIndex = 0;
+    while ((m = rx.exec(text)) !== null) {
+      if (m.index > last) segs.push({ type:"text", val: text.slice(last, m.index) });
+      segs.push({ type:"slot", name: m[1] });
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) segs.push({ type:"text", val: text.slice(last) });
+    return segs;
+  };
+
+  const renderInput = () => {
+    const type = q.type;
+
+    if (type === "SINGLE_CHOICE") {
+      const options = c.options || [];
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {options.map((opt, i) => {
+            const sel = choiceAns === i;
+            return (
+              <button key={i} onClick={() => setChoiceAns(i)} style={{
+                display:"flex", alignItems:"center", gap:14,
+                padding:"14px 20px", borderRadius:12, cursor:"pointer",
+                background: sel ? T.optionSelected : T.optionBg,
+                border:`1.5px solid ${sel ? T.optionBorder : "#ffffff18"}`,
+                textAlign:"left", transition:"all .15s", width:"100%",
+              }}>
+                <div style={{ width:22, height:22, borderRadius:"50%", flexShrink:0,
+                  border:`2px solid ${sel ? T.gold : "#ffffff33"}`,
+                  background: sel ? T.gold : "transparent",
+                  display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {sel && <div style={{ width:8, height:8, borderRadius:"50%", background:"#1a1200" }} />}
+                </div>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color: sel ? T.text : T.muted }}>{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (type === "MULTIPLE_CHOICE") {
+      const options = c.options || [];
+      const toggle = i => setMultiAns(a => a.includes(i) ? a.filter(x=>x!==i) : [...a, i]);
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          <div style={{ fontSize:11, color:T.muted, marginBottom:4 }}>
+            {c.requiredCount ? `Select exactly ${c.requiredCount}` : "Select all that apply"}
+          </div>
+          {options.map((opt, i) => {
+            const checked = multiAns.includes(i);
+            return (
+              <button key={i} onClick={() => toggle(i)} style={{
+                display:"flex", alignItems:"center", gap:14,
+                padding:"14px 20px", borderRadius:12, cursor:"pointer",
+                background: checked ? T.optionSelected : T.optionBg,
+                border:`1.5px solid ${checked ? T.optionBorder : "#ffffff18"}`,
+                textAlign:"left", transition:"all .15s", width:"100%",
+              }}>
+                <div style={{ width:20, height:20, borderRadius:5, flexShrink:0,
+                  border:`2px solid ${checked ? T.gold : "#ffffff33"}`,
+                  background: checked ? T.gold+"33" : "transparent",
+                  display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {checked && <span style={{ color:T.gold, fontSize:12, fontWeight:700 }}>✓</span>}
+                </div>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color: checked ? T.text : T.muted }}>{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (type === "FILL_IN_THE_BLANKS") {
+      return (
+        <input type="text" value={fillAns} onChange={e => setFillAns(e.target.value)}
+          placeholder="Type your answer…" autoComplete="off" spellCheck={false}
+          style={{ width:"100%", boxSizing:"border-box", padding:"14px 18px",
+            background:"#ffffff06", border:`1.5px solid ${fillAns ? T.gold+"66" : "#ffffff18"}`,
+            borderRadius:12, color:T.text, fontFamily:"'DM Sans',sans-serif", fontSize:15, outline:"none" }} />
+      );
+    }
+
+    if (type === "DRAG_TO_TEXT") {
+      const segs = parseDragText(c.text || "");
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+          {/* Sentence with droppable slots */}
+          <div style={{ background:"#ffffff06", border:"1px solid #ffffff18", borderRadius:12,
+            padding:"18px 22px", fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.2 }}>
+            {segs.map((seg, i) =>
+              seg.type === "text"
+                ? <span key={i}>{seg.val}</span>
+                : (
+                  <span key={i}
+                    onDragOver={e => { e.preventDefault(); }}
+                    onDrop={e => { e.preventDefault(); dropIntoSlot(seg.name); }}
+                    onClick={() => placed[seg.name] && returnToBank(seg.name)}
+                    style={{
+                      display:"inline-block", minWidth:90, textAlign:"center",
+                      background: placed[seg.name] ? T.gold+"22" : "#ffffff0a",
+                      border:`2px dashed ${placed[seg.name] ? T.gold+"88" : "#ffffff33"}`,
+                      borderRadius:8, padding:"2px 14px", margin:"0 4px",
+                      color: placed[seg.name] ? T.gold : T.muted,
+                      fontSize:14, fontWeight:600, cursor: placed[seg.name] ? "pointer" : "default",
+                      transition:"all .15s",
+                    }}
+                    title={placed[seg.name] ? "Click to return" : "Drop here"}>
+                    {placed[seg.name] || "___"}
+                  </span>
+                )
+            )}
+          </div>
+          {/* Word bank */}
+          <div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted, marginBottom:8, letterSpacing:.5, textTransform:"uppercase" }}>Word bank</div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+              {bank.map((w, i) => (
+                <span key={w+i} draggable
+                  onDragStart={() => setDragWord(w)}
+                  onDragEnd={() => setDragWord(null)}
+                  style={{
+                    background: dragWord === w ? T.gold+"33" : "#ffffff0d",
+                    border:`1.5px solid ${dragWord === w ? T.gold+"88" : "#ffffff22"}`,
+                    borderRadius:8, padding:"8px 18px", fontSize:14, color:T.text,
+                    fontFamily:"'DM Sans',sans-serif", fontWeight:500,
+                    cursor:"grab", userSelect:"none", transition:"all .15s",
+                  }}>
+                  {w}
+                </span>
+              ))}
+              {bank.length === 0 && <span style={{ fontSize:12, color:T.muted }}>All words placed</span>}
+            </div>
+          </div>
+          <button onClick={initBank} style={{ alignSelf:"flex-start", background:"transparent",
+            border:`1px solid #ffffff22`, borderRadius:8, padding:"6px 14px",
+            color:T.muted, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
+            ↺ Reset
+          </button>
+        </div>
+      );
+    }
+
+    if (type === "WRITING_INDEPENDENT" || type === "WRITING_INTEGRATED") {
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {c.prompt && <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.muted, margin:0 }}>{c.prompt}</p>}
+          <textarea rows={8} value={writingAns} onChange={e => setWritingAns(e.target.value)}
+            placeholder="Write your response here…"
+            style={{ background:"#ffffff06", border:`1.5px solid #ffffff18`,
+              borderRadius:12, padding:"14px 18px", color:T.text,
+              fontFamily:"'DM Sans',sans-serif", fontSize:14, outline:"none", resize:"vertical" }} />
+          <div style={{ fontSize:11, color:T.muted, textAlign:"right" }}>
+            {writingAns.trim().split(/\s+/).filter(Boolean).length} words
+            {c.minWords && ` / min ${c.minWords}`}
+            {c.maxWords && ` / max ${c.maxWords}`}
+          </div>
+        </div>
+      );
+    }
+
+    if (type === "SPEAKING_INDEPENDENT" || type === "SPEAKING_INTEGRATED") {
+      return (
+        <div style={{ background:"#ffffff06", borderRadius:12, padding:"24px", textAlign:"center" }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>🎤</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:T.muted, marginBottom:8 }}>
+            Speaking question — recording UI only available in the Exam Terminal
+          </div>
+          <div style={{ display:"flex", justifyContent:"center", gap:20, marginTop:12 }}>
+            {c.prepSeconds && <span style={{ fontSize:12, color:T.gold }}>⏱ Prep: {c.prepSeconds}s</span>}
+            {c.recordSeconds && <span style={{ fontSize:12, color:T.gold }}>🎙 Record: {c.recordSeconds}s</span>}
+          </div>
+        </div>
+      );
+    }
+
+    return <div style={{ color:T.muted, fontSize:13, padding:"20px 0" }}>[Preview not available for {q.type}]</div>;
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"#000000cc", backdropFilter:"blur(12px)",
+      display:"flex", alignItems:"center", justifyContent:"center", zIndex:1100, padding:20 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background:T.bg, border:"1px solid #1a2540", borderRadius:20,
+        width:"100%", maxWidth:700, maxHeight:"90vh", display:"flex", flexDirection:"column",
+        boxShadow:"0 32px 100px #000d" }}>
+
+        {/* Header */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"16px 24px", borderBottom:"1px solid #1a2540", flexShrink:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#475569" }}>Student Preview</span>
+            <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`,
+              borderRadius:5, padding:"2px 8px", fontSize:10, fontWeight:700 }}>{q.level}</span>
+            <span style={{ background:ti.color+"18", color:ti.color, border:`1px solid ${ti.color}33`,
+              borderRadius:5, padding:"2px 8px", fontSize:10, fontWeight:600 }}>{ti.icon} {ti.label}</span>
+          </div>
+          <button onClick={onClose} style={{ background:"transparent", border:"1px solid #1a2540",
+            borderRadius:8, width:32, height:32, color:"#475569", fontSize:16, cursor:"pointer",
+            display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ overflowY:"auto", padding:"28px 32px", flex:1 }}>
+          {/* Media */}
+          {media.map((m, i) => (
+            <div key={i} style={{ marginBottom:16 }}>
+              {m.type === "audio" && m.url && <audio controls src={m.url} style={{ width:"100%", accentColor:T.gold }} />}
+              {m.type === "video" && m.url && <video controls src={m.url} style={{ width:"100%", borderRadius:12, maxHeight:240 }} />}
+              {m.type === "image" && m.url && <img src={m.url} alt="" style={{ maxWidth:"100%", borderRadius:12, marginBottom:8 }} />}
+            </div>
+          ))}
+          {/* Context */}
+          {q.contextText && (
+            <div style={{ background:"#ffffff06", borderRadius:12, padding:"16px 20px", marginBottom:20,
+              borderLeft:"3px solid #c8a96e44" }}>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:"#94a3b8", lineHeight:1.7, margin:0 }}>{q.contextText}</p>
+            </div>
+          )}
+          {/* Prompt */}
+          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:T.text,
+            lineHeight:1.6, marginBottom:24, fontWeight:600 }}>{q.prompt || "(no prompt)"}</p>
+          {/* Interactive input */}
+          {renderInput()}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding:"14px 24px", borderTop:"1px solid #1a2540", flexShrink:0,
+          display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
+            {q.points} pt · Read-only preview
+          </span>
+          <button onClick={onClose} style={{ background:"transparent", border:"1px solid #243050",
+            borderRadius:9, padding:"8px 20px", color:"#475569",
+            fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer" }}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Questions Page ─────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }) {
