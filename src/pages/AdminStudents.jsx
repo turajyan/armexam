@@ -166,7 +166,7 @@ function StudentProfile({ student, onClose, onEdit }) {
   const avgScore = avg(scores);
   const passed = results.filter(r=>r.passed).length;
 
-  const avatarLetter = student.avatar || student.name?.[0] || "?";
+  const avatarLetter = student.name?.[0] || "?";
   const subtitle = student.email;
 
   const contactRows = [
@@ -420,7 +420,7 @@ function AnalyticsDash() {
           }).sort((a,b)=>b.avgScore-a.avgScore).slice(0,6).map((s,rank)=>(
             <div key={s.id} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.panel,border:`1px solid ${rank===0?C.gold:C.border}`,borderRadius:12 }}>
               <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:rank===0?C.gold:rank===1?"#94a3b8":rank===2?"#cd7f32":C.muted,minWidth:22 }}>{rank+1}</div>
-              <Avatar letter={s.avatar || s.name?.[0] || "?"} size={32} color={LC[s.level]||C.gold} />
+              <Avatar letter={s.name?.[0] || "?"} size={32} color={LC[s.level]||C.gold} />
               <div style={{ flex:1,minWidth:0 }}>
                 <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{s.name}</div>
                 <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted }}>{s.resultCount} exam{s.resultCount!==1?"s":""}</div>
@@ -481,7 +481,7 @@ function StudentsTable() {
       const updated = await api.updateStudent(editing.id, f);
       setStudents(ss=>ss.map(s=>s.id===editing.id?updated:s));
     } else {
-      const newS = await api.createStudent({...f, avatar: f.name?.[0] || "?"});
+      const newS = await api.createStudent({...f});
       setStudents(ss=>[newS,...ss]);
     }
     setEditing(null); setCreating(false);
@@ -533,7 +533,7 @@ function StudentsTable() {
             onMouseEnter={e=>e.currentTarget.style.background=C.panel+"aa"}
             onMouseLeave={e=>e.currentTarget.style.background="transparent"}
             onClick={()=>setViewing(s)}>
-            <Avatar letter={s.avatar || s.name?.[0] || "?"} size={28} color={LC[s.level]||C.gold} />
+            <Avatar letter={s.name?.[0] || "?"} size={28} color={LC[s.level]||C.gold} />
             <div>
               <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500 }}>{s.name}</div>
               <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
