@@ -854,12 +854,28 @@ function StudentPreview({ q, onClose }) {
     }
 
     if (type === "FILL_IN_THE_BLANKS") {
+      const segs = c.segments || [];
+      // fillAns is now an object { blankId: value }
+      const blanks = segs.filter(s => s.type === "blank");
+      const ans = typeof fillAns === "object" && fillAns !== null ? fillAns : {};
+      const setBlank = (id, val) => setFillAns(prev => ({ ...(typeof prev === "object" && prev !== null ? prev : {}), [id]: val }));
       return (
-        <input type="text" value={fillAns} onChange={e => setFillAns(e.target.value)}
-          placeholder="Type your answer…" autoComplete="off" spellCheck={false}
-          style={{ width:"100%", boxSizing:"border-box", padding:"14px 18px",
-            background:"#ffffff06", border:`1.5px solid ${fillAns ? T.gold+"66" : "#ffffff18"}`,
-            borderRadius:12, color:T.text, fontFamily:"'DM Sans',sans-serif", fontSize:15, outline:"none" }} />
+        <div style={{ background:"#ffffff06", border:"1px solid #ffffff18", borderRadius:12,
+          padding:"18px 22px", fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.6 }}>
+          {segs.map((s, i) =>
+            s.type === "text"
+              ? <span key={i}>{s.value}</span>
+              : <input key={i} type="text" value={ans[s.id] || ""} autoComplete="off" spellCheck={false}
+                  onChange={e => setBlank(s.id, e.target.value)}
+                  placeholder="…"
+                  style={{ display:"inline-block", width: Math.max(80, ((ans[s.id]||"").length + 3) * 9) + "px",
+                    background:"transparent", borderBottom:`2px solid ${ans[s.id] ? T.gold+"aa" : "#ffffff44"}`,
+                    border:"none", borderBottom:`2px solid ${ans[s.id] ? T.gold : "#ffffff44"}`,
+                    color:T.gold, fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:600,
+                    outline:"none", textAlign:"center", padding:"0 4px", margin:"0 3px",
+                    transition:"border .15s" }} />
+          )}
+        </div>
       );
     }
 
