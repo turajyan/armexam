@@ -224,7 +224,7 @@ export default function ExaminerDashboard({ theme: T }) {
           const color = STATUS_COLOR[key];
           return (
             <button key={key} onClick={() => setTab(key)} style={{
-              padding:"8px 18px", borderRadius:10, fontSize:13, fontWeight:600, cursor:"pointer",
+              padding:"6px 14px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap",
               background: tab===key ? color+"22" : T.panel,
               border:`1.5px solid ${tab===key ? color : T.border}`,
               color: tab===key ? color : T.muted,
