@@ -603,8 +603,6 @@ function PublishButton({ resultId, T, onPublished }) {
     </button>
   );
 }
-  return Object.fromEntries(defs.map(r => [r.id, 0]));
-}
 
 async function apiFetch(path, method="GET", body=undefined) {
   const token = localStorage.getItem("adminToken");
