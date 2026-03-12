@@ -1,4 +1,6 @@
 import { requireAdmin } from "../middleware/adminAuth.js";
+import { sendResultsReady } from "../services/mailer.js";
+import { generateCertificate } from "../services/certificate.js";
 
 export default async function resultsRoutes(fastify) {
   const { prisma } = fastify;
@@ -342,6 +344,104 @@ export default async function resultsRoutes(fastify) {
     });
 
     return { score: updated.score, pct: updated.pct, gradingStatus: updated.gradingStatus };
+  });
+
+  // ── Publish results & notify student ────────────────────────────────────────
+
+  // POST /api/results/:id/publish
+  // Called by examiner after final review. Sets gradingStatus → "published",
+  // triggers email notification to student.
+  fastify.post("/api/results/:id/publish", { preHandler: adminHook }, async (req, reply) => {
+    const resultId = Number(req.params.id);
+    const result   = await prisma.result.findUnique({
+      where:   { id: resultId },
+      include: {
+        exam:    { include: { examCenter: { select: { name: true } } } },
+        student: { select: { id: true, name: true, email: true } },
+      },
+    });
+    if (!result) return reply.code(404).send({ error: "Not found" });
+    if (result.gradingStatus === "published") {
+      return reply.code(200).send({ already: true, result });
+    }
+
+    const updated = await prisma.result.update({
+      where: { id: resultId },
+      data:  { gradingStatus: "published", gradedAt: result.gradedAt ?? new Date() },
+    });
+
+    // Fire-and-forget email — don't block HTTP response on SMTP
+    sendResultsReady({
+      student: result.student,
+      exam:    result.exam,
+      result:  updated,
+    }).catch(err => console.error("[mailer] sendResultsReady failed:", err));
+
+    return { published: true, result: updated };
+  });
+
+  // GET /api/certificate/:id  — stream PDF certificate (student or admin)
+  // Accessible by the student who owns the result (Bearer token)
+  // or any admin (Bearer admin token).
+  fastify.get("/api/certificate/:id", async (req, reply) => {
+    const resultId = Number(req.params.id);
+
+    // Auth: try student token first, fall back to admin token
+    const token   = req.headers.authorization?.replace("Bearer ", "").trim();
+    let student = null;
+    let isAdmin = false;
+
+    if (token) {
+      student = await prisma.student.findUnique({ where: { sessionToken: token } });
+      if (!student) {
+        const admin = await prisma.admin.findUnique({ where: { sessionToken: token } });
+        if (admin) isAdmin = true;
+      }
+    }
+    if (!student && !isAdmin) {
+      return reply.code(401).send({ error: "Unauthorised" });
+    }
+
+    const result = await prisma.result.findUnique({
+      where:   { id: resultId },
+      include: {
+        exam:    { include: { examCenter: { select: { name: true } } } },
+        student: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!result) return reply.code(404).send({ error: "Not found" });
+
+    // Students can only download their own certificate
+    if (student && result.studentId !== student.id) {
+      return reply.code(403).send({ error: "Forbidden" });
+    }
+
+    // Only published or completed results
+    if (!["published","completed","auto","graded"].includes(result.gradingStatus)) {
+      return reply.code(403).send({ error: "Result not yet published" });
+    }
+
+    const safeName = result.student.name.replace(/[^a-zA-Z0-9\u0530-\u058F\s]/g, "").trim();
+    const filename  = `ArmExam_Certificate_${safeName}_${resultId}.pdf`;
+
+    reply.header("Content-Type", "application/pdf");
+    reply.header("Content-Disposition", `attachment; filename="${filename}"`);
+
+    generateCertificate({
+      stream:       reply.raw,
+      studentName:  result.student.name,
+      examTitle:    result.exam.title,
+      level:        result.detectedLevel ?? result.exam.level ?? null,
+      pct:          result.pct,
+      passed:       result.passed ?? false,
+      submittedAt:  result.submittedAt.toISOString(),
+      centerName:   result.exam.examCenter?.name ?? "ArmExam",
+      resultId,
+    });
+
+    // Return raw stream — Fastify will finalise the response
+    return reply;
   });
 
   // ── Analytics ────────────────────────────────────────────────────────────────

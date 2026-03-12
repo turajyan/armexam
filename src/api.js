@@ -37,6 +37,24 @@ export const api = {
   me:         ()     => req('/auth/me'),
   getStudentStats: () => req('/student/stats'),
   studentStats: () => req('/student/stats'),
+  downloadCertificate: (resultId) => {
+    const token = localStorage.getItem('armexam_token');
+    const url   = `http://localhost:3001/api/certificate/${resultId}`;
+    // Open in new tab — browser will trigger PDF download
+    const a = document.createElement('a');
+    a.href = url;
+    a.setAttribute('download', '');
+    a.setAttribute('target', '_blank');
+    // Attach token via fetch-blob approach for authenticated download
+    return fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => { if (!r.ok) throw new Error('Download failed'); return r.blob(); })
+      .then(blob => {
+        const burl = URL.createObjectURL(blob);
+        a.href = burl;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(burl), 5000);
+      });
+  },
   logout:     ()     => req('/auth/logout',   { method: 'POST' }),
   cancelExamRegistration: (id) => req(`/auth/exam-assignments/${id}`, { method: 'DELETE' }),
   updateProfile:  (data) => req('/auth/profile',  { method: 'PUT', body: JSON.stringify(data) }),

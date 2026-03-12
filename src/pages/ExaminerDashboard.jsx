@@ -96,6 +96,10 @@ export default function ExaminerDashboard({ theme: T }) {
           </div>
           <GradingRing qs={qs} grades={grades} T={T} />
           {readOnly && <StatusBadge status="completed" T={T} />}
+          {selected.gradingStatus === "completed" && (
+            <PublishButton resultId={selected.id} T={T}
+              onPublished={() => { setSelected(null); loadQueue(tab); }} />
+          )}
         </div>
 
         <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
@@ -563,7 +567,30 @@ function Toast({ msg }) {
 // Utilities
 // ─────────────────────────────────────────────────────────────────────────────
 
-function initRubrics(defs = []) {
+function PublishButton({ resultId, T, onPublished }) {
+  const [state, setState] = useState("idle"); // idle | loading | done
+  const publish = async () => {
+    setState("loading");
+    try {
+      await apiFetch(`/api/results/${resultId}/publish`, "POST");
+      setState("done");
+      setTimeout(onPublished, 800);
+    } catch (e) {
+      alert("Publish failed: " + e.message);
+      setState("idle");
+    }
+  };
+  return (
+    <button onClick={publish} disabled={state !== "idle"}
+      style={{ padding:"8px 18px", borderRadius:10, border:"none",
+        background: state==="done" ? "#4ade8022" : "linear-gradient(135deg,#4ade80,#22c55e)",
+        color: state==="done" ? "#4ade80" : "#fff",
+        fontWeight:700, fontSize:13, cursor: state!=="idle" ? "not-allowed" : "pointer",
+        fontFamily:"'DM Sans',sans-serif", opacity: state==="loading" ? .7 : 1 }}>
+      {state==="loading" ? "Publishing…" : state==="done" ? "✓ Published" : "📤 Publish Results"}
+    </button>
+  );
+}
   return Object.fromEntries(defs.map(r => [r.id, 0]));
 }
 
