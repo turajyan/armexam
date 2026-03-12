@@ -623,13 +623,14 @@ function initRubrics(defs) {
 
 async function apiFetch(path, method="GET", body=undefined) {
   const token = localStorage.getItem("armexam_admin_token");
+  const hasBody = body !== undefined;
   const res = await fetch(`http://localhost:3001${path}`, {
     method,
     headers: {
-      "Content-Type": "application/json",
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization:`Bearer ${token}` } : {}),
     },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(hasBody ? { body: JSON.stringify(body) } : {}),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
