@@ -123,8 +123,6 @@ model Student {
   documentNumber String   @default("")
   gender         String   @default("")           // male | female | other
   level          String?                         // last detected placement level
-  group          String   @default("")           // class group e.g. Խ-101
-  avatar         String   @default("")           // first letter or emoji
   status         String   @default("active")
   sessionToken   String?  @unique
   createdAt      DateTime @default(now())

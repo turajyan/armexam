@@ -167,13 +167,12 @@ function StudentProfile({ student, onClose, onEdit }) {
   const passed = results.filter(r=>r.passed).length;
 
   const avatarLetter = student.avatar || student.name?.[0] || "?";
-  const subtitle = [student.email, student.group].filter(Boolean).join(" · ");
+  const subtitle = student.email;
 
   const contactRows = [
     ["📧", student.email],
     ["📞", student.phone],
     ["📅", student.joined ? formatDate(student.joined) : null],
-    ["👥", student.group],
   ].filter(([, val]) => val);
 
   return (
@@ -184,7 +183,6 @@ function StudentProfile({ student, onClose, onEdit }) {
           <div style={{ textAlign:"center",padding:"24px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:14 }}>
             <Avatar letter={avatarLetter} size={64} color={LC[student.level]||C.gold} />
             <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:C.text,fontWeight:600,marginTop:12 }}>{student.name}</div>
-            {student.group && <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,marginTop:4 }}>{student.group}</div>}
             <div style={{ marginTop:10 }}><LevelBadge level={student.level} /></div>
             <div style={{ marginTop:8 }}><StatusDot status={student.status} /></div>
           </div>
@@ -268,7 +266,7 @@ function StudentProfile({ student, onClose, onEdit }) {
 
 // ── Student Form Modal ────────────────────────────────────────────────────────
 function StudentForm({ initial, onSave, onCancel }) {
-  const blank = { name:"",email:"",phone:"",group:"Խ-101",level:"B1",status:"active" };
+  const blank = { name:"",email:"",phone:"",level:"B1",status:"active" };
   const [f,setF] = useState(initial||blank);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   return (
@@ -280,7 +278,6 @@ function StudentForm({ initial, onSave, onCancel }) {
           <Input label="Phone" value={f.phone} onChange={v=>set("phone",v)} placeholder="+374 ..." />
         </div>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14 }}>
-          <Select label="Group" value={f.group} onChange={v=>set("group",v)} options={["Խ-101","Խ-102","Խ-103","Խ-104"].map(g=>({value:g,label:g}))} />
           <Select label="Level" value={f.level} onChange={v=>set("level",v)} options={LEVELS.map(l=>({value:l,label:l}))} />
           <Select label="Settings" value={f.status} onChange={v=>set("status",v)} options={[{value:"active",label:"Active"},{value:"inactive",label:"Inactive"}]} />
         </div>
@@ -311,7 +308,6 @@ function AnalyticsDash() {
   const avgPct = avg(allResults.map(r=>r.pct));
 
   const levelDist = LEVELS.map(l=>({ l, n:students.filter(s=>s.level===l).length, color:LC[l] }));
-  const groupDist = ["Խ-101","Խ-102","Խ-103"].map(g=>({ g, n:students.filter(s=>s.group===g).length }));
 
   // Pass rate per exam
   const examStats = exams.map(e=>{
@@ -444,7 +440,6 @@ function StudentsTable() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterGroup, setFilterGroup] = useState("all");
   const [filterLevel, setFilterLevel] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("name");
@@ -461,7 +456,6 @@ function StudentsTable() {
     });
   }, []);
 
-  const groups = [...new Set(students.map(s=>s.group))];
 
   const enriched = useMemo(()=>students.map(s=>{
     const rs = results.filter(r=>r.studentId===s.id);
@@ -471,7 +465,6 @@ function StudentsTable() {
   const filtered = useMemo(()=>{
     let r = enriched;
     if (search) r = r.filter(s=>s.name.toLowerCase().includes(search.toLowerCase())||(s.email||"").toLowerCase().includes(search.toLowerCase()));
-    if (filterGroup!=="all") r = r.filter(s=>s.group===filterGroup);
     if (filterLevel!=="all") r = r.filter(s=>s.level===filterLevel);
     if (filterStatus!=="all") r = r.filter(s=>s.status===filterStatus);
     r = [...r].sort((a,b)=>{
@@ -481,7 +474,7 @@ function StudentsTable() {
       return 0;
     });
     return r;
-  }, [enriched,search,filterGroup,filterLevel,filterStatus,sortBy]);
+  }, [enriched,search,filterLevel,filterStatus,sortBy]);
 
   const handleSave = async (f) => {
     if (editing) {
@@ -494,7 +487,7 @@ function StudentsTable() {
     setEditing(null); setCreating(false);
   };
 
-  const COL = ["#","Student","Group","Level","Exams","Avg","Passed","Settings",""];
+  const COL = ["#","Student","Level","Exams","Avg","Passed","Settings",""];
 
   return (
     <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
@@ -509,12 +502,7 @@ function StudentsTable() {
             return <button key={value} onClick={()=>setFilterStatus(value)} style={{ background:act?c+"22":"transparent",border:`1px solid ${act?c:C.border2}`,borderRadius:8,padding:"6px 12px",color:act?c:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>{label}</button>;
           })}
         </div>
-        <div style={{ display:"flex",gap:6 }}>
-          {[{value:"all",label:"All Groups"},...groups.map(g=>({value:g,label:g}))].map(({value,label})=>{
-            const act=filterGroup===value;
-            return <button key={value} onClick={()=>setFilterGroup(value)} style={{ background:act?C.info+"22":"transparent",border:`1px solid ${act?C.info:C.border2}`,borderRadius:8,padding:"6px 12px",color:act?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>{label}</button>;
-          })}
-        </div>
+
         <div style={{ display:"flex",gap:6 }}>
           {[{value:"all",label:"All Levels"},...LEVELS.map(l=>({value:l,label:l}))].map(({value,label})=>{
             const c=LC[value]||C.gold; const act=filterLevel===value;
@@ -533,7 +521,7 @@ function StudentsTable() {
 
       {/* Table */}
       <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden" }}>
-        <div style={{ display:"grid",gridTemplateColumns:"36px 1fr 80px 60px 50px 70px 70px 80px 80px",gap:10,padding:"10px 18px",background:C.panel,borderBottom:`1px solid ${C.border}` }}>
+        <div style={{ display:"grid",gridTemplateColumns:"36px 1fr 60px 50px 70px 70px 80px 80px",gap:10,padding:"10px 18px",background:C.panel,borderBottom:`1px solid ${C.border}` }}>
           {COL.map((h,i)=><span key={i} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,fontWeight:600,letterSpacing:.8,textTransform:"uppercase" }}>{h}</span>)}
         </div>
         {loading ? (
@@ -541,7 +529,7 @@ function StudentsTable() {
         ) : filtered.length===0 ? (
           <div style={{ padding:"48px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted }}>No students found</div>
         ) : filtered.map(s=>(
-          <div key={s.id} style={{ display:"grid",gridTemplateColumns:"36px 1fr 80px 60px 50px 70px 70px 80px 80px",gap:10,padding:"12px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center",cursor:"pointer",transition:"background .15s" }}
+          <div key={s.id} style={{ display:"grid",gridTemplateColumns:"36px 1fr 60px 50px 70px 70px 80px 80px",gap:10,padding:"12px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center",cursor:"pointer",transition:"background .15s" }}
             onMouseEnter={e=>e.currentTarget.style.background=C.panel+"aa"}
             onMouseLeave={e=>e.currentTarget.style.background="transparent"}
             onClick={()=>setViewing(s)}>
@@ -550,7 +538,6 @@ function StudentsTable() {
               <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500 }}>{s.name}</div>
               <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
             </div>
-            <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.info }}>{s.group}</span>
             <LevelBadge level={s.level} small />
             <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,textAlign:"center" }}>{s.resultCount}</span>
             <div>
