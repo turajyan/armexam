@@ -13,7 +13,7 @@ import multer from 'multer';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT       = 4000;
-const MAIN_API   = process.env.MAIN_API_URL || 'http://localhost:3000'; // main armexam backend
+const MAIN_API   = process.env.MAIN_API_URL || 'http://localhost:3001'; // main armexam backend
 const DATA_DIR   = join(__dirname, 'data');
 
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
@@ -269,5 +269,38 @@ app.get('/api/sessions', (req, res) => {
 });
 
 app.get('/api/health', (_, res) => res.json({ ok: true, mainApi: MAIN_API, sessions: db.data.sessions.length }));
+
+app.get('/', (_, res) => {
+  const sessions = db.data.sessions;
+  const active   = sessions.filter(s => s.status === 'active').length;
+  const finished = sessions.filter(s => s.status === 'finished').length;
+  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>ArmExam Terminal Backend</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0c12;color:#e2e8f0;font-family:'DM Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .card{background:#161925;border:1px solid #ffffff18;border-radius:20px;padding:40px 48px;max-width:480px;width:100%}
+  .logo{font-size:13px;color:#8891aa;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+  h1{font-size:28px;font-weight:700;color:#f0f0f5;margin-bottom:4px}
+  .sub{font-size:13px;color:#8891aa;margin-bottom:32px}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #ffffff0e}
+  .row:last-child{border-bottom:none}
+  .label{font-size:12px;color:#8891aa}
+  .val{font-size:13px;font-weight:600;color:#f0f0f5;font-family:monospace}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:6px}
+  .stat{display:inline-block;background:#c8a96e18;color:#c8a96e;border:1px solid #c8a96e33;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700}
+</style></head><body><div class="card">
+  <div class="logo">🎓 ArmExam</div>
+  <h1>Terminal Backend</h1>
+  <div class="sub">Exam Kiosk API Server · v2.0</div>
+  <div class="row"><span class="label">Status</span><span class="val"><span class="dot"></span>Running</span></div>
+  <div class="row"><span class="label">Port</span><span class="val">${PORT}</span></div>
+  <div class="row"><span class="label">Main API</span><span class="val">${MAIN_API}</span></div>
+  <div class="row"><span class="label">Active sessions</span><span class="stat">${active}</span></div>
+  <div class="row"><span class="label">Finished sessions</span><span class="stat">${finished}</span></div>
+  <div class="row"><span class="label">API health</span><span class="val"><a href="/api/health" style="color:#60a5fa">/api/health</a></span></div>
+  <div class="row"><span class="label">Sessions list</span><span class="val"><a href="/api/sessions" style="color:#60a5fa">/api/sessions</a></span></div>
+</div></body></html>`);
+});
 
 app.listen(PORT, () => console.log(`✓ ArmExam Terminal Backend  http://localhost:${PORT}\n  Main API: ${MAIN_API}`));
