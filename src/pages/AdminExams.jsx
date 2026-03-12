@@ -1,28 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "../api.js";
 import { formatDate } from "../dateUtils.js";
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');`;
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');`;
 
-let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
+let C = {
+  bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",
+  gold:"#c8a96e",goldDim:"#7c5830",goldHover:"#d4b87a",
+  text:"#e2e8f0",muted:"#475569",dim:"#1e293b",
+  success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",
+};
 
-const fmtDate = (d) => d ? formatDate(d) : "";
-
-const LEVELS = ["A1","A2","B1","B2","C1","C2"];
+const LEVELS       = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const QTYPES_LIST = [
-  { id:"single_choice", label:"Single Choice", icon:"◉" },
-  { id:"multi_choice",  label:"Multi Choice",  icon:"☑" },
-  { id:"multi_select",  label:"Multi Select",  icon:"⊞" },
-  { id:"fill_blank",    label:"Fill Blank",    icon:"✎" },
-  { id:"fill_wordbank", label:"Word Bank",     icon:"🧩" },
-  { id:"writing",       label:"Writing",       icon:"✍" },
-  { id:"audio",         label:"Audio",         icon:"🎧" },
-  { id:"video",         label:"Video",         icon:"🎬" },
-  { id:"voice",         label:"Voice",         icon:"🎤" },
-];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const QTYPE_META = {
+  SINGLE_CHOICE:        { label:"Single Choice",      icon:"◉",  color:"#60a5fa", manual:false },
+  MULTIPLE_CHOICE:      { label:"Multiple Choice",    icon:"☑",  color:"#a78bfa", manual:false },
+  FILL_IN_THE_BLANKS:   { label:"Fill in the Blanks", icon:"✎",  color:"#e879f9", manual:false },
+  DRAG_TO_TEXT:         { label:"Drag to Text",       icon:"⟳",  color:"#34d399", manual:false },
+  TEXT_INSERTION:       { label:"Text Insertion",     icon:"⊕",  color:"#38bdf8", manual:false },
+  DRAG_AND_DROP_TABLE:  { label:"D&D Table",          icon:"⊞",  color:"#fb923c", manual:false },
+  DRAG_AND_DROP_IMAGE:  { label:"D&D Image",          icon:"🖼", color:"#f472b6", manual:false },
+  IMAGE_CLICK:          { label:"Image Click",        icon:"🎯", color:"#facc15", manual:false },
+  SPEAKING_INDEPENDENT: { label:"Speaking (Ind.)",    icon:"🎤", color:"#f87171", manual:true  },
+  SPEAKING_INTEGRATED:  { label:"Speaking (Int.)",    icon:"🎙", color:"#fb923c", manual:true  },
+  WRITING_INDEPENDENT:  { label:"Writing (Ind.)",     icon:"✍",  color:"#94a3b8", manual:true  },
+  WRITING_INTEGRATED:   { label:"Writing (Int.)",     icon:"📝", color:"#64748b", manual:true  },
+};
+
 const STATUS_META = {
   draft:     { label:"Draft",     color:"#f59e0b", icon:"○" },
   active:    { label:"Active",    color:"#22c55e", icon:"●" },
@@ -31,78 +37,75 @@ const STATUS_META = {
   archived:  { label:"Archived",  color:"#475569", icon:"▪" },
 };
 
-const QTYPE_ICON = { single_choice:"◉", multi_choice:"☑", multi_select:"⊞", audio:"🎧", video:"🎬", fill_blank:"✎", writing:"✍" };
-const QTYPE_COLOR = { single_choice:"#60a5fa", multi_choice:"#a78bfa", multi_select:"#34d399", audio:"#f59e0b", video:"#f87171", fill_blank:"#e879f9", writing:"#94a3b8" };
+const fmtDate = (d) => d ? formatDate(d) : "";
 
-function totalPoints(qIds, allQs) {
-  return (qIds||[]).reduce((s,id)=>{ const q=(allQs||[]).find(q=>q.id===id); return s+(q?.points||0); },0);
+function placementTotals(t=[]) {
+  let q=0,pts=0;
+  for(const r of t){const rq=(r.subpools||[]).reduce((s,sp)=>s+sp.count,0);q+=rq;pts+=rq*(r.pointsEach||1);}
+  return{q,pts};
+}
+function fixedTotals(s=[]){return{q:s.reduce((a,sp)=>a+sp.count,0),pts:0};}
+
+// ── Atoms ─────────────────────────────────────────────────────────────────────
+function Badge({children,color,small}){
+  return <span style={{background:color+"18",color,border:`1px solid ${color}33`,borderRadius:6,padding:small?"1px 7px":"3px 10px",fontSize:small?10:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif",letterSpacing:.4,whiteSpace:"nowrap"}}>{children}</span>;
 }
 
-// ── UI Atoms ──────────────────────────────────────────────────────────────────
-function Badge({ children, color, small }) {
-  return <span style={{ background:color+"18", color, border:`1px solid ${color}33`, borderRadius:6, padding: small?"1px 7px":"3px 10px", fontSize: small?10:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:.4, whiteSpace:"nowrap" }}>{children}</span>;
+function Btn({children,onClick,variant="ghost",color,disabled,small,style={}}){
+  const base={fontFamily:"'DM Sans',sans-serif",fontSize:small?12:13,fontWeight:600,borderRadius:9,padding:small?"6px 14px":"10px 20px",cursor:disabled?"not-allowed":"pointer",border:"none",transition:"all .15s",opacity:disabled?.5:1,...style};
+  const v={primary:{background:`linear-gradient(135deg,${C.gold},${C.goldDim})`,color:"white",boxShadow:`0 4px 14px ${C.gold}44`},danger:{background:"#f8717118",color:C.danger,border:`1px solid ${C.danger}33`},ghost:{background:"transparent",color:C.muted,border:`1px solid ${C.border2}`},solid:{background:color||C.card,color:C.text,border:`1px solid ${C.border2}`}};
+  return <button onClick={disabled?undefined:onClick} style={{...base,...v[variant]}}>{children}</button>;
 }
 
-function Btn({ children, onClick, variant="ghost", color, disabled, small, style={} }) {
-  const base = { fontFamily:"'DM Sans',sans-serif", fontSize: small?12:13, fontWeight:600, borderRadius:9, padding: small?"6px 14px":"10px 20px", cursor: disabled?"not-allowed":"pointer", border:"none", transition:"all .15s", opacity: disabled?.5:1, ...style };
-  const styles = {
-    primary: { background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, color:"white", boxShadow:`0 4px 14px ${C.gold}44` },
-    danger:  { background:"#f8717118", color:C.danger, border:`1px solid ${C.danger}33` },
-    ghost:   { background:"transparent", color:C.muted, border:`1px solid ${C.border2}` },
-    solid:   { background: color||C.card, color:C.text, border:`1px solid ${C.border2}` },
-  };
-  return <button onClick={disabled?undefined:onClick} style={{...base,...styles[variant]}}>{children}</button>;
-}
+const IS = {background:C.panel,border:`1.5px solid ${C.border2}`,borderRadius:10,padding:"10px 14px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"};
 
-function Input({ label, value, onChange, placeholder, type="text", style={} }) {
-  return (
-    <div style={{ display:"flex",flexDirection:"column",gap:5 }}>
-      {label && <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>{label}</label>}
-      <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
-        style={{ background:C.panel,border:`1.5px solid ${C.border2}`,borderRadius:10,padding:"10px 14px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:14,outline:"none",...style }}
-        onFocus={e=>e.target.style.borderColor=C.gold} onBlur={e=>e.target.style.borderColor=C.border2}
-      />
+function Input({label,hint,value,onChange,placeholder,type="text",min,max,style={}}){
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+      {label&&<label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>{label}{hint&&<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,marginLeft:5,color:C.muted,fontSize:10}}>— {hint}</span>}</label>}
+      <input type={type} value={value??""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} min={min} max={max}
+        style={{...IS,...style}} onFocus={e=>e.target.style.borderColor=C.gold} onBlur={e=>e.target.style.borderColor=C.border2}/>
     </div>
   );
 }
 
-function Select({ label, value, onChange, options }) {
-  return (
-    <div style={{ display:"flex",flexDirection:"column",gap:5 }}>
-      {label && <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>{label}</label>}
-      <select value={value} onChange={e=>onChange(e.target.value)}
-        style={{ background:C.panel,border:`1.5px solid ${C.border2}`,borderRadius:10,padding:"10px 14px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:14,outline:"none",cursor:"pointer" }}>
-        {options.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}
+function Sel({label,hint,value,onChange,options}){
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+      {label&&<label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>{label}{hint&&<span style={{fontWeight:400,textTransform:"none",letterSpacing:0,marginLeft:5,color:C.muted,fontSize:10}}>— {hint}</span>}</label>}
+      <select value={value} onChange={e=>onChange(e.target.value)} style={{...IS,cursor:"pointer",appearance:"auto"}}>
+        {options.map(o=><option key={o.value??o} value={o.value??o}>{o.label??o}</option>)}
       </select>
     </div>
   );
 }
 
-function Toggle({ label, value, onChange, hint }) {
-  return (
-    <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",background:C.panel,border:`1px solid ${C.border2}`,borderRadius:10 }}>
-      <div>
-        <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500 }}>{label}</div>
-        {hint && <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,marginTop:2 }}>{hint}</div>}
-      </div>
-      <div onClick={()=>onChange(!value)} style={{ width:44,height:24,borderRadius:12,background:value?C.gold:C.dim,cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0 }}>
-        <div style={{ position:"absolute",top:3,left:value?22:3,width:18,height:18,borderRadius:"50%",background:"white",transition:"left .2s",boxShadow:"0 1px 4px #0006" }} />
+function Toggle({label,hint,value,onChange}){
+  return(
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:C.panel,border:`1px solid ${C.border2}`,borderRadius:10}}>
+      <div><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500}}>{label}</div>{hint&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,marginTop:2}}>{hint}</div>}</div>
+      <div onClick={()=>onChange(!value)} style={{width:44,height:24,borderRadius:12,background:value?C.gold:C.dim,cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0,marginLeft:14}}>
+        <div style={{position:"absolute",top:3,left:value?22:3,width:18,height:18,borderRadius:"50%",background:"white",transition:"left .2s",boxShadow:"0 1px 4px #0006"}}/>
       </div>
     </div>
   );
 }
 
-function Modal({ title, subtitle, onClose, children, wide }) {
-  return (
-    <div style={{ position:"fixed",inset:0,background:"#00000092",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20 }}
-      onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
-      <div style={{ background:C.panel,border:`1px solid ${C.border2}`,borderRadius:22,padding:"36px 40px",width:"100%",maxWidth:wide?900:680,maxHeight:"92vh",overflowY:"auto",animation:"fadeSlideIn .3s ease",boxShadow:"0 32px 80px #000000bb" }}>
-        <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:28 }}>
+function Divider({label}){
+  return <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,letterSpacing:1.2,textTransform:"uppercase",fontWeight:700,paddingBottom:6,borderBottom:`1px solid ${C.border}`,marginTop:4}}>{label}</div>;
+}
+
+function Modal({title,subtitle,onClose,children,wide}){
+  return(
+    <div style={{position:"fixed",inset:0,background:"#00000092",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}
+      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:C.panel,border:`1px solid ${C.border2}`,borderRadius:22,padding:"36px 40px",width:"100%",maxWidth:wide?960:700,maxHeight:"93vh",overflowY:"auto",animation:"fadeSlideIn .25s ease",boxShadow:"0 32px 80px #000000bb"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:28}}>
           <div>
-            <h2 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:C.text,margin:"0 0 4px",fontWeight:600 }}>{title}</h2>
-            {subtitle && <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,margin:0 }}>{subtitle}</p>}
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:C.text,margin:"0 0 4px",fontWeight:600}}>{title}</h2>
+            {subtitle&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,margin:0}}>{subtitle}</p>}
           </div>
-          <button onClick={onClose} style={{ background:"transparent",border:`1px solid ${C.border2}`,borderRadius:8,width:34,height:34,color:C.muted,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>✕</button>
+          <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border2}`,borderRadius:8,width:34,height:34,color:C.muted,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
         </div>
         {children}
       </div>
@@ -110,475 +113,319 @@ function Modal({ title, subtitle, onClose, children, wide }) {
   );
 }
 
-// ── Wizard Step Indicator ─────────────────────────────────────────────────────
-function StepBar({ steps, current }) {
-  return (
-    <div style={{ display:"flex",alignItems:"center",marginBottom:32 }}>
+function StepBar({steps,current}){
+  return(
+    <div style={{display:"flex",alignItems:"center",marginBottom:32}}>
       {steps.map((s,i)=>(
-        <div key={i} style={{ display:"flex",alignItems:"center",flex: i<steps.length-1?1:"none" }}>
-          <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4 }}>
-            <div style={{ width:32,height:32,borderRadius:"50%",background: i<current?C.success:i===current?C.gold:C.dim, border:`2px solid ${i<current?C.success:i===current?C.gold:C.border2}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color: i<=current?"white":C.muted,transition:"all .3s" }}>
-              {i < current ? "✓" : i+1}
-            </div>
-            <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color: i===current?C.gold:C.muted,whiteSpace:"nowrap",letterSpacing:.3 }}>{s}</span>
+        <div key={i} style={{display:"flex",alignItems:"center",flex:i<steps.length-1?1:"none"}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+            <div style={{width:32,height:32,borderRadius:"50%",background:i<current?C.success:i===current?C.gold:C.dim,border:`2px solid ${i<current?C.success:i===current?C.gold:C.border2}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:i<=current?"white":C.muted,transition:"all .3s"}}>{i<current?"✓":i+1}</div>
+            <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:i===current?C.gold:C.muted,whiteSpace:"nowrap",letterSpacing:.3}}>{s}</span>
           </div>
-          {i < steps.length-1 && <div style={{ flex:1,height:2,background: i<current?C.success:C.border,margin:"0 8px",marginBottom:16,transition:"background .3s" }} />}
+          {i<steps.length-1&&<div style={{flex:1,height:2,background:i<current?C.success:C.border,margin:"0 8px",marginBottom:16,transition:"background .3s"}}/>}
         </div>
       ))}
     </div>
   );
 }
 
-// ── Exam Wizard ───────────────────────────────────────────────────────────────
-const WIZARD_STEPS = ["General","Questions","Students","Schedule"];
+// ── Wizard ────────────────────────────────────────────────────────────────────
+const WIZARD_STEPS = ["General","Structure","Students","Schedule"];
 
-function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] }) {
-  const isEdit = !!initial;
-  const blankFixed = { examType:"fixed", title:"", level:"B1", duration:60, passingScore:70, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true,
-    subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }],
-    assignedTo:[], startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"" };
-  const blankPlacement = { examType:"placement", title:"", level:null, duration:90, passingScore:null, shuffle:true, showResults:true, allowReview:false, showQuestionLevel:true, showQuestionPoints:true, showPlacementThreshold:true,
-    startDate:"", endDate:"", startTime:"09:00", endTime:"18:00", status:"draft", notes:"",
-    questionIds:[], assignedTo:[],
+function makeBlankFixed(){
+  return{examType:"fixed",title:"",level:"B1",duration:60,passingScore:70,shuffle:true,showResults:true,showQuestionLevel:true,showQuestionPoints:true,
+    subpools:[{section:"Reading",count:3},{section:"Grammar",count:2}],
+    assignedTo:[],startDate:"",endDate:"",startTime:"09:00",isOpen:false,examCenterId:"",status:"draft"};
+}
+function makeBlankPlacement(){
+  return{examType:"placement",title:"",level:null,duration:90,passingScore:null,shuffle:true,showResults:true,showQuestionLevel:true,showQuestionPoints:true,showPlacementThreshold:true,
     placementTemplate:[
-      { level:"A1", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Grammar", count:2 }] },
-      { level:"A2", pointsEach:1, subpools:[{ section:"Reading", count:3 },{ section:"Vocabulary", count:2 }] },
-      { level:"B1", pointsEach:2, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Grammar", count:1 }] },
-      { level:"B2", pointsEach:2, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }] },
-      { level:"C1", pointsEach:3, subpools:[{ section:"Reading", count:2 },{ section:"Listening", count:2 },{ section:"Writing", count:1 }] },
-      { level:"C2", pointsEach:3, subpools:[{ section:"Reading", count:2 },{ section:"Grammar", count:2 },{ section:"Writing", count:1 }] },
+      {level:"A1",pointsEach:1,subpools:[{section:"Reading",count:3},{section:"Grammar",count:2}]},
+      {level:"A2",pointsEach:1,subpools:[{section:"Reading",count:3},{section:"Vocabulary",count:2}]},
+      {level:"B1",pointsEach:2,subpools:[{section:"Reading",count:2},{section:"Listening",count:2},{section:"Grammar",count:1}]},
+      {level:"B2",pointsEach:2,subpools:[{section:"Reading",count:2},{section:"Listening",count:2},{section:"Writing",count:1}]},
+      {level:"C1",pointsEach:3,subpools:[{section:"Reading",count:2},{section:"Listening",count:2},{section:"Writing",count:1}]},
+      {level:"C2",pointsEach:3,subpools:[{section:"Reading",count:2},{section:"Grammar",count:2},{section:"Writing",count:1}]},
     ],
-    placementThresholds:{ A1:60, A2:60, B1:60, B2:60, C1:60, C2:60 },
-  };
-  const blank = blankFixed;
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState(initial ? {...blank,...initial} : blank);
-  const set = (k,v) => setForm(p=>({...p,[k]:v}));
-  const [allQuestions, setAllQuestions] = useState([]);
+    placementThresholds:{A1:60,A2:60,B1:65,B2:65,C1:70,C2:70},
+    assignedTo:[],startDate:"",endDate:"",startTime:"09:00",isOpen:false,examCenterId:"",status:"draft"};
+}
 
-  useEffect(() => {
-    api.getQuestions().then(data => setAllQuestions(Array.isArray(data) ? data : [])).catch(()=>{});
-  }, []);
+function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}){
+  const isEdit=!!initial;
+  const [step,setStep]=useState(0);
+  const [form,setForm]=useState(()=>{
+    if(initial){const base=initial.examType==="placement"?makeBlankPlacement():makeBlankFixed();return{...base,...initial};}
+    return makeBlankFixed();
+  });
+  const set=useCallback((k,v)=>setForm(p=>({...p,[k]:v})),[]);
+  const [allQ,setAllQ]=useState([]);
+  useEffect(()=>{api.getQuestions().then(d=>setAllQ(Array.isArray(d)?d:[])).catch(()=>{});},[]);
 
-  const availableQs = allQuestions.filter(q => !form.level || q.level === form.level || form.level === "all");
-  const toggleQ = (id) => set("questionIds", form.questionIds.includes(id) ? form.questionIds.filter(x=>x!==id) : [...form.questionIds,id]);
-  const toggleStudent = (id) => set("assignedTo", form.assignedTo.includes(id) ? form.assignedTo.filter(x=>x!==id) : [...form.assignedTo,id]);
+  const isp=form.examType==="placement";
+  const fT=fixedTotals(form.subpools);
+  const pT=placementTotals(form.placementTemplate);
 
-  const pts = totalPoints(form.questionIds, allQuestions);
-
-  // Subpool helpers — shared for both fixed and placement
-  const fixedTotalQ = (form.subpools||[]).reduce((s,sp)=>s+sp.count,0);
-  const rowTotal = (row) => (row.subpools||[]).reduce((s,sp)=>s+sp.count,0);
+  const poolCnt=(level,section)=>allQ.filter(q=>q.level===level&&q.section===section).length;
 
   // Fixed subpool ops
-  const addFixedSubpool   = () => set("subpools", [...(form.subpools||[]), {section:"Reading", count:2}]);
-  const removeFixedSP     = (idx) => set("subpools", (form.subpools||[]).filter((_,i)=>i!==idx));
-  const updateFixedSP     = (idx, field, val) =>
-    set("subpools", (form.subpools||[]).map((sp,i)=>i===idx?{...sp,[field]:field==="count"?+val:val}:sp));
+  const addFSP=()=>set("subpools",[...(form.subpools||[]),{section:sections[0]||"Reading",count:2}]);
+  const remFSP=(i)=>set("subpools",(form.subpools||[]).filter((_,j)=>j!==i));
+  const updFSP=(i,f,v)=>set("subpools",(form.subpools||[]).map((sp,j)=>j===i?{...sp,[f]:f==="count"?+v:v}:sp));
 
   // Placement subpool ops
-  const updatePtsEach     = (level, val) =>
-    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level?{...r,pointsEach:+val}:r));
-  const addSubpool        = (level) =>
-    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
-      ? {...r, subpools:[...(r.subpools||[]), {section:"Reading", count:2}]} : r));
-  const removeSubpool     = (level, idx) =>
-    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
-      ? {...r, subpools:(r.subpools||[]).filter((_,i)=>i!==idx)} : r));
-  const updateSubpool     = (level, idx, field, val) =>
-    set("placementTemplate", (form.placementTemplate||[]).map(r=>r.level===level
-      ? {...r, subpools:(r.subpools||[]).map((sp,i)=>i===idx?{...sp,[field]:field==="count"?+val:val}:sp)} : r));
+  const updPts=(lv,v)=>set("placementTemplate",(form.placementTemplate||[]).map(r=>r.level===lv?{...r,pointsEach:Math.max(1,+v)}:r));
+  const addPSP=(lv)=>set("placementTemplate",(form.placementTemplate||[]).map(r=>r.level===lv?{...r,subpools:[...(r.subpools||[]),{section:sections[0]||"Reading",count:2}]}:r));
+  const remPSP=(lv,i)=>set("placementTemplate",(form.placementTemplate||[]).map(r=>r.level===lv?{...r,subpools:(r.subpools||[]).filter((_,j)=>j!==i)}:r));
+  const updPSP=(lv,i,f,v)=>set("placementTemplate",(form.placementTemplate||[]).map(r=>r.level===lv?{...r,subpools:(r.subpools||[]).map((sp,j)=>j===i?{...sp,[f]:f==="count"?+v:v}:sp)}:r));
+  const updThr=(lv,v)=>set("placementThresholds",{...(form.placementThresholds||{}),[lv]:+v});
 
-  const updateThreshold   = (level, val) =>
-    set("placementThresholds", {...(form.placementThresholds||{}), [level]:+val});
-
-  const placementTotalQ   = (form.placementTemplate||[]).reduce((s,r)=>s+rowTotal(r),0);
-  const placementTotalPts = (form.placementTemplate||[]).reduce((s,r)=>s+rowTotal(r)*r.pointsEach,0);
-
-  const step0 = (
-    <div style={{ display:"flex",flexDirection:"column",gap:22 }}>
-
-      {/* ── Exam Type selector ── */}
-      <div>
-        <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase",display:"block",marginBottom:12 }}>Exam Type</label>
-        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
-          {[
-            { id:"fixed",     icon:"🎯", title:"Fixed Level Exam",
-              desc:"All questions are from one level (A1–C2). Pass/fail based on a fixed score threshold." },
-            { id:"placement", icon:"📊", title:"Placement Exam",
-              desc:"Questions from all levels (e.g. 5×A1, 5×A2 … 5×C2). The system calculates the student's language level automatically." },
-          ].map(t=>{
-            const sel = form.examType===t.id;
-            return (
-              <button key={t.id} onClick={()=>{
-                if (t.id==="fixed") setForm({...blankFixed, title:form.title});
-                else setForm({...blankPlacement, title:form.title});
-              }} style={{
-                background: sel?C.gold+"14":"transparent",
-                border:`2px solid ${sel?C.gold:C.border2}`,
-                borderRadius:14, padding:"18px 20px", textAlign:"left",
-                cursor:"pointer", transition:"all .2s", position:"relative",
-              }}>
-                {sel && <div style={{ position:"absolute",top:12,right:14,width:18,height:18,borderRadius:"50%",background:C.gold,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width={10} height={10} viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 5-5" stroke="white" strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg></div>}
-                <div style={{ fontSize:24,marginBottom:8 }}>{t.icon}</div>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:sel?C.gold:C.text,fontWeight:600,marginBottom:6 }}>{t.title}</div>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,lineHeight:1.5 }}>{t.desc}</div>
+  // ── Step 0: General ──────────────────────────────────────────────────────
+  const s0=(
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      {/* Type selector */}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>Exam Type</label>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {[{id:"fixed",icon:"🎯",title:"Fixed Level",desc:"One level (A1–C2), pass/fail threshold"},{id:"placement",icon:"📊",title:"Placement",desc:"All 6 levels, detects student's level"}].map(t=>{
+            const sel=form.examType===t.id;
+            return(
+              <button key={t.id} onClick={()=>{const b=t.id==="placement"?makeBlankPlacement():makeBlankFixed();setForm({...b,title:form.title});}} style={{background:sel?C.gold+"14":"transparent",border:`2px solid ${sel?C.gold:C.border2}`,borderRadius:14,padding:"16px 18px",textAlign:"left",cursor:"pointer",transition:"all .2s",position:"relative"}}>
+                {sel&&<div style={{position:"absolute",top:10,right:12,width:18,height:18,borderRadius:"50%",background:C.gold,display:"flex",alignItems:"center",justifyContent:"center"}}><svg width={10} height={10} viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 5-5" stroke="white" strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg></div>}
+                <div style={{fontSize:20,marginBottom:7}}>{t.icon}</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:sel?C.gold:C.text,fontWeight:600,marginBottom:4}}>{t.title}</div>
+                <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,lineHeight:1.5}}>{t.desc}</div>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* ── Common fields ── */}
-      <Input label="Exam Title" value={form.title} onChange={v=>set("title",v)} placeholder={form.examType==="placement"?"e.g. «Language Placement Test»":"e.g. «Summer B1 Examination»"} />
-      <div style={{ display:"grid",gridTemplateColumns:`${form.examType==="fixed"?"1fr 1fr 1fr":"1fr 1fr"}`,gap:14 }}>
-        {form.examType==="fixed" && (
-          <Select label="Language Level" value={form.level||"B1"} onChange={v=>set("level",v)}
-            options={LEVELS.map(l=>({value:l,label:l}))} />
-        )}
-        <Input label="Duration (min)" value={form.duration} onChange={v=>set("duration",+v)} type="number" />
-        {form.examType==="fixed" && (
-          <Input label="Passing Score (%)" value={form.passingScore} onChange={v=>set("passingScore",+v)} type="number" />
-        )}
+      <Input label="Exam Title" value={form.title} onChange={v=>set("title",v)} placeholder={isp?"e.g. «Language Placement Test»":"e.g. «Summer B1 Examination»"}/>
+
+      <div style={{display:"grid",gridTemplateColumns:isp?"1fr 1fr":"1fr 1fr 1fr",gap:14}}>
+        {!isp&&<Sel label="Language Level" value={form.level||"B1"} onChange={v=>set("level",v)} options={LEVELS.map(l=>({value:l,label:l}))}/>}
+        <Input label="Duration" hint="min" value={form.duration} onChange={v=>set("duration",Math.max(1,+v))} type="number" min={1} max={480}/>
+        {!isp&&<Input label="Passing Score" hint="%" value={form.passingScore} onChange={v=>set("passingScore",Math.max(1,Math.min(100,+v)))} type="number" min={1} max={100}/>}
       </div>
 
-      {/* ── FIXED: nothing extra needed ── */}
-
-      {/* ── PLACEMENT: template editor ── */}
-      {form.examType==="placement" && (
-        <div style={{ display:"flex",flexDirection:"column",gap:20 }}>
-
-          {/* Question template per level with subpools */}
-          <div>
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
-              <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>Questions per Level · Subpools</label>
-              <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold }}>
-                Total: {placementTotalQ} questions · {placementTotalPts} pts
-              </span>
-            </div>
-            <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-              {(form.placementTemplate||[]).map(row=>{
-                const lc = LEVEL_COLORS[row.level]||"#94a3b8";
-                const total = rowTotal(row);
-                return (
-                  <div key={row.level} style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
-                    {/* Level header */}
-                    <div style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 16px",background:C.dim,borderBottom:`1px solid ${C.border}` }}>
-                      <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{row.level}</span>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>
-                        {total} questions ·
-                      </span>
-                      <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                        <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>pts each:</span>
-                        <input type="number" min={1} max={10} value={row.pointsEach}
-                          onChange={e=>updatePtsEach(row.level,e.target.value)}
-                          style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"3px 8px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:700,outline:"none",width:48,textAlign:"center" }} />
-                      </div>
-                      <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:C.gold,fontWeight:700,marginLeft:"auto" }}>{total*row.pointsEach} pt subtotal</span>
-                      <button onClick={()=>addSubpool(row.level)} style={{ background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 10px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600 }}>+ Add subpool</button>
-                    </div>
-                    {/* Subpools */}
-                    {(row.subpools||[]).length === 0 && (
-                      <div style={{ padding:"12px 16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic" }}>No subpools — click "+ Add subpool" to define pools</div>
-                    )}
-                    {(row.subpools||[]).map((sp,idx)=>{
-                      const poolCount = allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length;
-                      const ok = poolCount >= sp.count;
-                      return (
-                        <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 16px",borderBottom:`1px solid ${C.border}` }}>
-                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,width:20,textAlign:"center" }}>┗</span>
-                          <select value={sp.section} onChange={e=>updateSubpool(row.level,idx,"section",e.target.value)}
-                            style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",flex:"0 0 140px" }}>
-                            {sections.map(s=><option key={s} value={s}>{s}</option>)}
-                          </select>
-                          <input type="number" min={1} max={20} value={sp.count}
-                            onChange={e=>updateSubpool(row.level,idx,"count",e.target.value)}
-                            style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",width:56,textAlign:"center" }} />
-                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:ok?C.success:"#f87171",minWidth:90 }}>
-                            {ok ? `✓ ${poolCount} available` : `✗ only ${poolCount} (need ${sp.count})`}
-                          </span>
-                          <button onClick={()=>removeSubpool(row.level,idx)} style={{ background:"transparent",border:"none",color:"#f87171",cursor:"pointer",fontSize:15,padding:"0 4px",marginLeft:"auto" }}>✕</button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Level thresholds */}
-          <div>
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
-              <label style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>Level Thresholds (%)</label>
-              <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>Student must pass each level consecutively (no gaps)</span>
-            </div>
-            <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px",display:"flex",flexDirection:"column",gap:12 }}>
-              {LEVELS.map((level,i)=>{
-                const thresh = (form.placementThresholds||{})[level]??0;
-                const lc = LEVEL_COLORS[level]||"#94a3b8";
-                return (
-                  <div key={level} style={{ display:"flex",alignItems:"center",gap:16 }}>
-                    <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",width:44,textAlign:"center",flexShrink:0 }}>{level}</span>
-                    <div style={{ flex:1,height:6,background:C.dim,borderRadius:3,overflow:"hidden" }}>
-                      <div style={{ width:`${thresh}%`,height:"100%",background:lc,borderRadius:3,transition:"width .3s" }}/>
-                    </div>
-                    <div style={{ display:"flex",alignItems:"center",gap:8,flexShrink:0 }}>
-                      <input type="range" min={0} max={100} value={thresh}
-                        onChange={e=>updateThreshold(level,e.target.value)}
-                        style={{ width:100,accentColor:lc,cursor:"pointer" }} />
-                      <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:lc,fontWeight:700,width:36,textAlign:"right" }}>{thresh}%</span>
-                    </div>
-                    {i>0 && (
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,width:140 }}>
-                        {level} questions: need ≥ {thresh}%
-                      </span>
-                    )}
-                    {i===0 && (
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,width:140 }}>
-                        A1 questions: need ≥ {thresh}% to pass
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-              {/* Visual explanation */}
-              <div style={{ marginTop:4,background:C.card,borderRadius:8,padding:"10px 14px" }}>
-                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,lineHeight:1.6 }}>
-                  💡 Each level is scored <strong style={{color:C.text}}>independently</strong>. 
-                  Student gets highest level where <em>they and all lower levels</em> meet the threshold.
-                  Example: A1✓ A2✓ B1✗ → result is <strong style={{color:LEVEL_COLORS["A2"]}}>A2</strong>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+      {centers.length>0&&(
+        <Sel label="Exam Center" hint="optional" value={form.examCenterId||""} onChange={v=>set("examCenterId",v===""?null:+v)}
+          options={[{value:"",label:"— No center —"},...centers.map(c=>({value:c.id,label:c.name}))]}/>
       )}
 
-      <Input label="Notes (optional)" value={form.notes} onChange={v=>set("notes",v)} placeholder="Internal notes..." />
+      <Sel label="Status" value={form.status} onChange={v=>set("status",v)}
+        options={Object.entries(STATUS_META).map(([v,m])=>({value:v,label:`${m.icon} ${m.label}`}))}/>
     </div>
   );
 
-  // Step 1 — Questions (fixed) or Pool overview (placement)
-  const step1 = (()=>{
-    if (form.examType === "placement") {
-      // Placement: show pool status per level - how many questions exist vs needed
-      return (
-        <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
-          <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"18px 22px" }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.6 }}>
-              In a Placement Exam, questions are drawn <strong style={{color:C.text}}>automatically from the question bank</strong> at exam time, based on the template you defined in Step 1.<br/>
-              <span style={{ color:C.gold }}>Review the question pool availability below.</span>
-            </div>
-            <div style={{ background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
-              <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 70px 70px",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,background:C.dim }}>
-                {["Level","Subpools","Total Q","Threshold","Status"].map(h=>(
-                  <span key={h} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,fontWeight:700,letterSpacing:.6,textTransform:"uppercase" }}>{h}</span>
-                ))}
-              </div>
-              {(form.placementTemplate||[]).map(row=>{
-                const lc = LEVEL_COLORS[row.level]||"#94a3b8";
-                const total = rowTotal(row);
-                const allOk = (row.subpools||[]).every(sp=>
-                  allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length >= sp.count
-                );
-                return (
-                  <div key={row.level}>
-                    <div style={{ display:"grid",gridTemplateColumns:"60px 1fr 80px 70px 70px",gap:12,padding:"10px 18px",borderBottom:`1px solid ${C.border}`,alignItems:"center",background:allOk?"transparent":"#f8717108" }}>
-                      <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",textAlign:"center" }}>{row.level}</span>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>{total} q across {(row.subpools||[]).length} subpool{(row.subpools||[]).length!==1?"s":""}</span>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,textAlign:"center" }}>{total}</span>
-                      <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:lc,fontWeight:700,textAlign:"center" }}>≥{(form.placementThresholds||{})[row.level]??60}%</span>
-                      <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:allOk?C.success:"#f87171" }}>{allOk?"✓ OK":"✗ Error"}</span>
+  // ── Step 1: Structure ────────────────────────────────────────────────────
+  const s1=isp?(
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      {/* Template */}
+      <div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>Questions per Level</span>
+          <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.gold}}>{pT.q} q · {pT.pts} pts total</span>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {(form.placementTemplate||[]).map(row=>{
+            const lc=LEVEL_COLORS[row.level]||"#94a3b8";
+            const rq=(row.subpools||[]).reduce((s,sp)=>s+sp.count,0);
+            return(
+              <div key={row.level} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",background:C.dim,borderBottom:`1px solid ${C.border}`}}>
+                  <Badge color={lc}>{row.level}</Badge>
+                  <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,flex:1}}>{rq} q · <span style={{color:C.gold}}>{rq*(row.pointsEach||1)} pts</span></span>
+                  <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>pts/q</span>
+                  <input type="number" min={1} max={10} value={row.pointsEach||1} onChange={e=>updPts(row.level,e.target.value)}
+                    style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"3px 8px",color:C.gold,fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:700,outline:"none",width:46,textAlign:"center"}}/>
+                  <button onClick={()=>addPSP(row.level)} style={{background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 10px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600}}>+ subpool</button>
+                </div>
+                {(row.subpools||[]).length===0&&<div style={{padding:"9px 14px",fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,fontStyle:"italic"}}>No subpools</div>}
+                {(row.subpools||[]).map((sp,idx)=>{
+                  const pc=poolCnt(row.level,sp.section);const ok=pc>=sp.count;
+                  return(
+                    <div key={idx} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 14px",borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{color:C.muted,fontSize:10,width:16}}>┗</span>
+                      <select value={sp.section} onChange={e=>updPSP(row.level,idx,"section",e.target.value)}
+                        style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",flex:"0 0 148px"}}>
+                        {sections.map(s=><option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <input type="number" min={1} max={30} value={sp.count} onChange={e=>updPSP(row.level,idx,"count",e.target.value)}
+                        style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"5px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",width:50,textAlign:"center"}}/>
+                      <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:ok?C.success:C.danger,flex:1}}>{ok?`✓ ${pc} in pool`:`✗ only ${pc} (need ${sp.count})`}</span>
+                      <button onClick={()=>remPSP(row.level,idx)} style={{background:"transparent",border:"none",color:C.danger,cursor:"pointer",fontSize:13,padding:"0 4px"}}>✕</button>
                     </div>
-                    {(row.subpools||[]).map((sp,idx)=>{
-                      const poolCount = allQuestions.filter(q=>q.level===row.level&&q.section===sp.section).length;
-                      const ok = poolCount >= sp.count;
-                      return (
-                        <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"7px 18px 7px 32px",borderBottom:`1px solid ${C.border}`,background:ok?"transparent":"#f8717106" }}>
-                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>┗</span>
-                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,flex:1 }}>{sp.section}</span>
-                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>need {sp.count}</span>
-                          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:"#f87171",fontWeight:600,minWidth:80,textAlign:"right" }}>
-                            {ok ? `✓ ${poolCount} in pool` : `✗ only ${poolCount}`}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-              <div style={{ padding:"12px 18px",display:"flex",justifyContent:"space-between" }}>
-                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>Total: {placementTotalQ} questions · {placementTotalPts} points</span>
-                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>Questions selected randomly at exam time</span>
-              </div>
-            </div>
-          </div>
-          <Toggle label="Shuffle Questions" hint="Randomize order within each level group" value={form.shuffle} onChange={v=>set("shuffle",v)} />
-        </div>
-      );
-    }
-    // Fixed exam — subpool editor by section
-    const level = form.level || "B1";
-    return (
-      <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
-        <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 18px",fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,lineHeight:1.6 }}>
-          Questions are picked <strong style={{color:C.text}}>randomly</strong> at exam time from the <strong style={{color:LEVEL_COLORS[level]||C.gold}}>{level}</strong> question bank, by section.
-        </div>
-        <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-            <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase" }}>
-              Section subpools · total: {fixedTotalQ} questions
-            </span>
-            <button onClick={addFixedSubpool} style={{ background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 12px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600 }}>+ Add section</button>
-          </div>
-          {(form.subpools||[]).length === 0 && (
-            <div style={{ padding:"16px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic",background:C.panel,borderRadius:10,textAlign:"center" }}>No sections added yet</div>
-          )}
-          {(form.subpools||[]).map((sp,idx)=>{
-            const poolCount = allQuestions.filter(q=>q.level===level&&q.section===sp.section).length;
-            const ok = poolCount >= sp.count;
-            return (
-              <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.panel,border:`1.5px solid ${ok?C.border2:"#f8717144"}`,borderRadius:10 }}>
-                <select value={sp.section} onChange={e=>updateFixedSP(idx,"section",e.target.value)}
-                  style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",flex:"0 0 160px" }}>
-                  {sections.map(s=><option key={s} value={s}>{s}</option>)}
-                </select>
-                <input type="number" min={1} max={30} value={sp.count}
-                  onChange={e=>updateFixedSP(idx,"count",e.target.value)}
-                  style={{ background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",width:64,textAlign:"center" }} />
-                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:"#f87171",flex:1 }}>
-                  {ok ? `✓ ${poolCount} available` : `✗ only ${poolCount} in pool (need ${sp.count})`}
-                </span>
-                <button onClick={()=>removeFixedSP(idx)} style={{ background:"transparent",border:"none",color:"#f87171",cursor:"pointer",fontSize:15,padding:"0 4px" }}>✕</button>
-              </div>
-            );
-          })}
-        </div>
-        <Toggle label="Shuffle Questions" hint="Randomize question order for each student" value={form.shuffle} onChange={v=>set("shuffle",v)} />
-      </div>
-    );
-  })();
-
-  // Step 2 — Students
-  const step2 = (()=>{
-    const allSelected = students.length > 0 && students.every(s=>form.assignedTo.includes(s.id));
-    const toggleAll = () => set("assignedTo", allSelected ? [] : students.map(s=>s.id));
-    return (
-      <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{form.assignedTo.length}</span> students</span>
-          <button onClick={toggleAll} style={{ background:allSelected?C.info+"22":"transparent",border:`1px solid ${allSelected?C.info:C.border2}`,borderRadius:8,padding:"6px 14px",color:allSelected?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>
-            {allSelected ? "Deselect All" : "Select All"}
-          </button>
-        </div>
-        {/* Student list */}
-        <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:340,overflowY:"auto" }}>
-          {students.map(s=>{
-            const sel = form.assignedTo.includes(s.id);
-            const lc = LEVEL_COLORS[s.level]||"#94a3b8";
-            return (
-              <div key={s.id} onClick={()=>toggleStudent(s.id)} style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:sel?C.info+"0e":C.panel,border:`1.5px solid ${sel?C.info+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .15s" }}>
-                <div style={{ width:20,height:20,borderRadius:"50%",border:`2px solid ${sel?C.info:C.border2}`,background:sel?C.info+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                  {sel && <svg width={11} height={11} viewBox="0 0 11 11"><path d="M1.5 6l3 3 5-5" stroke={C.info} strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg>}
-                </div>
-                <div style={{ width:32,height:32,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0 }}>
-                  {s.name[0]}
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500 }}>{s.name}</div>
-                  <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
-                </div>
-                <Badge color="#94a3b8" small>#{s.id}</Badge>
-                <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level||"—"}</span>
+                  );
+                })}
               </div>
             );
           })}
         </div>
       </div>
-    );
-  })();
 
-  // Step 3 — Schedule & settings
-  const step3 = (
-    <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
-      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
-        <Input label="Start Date" value={form.startDate} onChange={v=>set("startDate",v)} type="date" />
-        <Input label="End Date" value={form.endDate} onChange={v=>set("endDate",v)} type="date" />
-        <Input label="Start Time" value={form.startTime} onChange={v=>set("startTime",v)} type="time" />
-        <Input label="End Time" value={form.endTime} onChange={v=>set("endTime",v)} type="time" />
-      </div>
-      <Select label="Status" value={form.status} onChange={v=>set("status",v)} options={Object.entries(STATUS_META).map(([v,m])=>({value:v,label:m.label}))} />
-      <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-        <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",paddingBottom:4,borderBottom:`1px solid ${C.border}` }}>Behaviour</div>
-        <Toggle label="Show results to student" hint="Show results to student after exam" value={form.showResults} onChange={v=>set("showResults",v)} />
-        <Toggle label="Allow Answer Review" hint="Allow answer review after submission" value={form.allowReview} onChange={v=>set("allowReview",v)} />
-        <Toggle label="Show question level (A1–C2) to student" hint="Students see the level badge on each question during the exam" value={form.showQuestionLevel??true} onChange={v=>set("showQuestionLevel",v)} />
-        <Toggle label="Show question points to student" hint="Students see the point value of each question during the exam" value={form.showQuestionPoints??true} onChange={v=>set("showQuestionPoints",v)} />
-        {form.examType==="placement" && (
-          <Toggle label="Show level thresholds to student" hint="On the exam start screen, show required % threshold per level" value={form.showPlacementThreshold??true} onChange={v=>set("showPlacementThreshold",v)} />
-        )}
-      </div>
-      {/* Summary card */}
-      <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px" }}>
-        <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:14 }}>Summary</div>
-        <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12 }}>
-          {[
-            { label:"Questions", value: form.examType==="placement"?placementTotalQ:fixedTotalQ, color:C.gold },
-            { label:"Points",  value: pts,                    color:C.warning },
-            { label:"Student", value: form.assignedTo.length,  color:C.info },
-            { label:"Pass %", value: form.passingScore+"%",   color:C.success },
-          ].map(x=>(
-            <div key={x.label} style={{ textAlign:"center" }}>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:x.color,fontWeight:700 }}>{x.value}</div>
-              <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{x.label}</div>
-            </div>
-          ))}
+      {/* Thresholds */}
+      <div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>Pass Thresholds</span>
+          <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted}}>Ladder: pass A1→A2→… consecutively</span>
         </div>
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",display:"flex",flexDirection:"column",gap:9}}>
+          {LEVELS.map(lv=>{
+            const t=(form.placementThresholds||{})[lv]??60;const lc=LEVEL_COLORS[lv];
+            return(
+              <div key={lv} style={{display:"flex",alignItems:"center",gap:12}}>
+                <Badge color={lc} small>{lv}</Badge>
+                <div style={{flex:1,height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}><div style={{width:`${t}%`,height:"100%",background:lc,borderRadius:3,transition:"width .3s"}}/></div>
+                <input type="range" min={0} max={100} value={t} onChange={e=>updThr(lv,e.target.value)} style={{width:88,accentColor:lc,cursor:"pointer",flexShrink:0}}/>
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:lc,fontWeight:700,width:36,textAlign:"right",flexShrink:0}}>{t}%</span>
+              </div>
+            );
+          })}
+          <div style={{marginTop:2,background:C.card,borderRadius:8,padding:"7px 12px"}}>
+            <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,lineHeight:1.5}}>💡 Result = highest consecutive level all passing. A1✓ A2✓ B1✗ → <strong style={{color:LEVEL_COLORS.A2}}>A2</strong></span>
+          </div>
+        </div>
+      </div>
+      <Toggle label="Shuffle Questions" hint="Randomize order within each level group" value={form.shuffle} onChange={v=>set("shuffle",v)}/>
+    </div>
+  ):(
+    // Fixed structure
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,lineHeight:1.6}}>
+        Questions picked <strong style={{color:C.text}}>randomly at exam time</strong> from the <strong style={{color:LEVEL_COLORS[form.level||"B1"]||C.gold}}>{form.level||"B1"}</strong> pool by section.
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>Section Subpools · <span style={{color:C.gold}}>{fT.q} q total</span></span>
+        <button onClick={addFSP} style={{background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 12px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600}}>+ Add section</button>
+      </div>
+      {(form.subpools||[]).length===0&&<div style={{padding:"14px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic",background:C.panel,borderRadius:10,textAlign:"center"}}>No sections added</div>}
+      {(form.subpools||[]).map((sp,idx)=>{
+        const pc=poolCnt(form.level,sp.section);const ok=pc>=sp.count;
+        return(
+          <div key={idx} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.panel,border:`1.5px solid ${ok?C.border2:C.danger+"55"}`,borderRadius:10}}>
+            <select value={sp.section} onChange={e=>updFSP(idx,"section",e.target.value)}
+              style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",flex:"0 0 160px"}}>
+              {sections.map(s=><option key={s} value={s}>{s}</option>)}
+            </select>
+            <input type="number" min={1} max={50} value={sp.count} onChange={e=>updFSP(idx,"count",e.target.value)}
+              style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",width:58,textAlign:"center"}}/>
+            <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:C.danger,flex:1}}>{ok?`✓ ${pc} available`:`✗ only ${pc} (need ${sp.count})`}</span>
+            <button onClick={()=>remFSP(idx)} style={{background:"transparent",border:"none",color:C.danger,cursor:"pointer",fontSize:13,padding:"0 4px"}}>✕</button>
+          </div>
+        );
+      })}
+      <Toggle label="Shuffle Questions" hint="Randomize order for each student" value={form.shuffle} onChange={v=>set("shuffle",v)}/>
+    </div>
+  );
+
+  // ── Step 2: Students ─────────────────────────────────────────────────────
+  const [stFilter,setStFilter]=useState("");
+  const fltSt=students.filter(s=>!stFilter||s.name.toLowerCase().includes(stFilter.toLowerCase()));
+  const allSel=students.length>0&&students.every(s=>(form.assignedTo||[]).includes(s.id));
+  const togAll=()=>set("assignedTo",allSel?[]:students.map(s=>s.id));
+  const togSt=(id)=>set("assignedTo",(form.assignedTo||[]).includes(id)?(form.assignedTo||[]).filter(x=>x!==id):[...(form.assignedTo||[]),id]);
+
+  const s2=(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        <input value={stFilter} onChange={e=>setStFilter(e.target.value)} placeholder="🔍 Search…"
+          style={{flex:1,...IS,padding:"8px 12px",fontSize:13}}/>
+        <button onClick={togAll} style={{background:allSel?C.info+"22":"transparent",border:`1px solid ${allSel?C.info:C.border2}`,borderRadius:8,padding:"8px 14px",color:allSel?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+          {allSel?"Deselect All":"Select All"}
+        </button>
+        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,whiteSpace:"nowrap"}}><span style={{color:C.gold,fontWeight:700}}>{(form.assignedTo||[]).length}</span> selected</span>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:5,maxHeight:360,overflowY:"auto"}}>
+        {fltSt.length===0&&<div style={{padding:"24px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted}}>No students</div>}
+        {fltSt.map(s=>{
+          const sel=(form.assignedTo||[]).includes(s.id);const lc=LEVEL_COLORS[s.level]||"#94a3b8";
+          return(
+            <div key={s.id} onClick={()=>togSt(s.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"9px 13px",background:sel?C.info+"0e":C.panel,border:`1.5px solid ${sel?C.info+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .12s"}}>
+              <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${sel?C.info:C.border2}`,background:sel?C.info+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {sel&&<svg width={11} height={11} viewBox="0 0 11 11"><path d="M1.5 6l3 3 5-5" stroke={C.info} strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg>}
+              </div>
+              <div style={{width:30,height:30,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0,fontFamily:"'DM Sans',sans-serif"}}>{s.name[0]}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
+                <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>{s.email}</div>
+              </div>
+              {s.level&&<Badge color={lc} small>{s.level}</Badge>}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 
-  const STEP_CONTENT = [step0,step1,step2,step3];
-  const STEP_LABELS = ["General", "Questions", "Students", "Schedule & Settings"];
-  const canProceed = [
-    form.title.trim().length > 0,
-    form.examType === "placement" ? placementTotalQ > 0 : fixedTotalQ > 0,
-    (form.assignedTo||[]).length > 0,
-    true,
-  ];
+  // ── Step 3: Schedule ─────────────────────────────────────────────────────
+  const totals=isp?pT:fT;
+  const s3=(
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <Divider label="Exam Window"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <Input label="Start Date" value={form.startDate} onChange={v=>set("startDate",v)} type="date"/>
+        <Input label="End Date"   value={form.endDate}   onChange={v=>set("endDate",v)}   type="date"/>
+        <Input label="Start Time" hint="when session opens at kiosk" value={form.startTime} onChange={v=>set("startTime",v)} type="time"/>
+      </div>
 
-  // Edit mode: show all sections at once
-  if (isEdit) return (
-    <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-      {STEP_CONTENT.map((content, i) => (
-        <div key={i} style={{ marginBottom:28 }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:16, paddingBottom:8, borderBottom:`1px solid ${C.border}` }}>
-            {STEP_LABELS[i]}
+      <Divider label="Access"/>
+      <Toggle label="Open for Students" hint="Students can see and take this exam at the terminal" value={form.isOpen} onChange={v=>set("isOpen",v)}/>
+
+      <Divider label="Student Display"/>
+      <Toggle label="Show results after submission"      hint="Score displayed after finishing"              value={form.showResults}               onChange={v=>set("showResults",v)}/>
+      <Toggle label="Show question level tag (A1–C2)"   hint="Level badge visible on each question"         value={form.showQuestionLevel??true}    onChange={v=>set("showQuestionLevel",v)}/>
+      <Toggle label="Show question points"              hint="Point value visible on each question"         value={form.showQuestionPoints??true}   onChange={v=>set("showQuestionPoints",v)}/>
+      {isp&&<Toggle label="Show level thresholds on start screen" hint="Required % per level shown before exam" value={form.showPlacementThreshold??true} onChange={v=>set("showPlacementThreshold",v)}/>}
+
+      <Divider label="Summary"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+        {[
+          {label:"Questions", value:totals.q,                          color:C.gold},
+          {label:"Points",    value:isp?totals.pts:"—",                color:C.warning},
+          {label:"Students",  value:(form.assignedTo||[]).length,      color:C.info},
+          {label:"Pass",      value:isp?"per level":(form.passingScore+"%"), color:C.success},
+        ].map(x=>(
+          <div key={x.label} style={{textAlign:"center",background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 8px"}}>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:x.color,fontWeight:700}}>{x.value}</div>
+            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,marginTop:2}}>{x.label}</div>
           </div>
-          {content}
+        ))}
+      </div>
+    </div>
+  );
+
+  const SCONTENT=[s0,s1,s2,s3];
+  const SLABELS=WIZARD_STEPS;
+  const canNext=[form.title.trim().length>0,isp?pT.q>0:fT.q>0,true,true];
+
+  if(isEdit) return(
+    <div style={{display:"flex",flexDirection:"column",gap:0}}>
+      {SCONTENT.map((c,i)=>(
+        <div key={i} style={{marginBottom:28}}>
+          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:14,paddingBottom:7,borderBottom:`1px solid ${C.border}`}}>{SLABELS[i]}</div>
+          {c}
         </div>
       ))}
-      <div style={{ display:"flex", justifyContent:"space-between", marginTop:8, paddingTop:20, borderTop:`1px solid ${C.border}` }}>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:18,borderTop:`1px solid ${C.border}`}}>
         <Btn onClick={onCancel}>Cancel</Btn>
-        <Btn variant="primary" onClick={()=>onSave(form)}>✓ Save</Btn>
+        <Btn variant="primary" onClick={()=>onSave(form)}>✓ Save Changes</Btn>
       </div>
     </div>
   );
 
-  return (
+  return(
     <div>
-      <StepBar steps={WIZARD_STEPS} current={step} />
-      <div style={{ minHeight:380 }}>{STEP_CONTENT[step]}</div>
-      <div style={{ display:"flex",justifyContent:"space-between",marginTop:28,paddingTop:20,borderTop:`1px solid ${C.border}` }}>
-        <Btn onClick={step===0?onCancel:()=>setStep(s=>s-1)}>
-          {step===0 ? "Cancel" : "← Back"}
-        </Btn>
-        <div style={{ display:"flex",gap:10 }}>
-          {step<3 && <Btn variant="ghost" onClick={()=>set("status","draft")}>Save Draft</Btn>}
-          {step < 3
-            ? <Btn variant="primary" disabled={!canProceed[step]} onClick={()=>setStep(s=>s+1)}>Next →</Btn>
-            : <Btn variant="primary" onClick={()=>onSave(form)}>✓ Create</Btn>
+      <StepBar steps={SLABELS} current={step}/>
+      <div style={{minHeight:380}}>{SCONTENT[step]}</div>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:26,paddingTop:18,borderTop:`1px solid ${C.border}`}}>
+        <Btn onClick={step===0?onCancel:()=>setStep(s=>s-1)}>{step===0?"Cancel":"← Back"}</Btn>
+        <div style={{display:"flex",gap:10}}>
+          {step<3&&<Btn variant="ghost" onClick={()=>onSave({...form,status:"draft"})}>💾 Save Draft</Btn>}
+          {step<3
+            ?<Btn variant="primary" disabled={!canNext[step]} onClick={()=>setStep(s=>s+1)}>Next →</Btn>
+            :<Btn variant="primary" onClick={()=>onSave(form)}>✓ Create Exam</Btn>
           }
         </div>
       </div>
@@ -587,108 +434,92 @@ function ExamWizard({ initial, onSave, onCancel, students = [], sections = [] })
 }
 
 // ── Exam Card ─────────────────────────────────────────────────────────────────
-function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, onPreview, allStudents = [] }) {
-  const sm = STATUS_META[exam.status]||STATUS_META.draft;
-  const lc = LEVEL_COLORS[exam.level]||"#94a3b8";
-  const pts = (exam.subpools||[]).reduce((s,sp)=>s+sp.count,0);
-  // assignments = [{ studentId, pin }] from backend; enrich with student name from allStudents
-  const assignments = (exam.assignments || []).map(a => ({
-    ...a,
-    student: allStudents.find(s => s.id === a.studentId),
-  }));
+function ExamCard({exam,onEdit,onDelete,onAssign,onViewResults,onPreview,onToggleOpen,allStudents=[]}){
+  const sm=STATUS_META[exam.status]||STATUS_META.draft;
+  const lc=LEVEL_COLORS[exam.level]||"#94a3b8";
+  const isp=exam.examType==="placement";
+  const totals=isp?placementTotals(exam.placementTemplate||[]):fixedTotals(exam.subpools||[]);
+  const assignments=(exam.assignments||[]).map(a=>({...a,student:allStudents.find(s=>s.id===a.studentId)}));
 
-  return (
-    <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"22px 24px",display:"flex",flexDirection:"column",gap:16,transition:"border .2s",cursor:"default" }}
+  return(
+    <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"20px 22px",display:"flex",flexDirection:"column",gap:12,transition:"border .2s"}}
       onMouseEnter={e=>e.currentTarget.style.borderColor=C.border2}
       onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-      {/* Top */}
-      <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12 }}>
-        <div style={{ flex:1,minWidth:0 }}>
-          <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:6 }}>
-            {exam.examType==="placement"
-              ? <span style={{ background:"#a78bfa18",color:"#a78bfa",border:"1px solid #a78bfa33",borderRadius:6,padding:"2px 9px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>📊 Placement</span>
-              : <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:6,padding:"2px 9px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{exam.level}</span>
-            }
-            <span style={{ background:sm.color+"18",color:sm.color,border:`1px solid ${sm.color}33`,borderRadius:6,padding:"2px 9px",fontSize:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{sm.icon} {sm.label}</span>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,flexWrap:"wrap"}}>
+            {isp?<Badge color={C.purple}>📊 Placement</Badge>:<Badge color={lc}>{exam.level}</Badge>}
+            <Badge color={sm.color}>{sm.icon} {sm.label}</Badge>
+            {exam.isOpen&&<Badge color={C.success}>🟢 Open</Badge>}
           </div>
-          <h3 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:C.text,margin:"0 0 4px",fontWeight:600,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{exam.title}</h3>
-          <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{exam.createdAt}</div>
+          <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:19,color:C.text,margin:"0 0 3px",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exam.title}</h3>
+          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted}}>#{exam.id}</div>
+        </div>
+        {/* isOpen toggle */}
+        <div title={exam.isOpen?"Close":"Open"} onClick={()=>onToggleOpen(exam)}
+          style={{width:36,height:20,borderRadius:10,background:exam.isOpen?C.success:C.dim,cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0,marginTop:4}}>
+          <div style={{position:"absolute",top:2,left:exam.isOpen?18:2,width:16,height:16,borderRadius:"50%",background:"white",transition:"left .2s",boxShadow:"0 1px 3px #0006"}}/>
         </div>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display:"flex",gap:12 }}>
-        {(exam.examType==="placement" ? [
-          { icon:"📊",val:(exam.placementTemplate||[]).reduce((s,r)=>s+(r.subpools||[]).reduce((ss,sp)=>ss+sp.count,0),0)+" q",tip:"Total Questions" },
-          { icon:"🎚",val:(()=>{ const lvls=(exam.placementTemplate||[]).map(r=>r.level).filter(Boolean); return lvls.length?lvls[0]+(lvls.length>1?"→"+lvls[lvls.length-1]:""):"—"; })(),tip:"Levels" },
-          { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
-          { icon:"🎯",val:(()=>{ const vals=Object.values(exam.placementThresholds||{}); return vals.length?Math.min(...vals)+"%/lvl":"—"; })(),tip:"Per-level threshold" },
-        ] : [
-          { icon:"📋",val:(exam.subpools||(exam.placementTemplate||[]).flatMap(r=>r.subpools||[])).reduce((s,sp)=>s+sp.count,0)+" q",tip:"Questions" },
-          { icon:"🏆",val:pts+" pts",tip:"Total Points" },
-          { icon:"⏱",val:exam.duration+" min",tip:"Duration" },
-          { icon:"🎯",val:(exam.passingScore??0)+"%",tip:"Pass Score" },
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7}}>
+        {(isp?[
+          {icon:"📋",val:totals.q+" q",         tip:"Questions"},
+          {icon:"💎",val:totals.pts+" pts",      tip:"Points"},
+          {icon:"⏱", val:exam.duration+" min",   tip:"Duration"},
+          {icon:"🎯",val:(()=>{const v=Object.values(exam.placementThresholds||{});return v.length?Math.min(...v)+"%/lv":"—";})(),tip:"Threshold"},
+        ]:[
+          {icon:"📋",val:totals.q+" q",             tip:"Questions"},
+          {icon:"⏱", val:exam.duration+" min",      tip:"Duration"},
+          {icon:"🎯",val:(exam.passingScore??0)+"%", tip:"Pass score"},
+          {icon:"👥",val:assignments.length+" reg",  tip:"Registered"},
         ]).map(x=>(
-          <div key={x.tip} style={{ flex:1,background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:"8px",textAlign:"center" }}>
-            <div style={{ fontSize:14,marginBottom:2 }}>{x.icon}</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,fontWeight:600 }}>{x.val}</div>
+          <div key={x.tip} title={x.tip} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:9,padding:"7px 4px",textAlign:"center"}}>
+            <div style={{fontSize:11,marginBottom:2}}>{x.icon}</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.text,fontWeight:500}}>{x.val}</div>
           </div>
         ))}
       </div>
 
-      {/* Date */}
-      {exam.startDate && (
-        <div style={{ display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:9 }}>
-          <span style={{ fontSize:13 }}>📅</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>{fmtDate(exam.startDate)}{exam.endDate&&exam.endDate!==exam.startDate?" → "+fmtDate(exam.endDate):""}</span>
+      {/* Schedule */}
+      {(exam.startDate||exam.startTime)&&(
+        <div style={{display:"flex",gap:8,alignItems:"center",padding:"6px 10px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8}}>
+          <span style={{fontSize:11}}>📅</span>
+          {exam.startDate&&<span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>{fmtDate(exam.startDate)}{exam.endDate&&exam.endDate!==exam.startDate?" → "+fmtDate(exam.endDate):""}</span>}
+          {exam.startTime&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.gold,background:C.gold+"18",borderRadius:5,padding:"1px 6px",marginLeft:"auto"}}>{exam.startTime}</span>}
         </div>
       )}
 
-      {/* Registered students with PINs */}
+      {/* Center */}
+      {exam.examCenter&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>🏢 {exam.examCenter.name}</div>}
+
+      {/* Students */}
       <div>
-        <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:8 }}>
-          Registered Students · {assignments.length}
-        </div>
-        {assignments.length === 0
-          ? <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted }}>None yet</span>
-          : <div style={{ display:"flex",flexDirection:"column",gap:4 }}>
-              {assignments.slice(0,4).map(a => (
-                <div key={a.studentId} style={{ display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8 }}>
-                  <div style={{ width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,color:C.text,flexShrink:0 }}>
-                    {a.student ? a.student.name[0] : "?"}
-                  </div>
-                  <div style={{ flex:1,minWidth:0 }}>
-                    <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.text,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                      {a.student ? a.student.name : `#${a.studentId}`}
-                    </div>
-                  </div>
-                  <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:5,padding:"1px 7px",letterSpacing:.8,flexShrink:0 }}>
-                    {a.pin}
-                  </span>
-                </div>
-              ))}
-              {assignments.length > 4 && (
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,paddingLeft:10 }}>
-                  +{assignments.length - 4} more
-                </div>
-              )}
-            </div>
+        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:5}}>Students · {assignments.length}</div>
+        {assignments.length===0
+          ?<span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>None registered</span>
+          :<div style={{display:"flex",flexDirection:"column",gap:3}}>
+            {assignments.slice(0,3).map(a=>(
+              <div key={a.studentId} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 9px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8}}>
+                <div style={{width:22,height:22,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:600,color:C.text,flexShrink:0,fontFamily:"'DM Sans',sans-serif"}}>{a.student?a.student.name[0]:"?"}</div>
+                <span style={{flex:1,fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.student?a.student.name:`#${a.studentId}`}</span>
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:4,padding:"1px 6px",letterSpacing:.8,flexShrink:0}}>{a.pin}</span>
+              </div>
+            ))}
+            {assignments.length>3&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,paddingLeft:8}}>+{assignments.length-3} more</div>}
+          </div>
         }
       </div>
 
       {/* Actions */}
-      <div style={{ display:"flex",gap:8,paddingTop:4 }}>
-        <Btn small onClick={()=>onEdit(exam)} style={{ flex:1 }}>✎ Edit</Btn>
-        <Btn small onClick={()=>onPreview(exam)} style={{ flex:1 }} variant="solid" color={C.purple+"22"}>
-          <span style={{ color:C.purple }}>▶ Preview</span>
-        </Btn>
-        <Btn small onClick={()=>onAssign(exam)} style={{ flex:1 }} variant="solid" color={C.info+"22"}>
-          <span style={{ color:C.info }}>+ Assign</span>
-        </Btn>
-        {exam.status==="completed" && (
-          <Btn small onClick={()=>onViewResults(exam)} style={{ flex:1 }} variant="solid" color={C.success+"22"}>
-            <span style={{ color:C.success }}>📊 Results</span>
-          </Btn>
+      <div style={{display:"flex",gap:6,paddingTop:2}}>
+        <Btn small onClick={()=>onEdit(exam)} style={{flex:1}}>✎ Edit</Btn>
+        <Btn small onClick={()=>onPreview(exam)} variant="solid" color={C.purple+"22"} style={{flex:1}}><span style={{color:C.purple}}>▶ Preview</span></Btn>
+        <Btn small onClick={()=>onAssign(exam)} variant="solid" color={C.info+"22"} style={{flex:1}}><span style={{color:C.info}}>+ Assign</span></Btn>
+        {(exam.status==="completed"||exam.status==="active")&&(
+          <Btn small onClick={()=>onViewResults(exam)} variant="solid" color={C.success+"22"} style={{flex:1}}><span style={{color:C.success}}>📊</span></Btn>
         )}
         <Btn small variant="danger" onClick={()=>onDelete(exam.id)}>✕</Btn>
       </div>
@@ -696,257 +527,34 @@ function ExamCard({ exam, onEdit, onDelete, onAssign, onViewResults, onPreview, 
   );
 }
 
-// ── Exam Preview (moderator: frontend-only test run, no DB save) ──────────────
-function ExamPreview({ exam, questions, onClose }) {
-  const [answers,  setAnswers]  = useState({});
-  const [current,  setCurrent]  = useState(0);
-  const [finished, setFinished] = useState(false);
-  const [score,    setScore]    = useState(null);
-
-  const q = questions[current];
-
-  const setAnswer = (qId, val) => setAnswers(a => ({ ...a, [qId]: val }));
-
-  const calcScore = () => {
-    let earned = 0, total = 0;
-    for (const q of questions) {
-      total += q.points;
-      const ans = answers[q.id];
-      if (q.type === "single_choice") {
-        if (Number(ans) === q.correct) earned += q.points;
-      } else if (q.type === "multi_choice" || q.type === "multi_select") {
-        const correct = Array.isArray(q.correct) ? q.correct : [q.correct];
-        const given   = Array.isArray(ans) ? ans : [];
-        if (correct.length === given.length && correct.every(c => given.includes(c))) earned += q.points;
-      } else if (q.type === "fill_blank") {
-        if ((ans||"").trim().toLowerCase() === (q.answer||"").trim().toLowerCase()) earned += q.points;
-      } else if (q.type === "writing" || q.type === "voice") {
-        // manual — count as 0 in preview
-      }
-    }
-    setScore({ earned, total, pct: total > 0 ? Math.round(earned/total*100) : 0 });
-    setFinished(true);
-  };
-
-  if (finished && score) {
-    return (
-      <div style={{ fontFamily:"'DM Sans',sans-serif",textAlign:"center",padding:"20px 0" }}>
-        <div style={{ fontSize:48,marginBottom:12 }}>{score.pct >= 60 ? "🎉" : "📝"}</div>
-        <div style={{ fontSize:28,fontWeight:700,color:C.gold,marginBottom:8 }}>{score.pct}%</div>
-        <div style={{ color:C.muted,fontSize:14,marginBottom:4 }}>
-          Набрано: {score.earned} / {score.total} баллов
-        </div>
-        <div style={{ color:C.muted,fontSize:12,marginBottom:20 }}>
-          ⚠ Это тестовый прогон — результаты НЕ сохраняются в базу данных
-        </div>
-        <button onClick={()=>{setFinished(false);setAnswers({});setCurrent(0);setScore(null)}} style={{ background:C.gold+"22",border:`1px solid ${C.gold}44`,borderRadius:10,padding:"10px 24px",color:C.gold,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",marginRight:10 }}>
-          Пройти снова
-        </button>
-        <button onClick={onClose} style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 24px",color:C.text,fontWeight:500,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
-          Закрыть
-        </button>
-      </div>
-    );
-  }
-
-  if (!q) return <div style={{ color:C.muted,fontFamily:"'DM Sans',sans-serif" }}>Нет вопросов</div>;
-
-  const isMulti  = q.type === "multi_choice" || q.type === "multi_select";
-  const selected = answers[q.id] ?? (isMulti ? [] : null);
-
-  const toggleOpt = (idx) => {
-    if (!isMulti) { setAnswer(q.id, idx); return; }
-    const arr = Array.isArray(selected) ? selected : [];
-    setAnswer(q.id, arr.includes(idx) ? arr.filter(x=>x!==idx) : [...arr, idx]);
-  };
-
-  // Group questions by level for placement exams
-  const isPlacement = exam.examType === "placement";
-  const levels = isPlacement ? [...new Set(questions.map(q => q.level))] : [];
-
-  const isDotAnswered = (q) => {
-    const ans = answers[q.id];
-    if (ans === undefined || ans === null || ans === "") return false;
-    if (Array.isArray(ans)) return ans.length > 0;
-    return true;
-  };
-
-  return (
-    <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
-      {/* Progress */}
-      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:12 }}>
-        <span style={{ color:C.muted,fontSize:13 }}>Вопрос {current+1} / {questions.length}</span>
-        <div style={{ flex:1,height:4,background:C.border,borderRadius:2 }}>
-          <div style={{ width:`${((current+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s" }} />
-        </div>
-        <span style={{ color:C.muted,fontSize:11 }}>{q.points} балл · {q.level}</span>
-      </div>
-
-      {/* Dot navigation */}
-      {isPlacement ? (
-        <div style={{ display:"flex",gap:16,flexWrap:"wrap",marginBottom:18,padding:"10px 14px",background:C.panel,borderRadius:10,border:`1px solid ${C.border}` }}>
-          {levels.map(lvl => {
-            const lvlQs = questions.map((qq,i) => ({ qq, i })).filter(({ qq }) => qq.level === lvl);
-            return (
-              <div key={lvl} style={{ display:"flex",alignItems:"center",gap:5 }}>
-                <span style={{ fontSize:10,fontWeight:700,color:LEVEL_COLORS[lvl]||C.muted,minWidth:20 }}>{lvl}</span>
-                <div style={{ display:"flex",gap:4 }}>
-                  {lvlQs.map(({ qq, i }) => {
-                    const isCur = i === current;
-                    const isDone = isDotAnswered(qq);
-                    return (
-                      <button
-                        key={i}
-                        title={`${lvl} · Вопрос ${i+1}`}
-                        onClick={() => setCurrent(i)}
-                        style={{
-                          width:12,height:12,borderRadius:"50%",padding:0,cursor:"pointer",
-                          background: isCur ? C.gold : isDone ? C.gold+"88" : C.border2,
-                          border:`2px solid ${isCur ? C.gold : isDone ? C.gold+"55" : C.border2}`,
-                          outline: isCur ? `2px solid ${C.gold}44` : "none",
-                          outlineOffset:1,
-                          transition:"all .15s",
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:18,padding:"10px 14px",background:C.panel,borderRadius:10,border:`1px solid ${C.border}` }}>
-          {questions.map((qq, i) => {
-            const isCur = i === current;
-            const isDone = isDotAnswered(qq);
-            return (
-              <button
-                key={i}
-                title={`Вопрос ${i+1}`}
-                onClick={() => setCurrent(i)}
-                style={{
-                  width:12,height:12,borderRadius:"50%",padding:0,cursor:"pointer",
-                  background: isCur ? C.gold : isDone ? C.gold+"88" : C.border2,
-                  border:`2px solid ${isCur ? C.gold : isDone ? C.gold+"55" : C.border2}`,
-                  outline: isCur ? `2px solid ${C.gold}44` : "none",
-                  outlineOffset:1,
-                  transition:"all .15s",
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {/* Question text */}
-      <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 20px",marginBottom:16,fontSize:15,color:C.text,lineHeight:1.6 }}>
-        {q.text}
-      </div>
-
-      {/* Answer input */}
-      {(q.type === "single_choice" || q.type === "multi_choice" || q.type === "multi_select") && (
-        <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:20 }}>
-          {(q.options||[]).map((opt,i)=>{
-            const sel = isMulti ? (Array.isArray(selected)&&selected.includes(i)) : selected===i;
-            return (
-              <button key={i} onClick={()=>toggleOpt(i)} style={{
-                padding:"10px 16px",borderRadius:10,textAlign:"left",
-                background:sel?C.gold+"22":"transparent",
-                border:`1.5px solid ${sel?C.gold:C.border}`,
-                color:sel?C.gold:C.text,fontSize:14,cursor:"pointer",
-                fontFamily:"'DM Sans',sans-serif",
-              }}>{opt}</button>
-            );
-          })}
-        </div>
-      )}
-      {q.type === "fill_blank" && (
-        <input
-          value={answers[q.id]||""}
-          onChange={e=>setAnswer(q.id,e.target.value)}
-          placeholder="Введите ответ..."
-          style={{ width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,fontSize:14,outline:"none",fontFamily:"'DM Sans',sans-serif",marginBottom:20 }}
-        />
-      )}
-      {(q.type === "writing") && (
-        <textarea
-          rows={5}
-          value={answers[q.id]||""}
-          onChange={e=>setAnswer(q.id,e.target.value)}
-          placeholder={`Напишите ответ (${q.minWords||0}–${q.maxWords||999} слов)...`}
-          style={{ width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 14px",color:C.text,fontSize:14,outline:"none",fontFamily:"'DM Sans',sans-serif",marginBottom:20,resize:"vertical" }}
-        />
-      )}
-      {q.type === "voice" && (
-        <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:16,marginBottom:20,color:C.muted,fontSize:13 }}>
-          🎤 Запись голоса — в режиме предпросмотра недоступна
-        </div>
-      )}
-
-      {/* Nav buttons */}
-      <div style={{ display:"flex",justifyContent:"space-between",gap:10 }}>
-        <button
-          disabled={current===0}
-          onClick={()=>setCurrent(c=>c-1)}
-          style={{ padding:"9px 20px",borderRadius:10,background:C.card,border:`1px solid ${C.border}`,color:current===0?C.muted:C.text,cursor:current===0?"not-allowed":"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:14 }}
-        >← Назад</button>
-        {current < questions.length - 1 ? (
-          <button onClick={()=>setCurrent(c=>c+1)} style={{ padding:"9px 20px",borderRadius:10,background:`linear-gradient(135deg,${C.gold},${C.goldDim})`,border:"none",color:"white",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
-            Далее →
-          </button>
-        ) : (
-          <button onClick={calcScore} style={{ padding:"9px 24px",borderRadius:10,background:`linear-gradient(135deg,${C.success},#16a34a)`,border:"none",color:"white",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>
-            Завершить
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── Assign Modal ──────────────────────────────────────────────────────────────
-function AssignModal({ exam, onClose, onSave, students = [] }) {
-  const [assigned, setAssigned] = useState([...exam.assignedTo]);
-  // existing PINs map: studentId -> pin (for already-assigned students)
-  const existingPins = Object.fromEntries((exam.assignments || []).map(a => [a.studentId, a.pin]));
-  const toggle = (id) => setAssigned(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
-  const allSelected = students.length > 0 && students.every(s=>assigned.includes(s.id));
-  const toggleAll = () => setAssigned(allSelected ? [] : students.map(s=>s.id));
-  return (
+function AssignModal({exam,onClose,onSave,students=[]}){
+  const [assigned,setAssigned]=useState([...(exam.assignedTo||[])]);
+  const epins=Object.fromEntries((exam.assignments||[]).map(a=>[a.studentId,a.pin]));
+  const tog=(id)=>setAssigned(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
+  const allSel=students.length>0&&students.every(s=>assigned.includes(s.id));
+  const togAll=()=>setAssigned(allSel?[]:students.map(s=>s.id));
+  return(
     <Modal title="Assign Students" subtitle={exam.title} onClose={onClose}>
-      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14 }}>
-        <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>Selected: <span style={{ color:C.gold,fontWeight:700 }}>{assigned.length}</span></span>
-        <button onClick={toggleAll} style={{ background:allSelected?C.info+"22":"transparent",border:`1px solid ${allSelected?C.info:C.border2}`,borderRadius:8,padding:"5px 14px",color:allSelected?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer",transition:"all .15s" }}>
-          {allSelected ? "Deselect All" : "Select All"}
-        </button>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted}}>Selected: <span style={{color:C.gold,fontWeight:700}}>{assigned.length}</span></span>
+        <button onClick={togAll} style={{background:allSel?C.info+"22":"transparent",border:`1px solid ${allSel?C.info:C.border2}`,borderRadius:8,padding:"5px 14px",color:allSel?C.info:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer"}}>{allSel?"Deselect All":"Select All"}</button>
       </div>
-      <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:360,overflowY:"auto",marginBottom:20 }}>
+      <div style={{display:"flex",flexDirection:"column",gap:5,maxHeight:380,overflowY:"auto",marginBottom:18}}>
         {students.map(s=>{
-          const sel=assigned.includes(s.id);
-          const lc=LEVEL_COLORS[s.level]||"#94a3b8";
-          const pin=existingPins[s.id];
-          return (
-            <div key={s.id} onClick={()=>toggle(s.id)} style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:sel?C.info+"0e":C.panel,border:`1.5px solid ${sel?C.info+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .15s" }}>
-              <div style={{ width:20,height:20,borderRadius:"50%",border:`2px solid ${sel?C.info:C.border2}`,background:sel?C.info+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                {sel&&<svg width={11} height={11} viewBox="0 0 11 11"><path d="M1.5 6l3 3 5-5" stroke={C.info} strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg>}
-              </div>
-              <div style={{ width:32,height:32,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13 }}>{s.name[0]}</div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500 }}>{s.name}</div>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>{s.email}</div>
-              </div>
-              {pin && (
-                <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:5,padding:"1px 7px",letterSpacing:.8 }}>
-                  {pin}
-                </span>
-              )}
-              <span style={{ background:lc+"18",color:lc,border:`1px solid ${lc}33`,borderRadius:5,padding:"1px 8px",fontSize:10,fontWeight:700,fontFamily:"'DM Sans',sans-serif" }}>{s.level||"—"}</span>
+          const sel=assigned.includes(s.id);const lc=LEVEL_COLORS[s.level]||"#94a3b8";const pin=epins[s.id];
+          return(
+            <div key={s.id} onClick={()=>tog(s.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 13px",background:sel?C.info+"0e":C.panel,border:`1.5px solid ${sel?C.info+"55":C.border}`,borderRadius:10,cursor:"pointer",transition:"all .12s"}}>
+              <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${sel?C.info:C.border2}`,background:sel?C.info+"33":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{sel&&<svg width={11} height={11} viewBox="0 0 11 11"><path d="M1.5 6l3 3 5-5" stroke={C.info} strokeWidth={1.8} fill="none" strokeLinecap="round"/></svg>}</div>
+              <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0,fontFamily:"'DM Sans',sans-serif"}}>{s.name[0]}</div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:sel?C.text:C.muted,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>{s.email}</div></div>
+              {pin&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:4,padding:"1px 6px",letterSpacing:.8,flexShrink:0}}>{pin}</span>}
+              {s.level&&<Badge color={lc} small>{s.level}</Badge>}
             </div>
           );
         })}
       </div>
-      <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
+      <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
         <Btn onClick={onClose}>Cancel</Btn>
         <Btn variant="primary" onClick={()=>onSave(assigned)}>✓ Save</Btn>
       </div>
@@ -954,228 +562,306 @@ function AssignModal({ exam, onClose, onSave, students = [] }) {
   );
 }
 
-// ── Results Preview ───────────────────────────────────────────────────────────
-function ResultsModal({ exam, onClose, allStudents = [] }) {
-  const [results, setResults] = useState([]);
-  useEffect(() => {
-    api.getResults({ examId: exam.id }).then(setResults);
-  }, [exam.id]);
-
-  return (
+// ── Results Modal ─────────────────────────────────────────────────────────────
+function ResultsModal({exam,onClose,allStudents=[]}){
+  const [results,setResults]=useState([]);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{api.getResults({examId:exam.id}).then(setResults).catch(()=>{}).finally(()=>setLoading(false));},[exam.id]);
+  return(
     <Modal title="Results" subtitle={exam.title} onClose={onClose}>
-      <div style={{ display:"flex",flexDirection:"column",gap:8,maxHeight:420,overflowY:"auto" }}>
-        {results.length === 0 && (
-          <div style={{ padding:"32px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted }}>No results yet</div>
-        )}
+      {loading?<div style={{padding:"40px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted}}>Loading…</div>
+      :results.length===0?<div style={{padding:"40px",textAlign:"center",fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted}}>No results yet</div>
+      :<div style={{display:"flex",flexDirection:"column",gap:7,maxHeight:440,overflowY:"auto"}}>
         {results.map(r=>{
-          const s = allStudents.find(x=>x.id===r.studentId) || r.student;
-          const pass = r.passed;
-          return (
-            <div key={r.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10 }}>
-              <div style={{ width:34,height:34,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14 }}>{s?.name?.[0]||"?"}</div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500 }}>{s?.name||"Unknown"}</div>
-                <div style={{ height:5,background:C.dim,borderRadius:3,marginTop:6,overflow:"hidden" }}>
-                  <div style={{ width:`${r.pct}%`,height:"100%",background:pass?C.success:C.danger,borderRadius:3,transition:"width .6s" }} />
-                </div>
-              </div>
-              <div style={{ textAlign:"right" }}>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:pass?C.success:C.danger,fontWeight:700 }}>{r.score}/{r.totalPoints}</div>
-                <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:pass?C.success:C.danger }}>{r.pct}% · {pass?"✓ Pass":"✕ Fail"}</div>
-              </div>
+          const s=allStudents.find(x=>x.id===r.studentId)||r.student;
+          const pass=r.passed;const lc=LEVEL_COLORS[r.detectedLevel]||"#94a3b8";
+          return(
+            <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontFamily:"'DM Sans',sans-serif"}}>{s?.name?.[0]||"?"}</div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s?.name||"Unknown"}</div><div style={{height:4,background:C.dim,borderRadius:2,marginTop:5,overflow:"hidden"}}><div style={{width:`${r.pct}%`,height:"100%",background:pass?C.success:C.danger,borderRadius:2,transition:"width .6s"}}/></div></div>
+              {r.detectedLevel&&<Badge color={lc}>{r.detectedLevel}</Badge>}
+              <div style={{textAlign:"right",flexShrink:0}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:pass?C.success:C.danger,fontWeight:700}}>{r.score}/{r.totalPoints}</div><div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:pass?C.success:C.danger}}>{r.pct}% · {pass?"✓ Pass":"✕ Fail"}</div></div>
             </div>
           );
         })}
-      </div>
+      </div>}
     </Modal>
   );
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-const NAV = [
-  { id:"questions",icon:"📋",label:"Questions" },
-  { id:"exams",    icon:"🎓",label:"Exams" },
-  { id:"students", icon:"👤",label:"Students" },
-  { id:"results",  icon:"📊",label:"Analytics" },
-  { id:"media",    icon:"📁",label:"Media" },
-  { id:"settings", icon:"⚙️", label:"Settings" },
-];
+// ── Exam Preview ──────────────────────────────────────────────────────────────
+function ExamPreview({exam,questions,onClose}){
+  const [answers,setAnswers]=useState({});
+  const [current,setCurrent]=useState(0);
+  const [finished,setFinished]=useState(false);
+  const [score,setScore]=useState(null);
+  const q=questions[current];
+  const setAns=(id,v)=>setAnswers(a=>({...a,[id]:v}));
+  const MANUAL=new Set(["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"]);
 
+  const calcScore=()=>{
+    let earned=0,total=0;
+    for(const qq of questions){
+      total+=qq.points||1;if(MANUAL.has(qq.type))continue;
+      const ans=answers[qq.id];const ct=qq.content||{};
+      if(qq.type==="SINGLE_CHOICE"&&Number(ans)===ct.correct)earned+=qq.points||1;
+      else if(qq.type==="MULTIPLE_CHOICE"){const c=Array.isArray(ct.correct)?ct.correct:[];const g=Array.isArray(ans)?ans:[];if(c.length===g.length&&c.every(x=>g.includes(x)))earned+=qq.points||1;}
+      else if(qq.type==="FILL_IN_THE_BLANKS"){const exp=ct.answers||[];const g=Array.isArray(ans)?ans:[ans];if(exp.every((e,i)=>(g[i]||"").trim().toLowerCase()===(e||"").trim().toLowerCase()))earned+=qq.points||1;}
+    }
+    setScore({earned,total,pct:total>0?Math.round(earned/total*100):0});setFinished(true);
+  };
+
+  const isDone=(qq)=>{const a=answers[qq.id];if(a===undefined||a===null||a==="")return false;return Array.isArray(a)?a.length>0:true;};
+  const isp=exam.examType==="placement";const levels=isp?[...new Set(questions.map(qq=>qq.level))]:[];
+
+  if(finished&&score) return(
+    <div style={{fontFamily:"'DM Sans',sans-serif",textAlign:"center",padding:"20px 0"}}>
+      <div style={{fontSize:46,marginBottom:12}}>{score.pct>=60?"🎉":"📝"}</div>
+      <div style={{fontSize:26,fontWeight:700,color:C.gold,marginBottom:8,fontFamily:"'Cormorant Garamond',serif"}}>{score.pct}%</div>
+      <div style={{color:C.muted,fontSize:13,marginBottom:4}}>Earned: {score.earned} / {score.total} pts</div>
+      <div style={{color:C.warning,fontSize:11,marginBottom:22}}>⚠ Preview mode — NOT saved to database</div>
+      <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+        <Btn onClick={()=>{setFinished(false);setAnswers({});setCurrent(0);setScore(null);}}>↩ Retry</Btn>
+        <Btn variant="primary" onClick={onClose}>Close</Btn>
+      </div>
+    </div>
+  );
+
+  if(!q) return <div style={{color:C.muted,fontFamily:"'DM Sans',sans-serif",padding:"24px",textAlign:"center"}}>No questions in this exam</div>;
+
+  const ct=q.content||{};const isMulti=q.type==="MULTIPLE_CHOICE";
+  const selected=answers[q.id]??(isMulti?[]:"");
+  const togOpt=(idx)=>{if(!isMulti){setAns(q.id,idx);return;}const a=Array.isArray(selected)?selected:[];setAns(q.id,a.includes(idx)?a.filter(x=>x!==idx):[...a,idx]);};
+  const qm=QTYPE_META[q.type]||{label:q.type,icon:"?",color:C.muted};
+
+  return(
+    <div style={{fontFamily:"'DM Sans',sans-serif"}}>
+      {/* Progress */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+        <span style={{color:C.muted,fontSize:12}}>{current+1}/{questions.length}</span>
+        <div style={{flex:1,height:3,background:C.border,borderRadius:2}}><div style={{width:`${((current+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s"}}/></div>
+        <Badge color={qm.color} small>{qm.icon} {q.type}</Badge>
+        {q.level&&<Badge color={LEVEL_COLORS[q.level]||C.muted} small>{q.level}</Badge>}
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.gold}}>{q.points||1} pts</span>
+      </div>
+
+      {/* Dot nav */}
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:12,padding:"7px 12px",background:C.panel,borderRadius:9,border:`1px solid ${C.border}`}}>
+        {isp?levels.map(lv=>{
+          const lqs=questions.map((qq,i)=>({qq,i})).filter(({qq})=>qq.level===lv);
+          return(<div key={lv} style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:9,fontWeight:700,color:LEVEL_COLORS[lv]||C.muted,minWidth:16}}>{lv}</span>{lqs.map(({qq,i})=>(<button key={i} onClick={()=>setCurrent(i)} style={{width:10,height:10,borderRadius:"50%",padding:0,cursor:"pointer",background:i===current?C.gold:isDone(qq)?C.gold+"88":C.border2,border:`2px solid ${i===current?C.gold:C.border2}`,transition:"all .12s"}}/>))}</div>);
+        }):questions.map((qq,i)=>(<button key={i} onClick={()=>setCurrent(i)} style={{width:10,height:10,borderRadius:"50%",padding:0,cursor:"pointer",background:i===current?C.gold:isDone(qq)?C.gold+"88":C.border2,border:`2px solid ${i===current?C.gold:C.border2}`,transition:"all .12s"}}/>))}
+      </div>
+
+      {/* Context */}
+      {q.contextText&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:9,padding:"10px 14px",marginBottom:10,fontSize:12,color:C.muted,lineHeight:1.7,fontStyle:"italic"}}>{q.contextText}</div>}
+
+      {/* Prompt */}
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 16px",marginBottom:12,fontSize:14,color:C.text,lineHeight:1.7}}>{q.prompt||q.text||"(no prompt)"}</div>
+
+      {/* Answer input */}
+      {(q.type==="SINGLE_CHOICE"||q.type==="MULTIPLE_CHOICE")&&(
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
+          {(ct.options||[]).map((opt,i)=>{const sel=isMulti?(Array.isArray(selected)&&selected.includes(i)):selected===i;return(<button key={i} onClick={()=>togOpt(i)} style={{padding:"8px 13px",borderRadius:9,textAlign:"left",background:sel?C.gold+"22":"transparent",border:`1.5px solid ${sel?C.gold:C.border}`,color:sel?C.gold:C.text,fontSize:13,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all .1s"}}>{opt}</button>);})}
+        </div>
+      )}
+      {q.type==="FILL_IN_THE_BLANKS"&&<input value={answers[q.id]||""} onChange={e=>setAns(q.id,e.target.value)} placeholder="Type your answer…" style={{width:"100%",...IS,marginBottom:16}}/>}
+      {(q.type==="WRITING_INDEPENDENT"||q.type==="WRITING_INTEGRATED")&&<textarea rows={5} value={answers[q.id]||""} onChange={e=>setAns(q.id,e.target.value)} placeholder="Write your answer…" style={{width:"100%",...IS,marginBottom:16,resize:"vertical"}}/>}
+      {(q.type==="SPEAKING_INDEPENDENT"||q.type==="SPEAKING_INTEGRATED")&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:9,padding:12,marginBottom:16,color:C.muted,fontSize:12}}>🎤 Voice recording — not available in preview mode</div>}
+      {!["SINGLE_CHOICE","MULTIPLE_CHOICE","FILL_IN_THE_BLANKS","WRITING_INDEPENDENT","WRITING_INTEGRATED","SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED"].includes(q.type)&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:9,padding:12,marginBottom:16,color:C.muted,fontSize:12}}>{qm.icon} {qm.label} — interactive preview not available in admin mode</div>}
+
+      {/* Nav */}
+      <div style={{display:"flex",justifyContent:"space-between",gap:10}}>
+        <Btn disabled={current===0} onClick={()=>setCurrent(c=>c-1)}>← Back</Btn>
+        {current<questions.length-1?<Btn variant="primary" onClick={()=>setCurrent(c=>c+1)}>Next →</Btn>:<Btn variant="primary" onClick={calcScore} style={{background:`linear-gradient(135deg,${C.success},#16a34a)`}}>✓ Finish</Btn>}
+      </div>
+    </div>
+  );
+}
 
 // ── Exams Page ────────────────────────────────────────────────────────────────
-function ExamsPage() {
-  const [exams, setExams] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [sections, setSections] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null);
-  const [editing, setEditing] = useState(null);
-  const [assigning, setAssigning] = useState(null);
-  const [viewingResults, setViewingResults] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterLevel, setFilterLevel] = useState("all");
-  const [search, setSearch] = useState("");
-  const [previewing, setPreviewing] = useState(null);   // { exam, questions }
-  const [previewLoading, setPreviewLoading] = useState(false);
+function ExamsPage(){
+  const [exams,setExams]=useState([]);
+  const [students,setStudents]=useState([]);
+  const [sections,setSections]=useState([]);
+  const [centers,setCenters]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(null);
+  const [modal,setModal]=useState(null);
+  const [editing,setEditing]=useState(null);
+  const [assigning,setAssigning]=useState(null);
+  const [viewingResults,setViewingResults]=useState(null);
+  const [deleteId,setDeleteId]=useState(null);
+  const [previewing,setPreviewing]=useState(null);
+  const [previewLoading,setPreviewLoading]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [filterStatus,setFilterStatus]=useState("all");
+  const [filterLevel,setFilterLevel]=useState("all");
+  const [search,setSearch]=useState("");
 
-  useEffect(() => {
-    Promise.all([api.getExams(), api.getStudents(), api.getSections()]).then(([e, s, secs]) => {
-      setExams(e); setStudents(s); setSections(secs.map(sec => sec.name)); setLoading(false);
-    });
-  }, []);
+  useEffect(()=>{
+    Promise.all([
+      api.getExams(),
+      api.getStudents(),
+      api.getSections(),
+      api.getAllCenters().catch(()=>[]),
+    ]).then(([e,s,secs,c])=>{
+      setExams(Array.isArray(e)?e:[]);
+      setStudents(Array.isArray(s)?s:[]);
+      setSections((Array.isArray(secs)?secs:[]).map(sec=>sec.name||sec));
+      setCenters(Array.isArray(c)?c:[]);
+      setLoading(false);
+    }).catch(err=>{setError(err.message);setLoading(false);});
+  },[]);
 
-  const filtered = exams.filter(e=>{
-    if (filterStatus!=="all" && e.status!==filterStatus) return false;
-    if (filterLevel!=="all" && e.level!==filterLevel) return false;
-    if (search && !e.title.toLowerCase().includes(search.toLowerCase())) return false;
+  const filtered=exams.filter(e=>{
+    if(filterStatus!=="all"&&e.status!==filterStatus)return false;
+    if(filterLevel!=="all"&&e.level!==filterLevel)return false;
+    if(search&&!e.title.toLowerCase().includes(search.toLowerCase()))return false;
     return true;
   });
 
-  const handleSave = async (form) => {
-    if (modal==="edit") {
-      const updated = await api.updateExam(form.id, form);
-      setExams(es=>es.map(e=>e.id===updated.id?updated:e));
-    } else {
-      const created = await api.createExam(form);
-      setExams(es=>[created,...es]);
-    }
-    setModal(null); setEditing(null);
+  const handleSave=async(form)=>{
+    setSaving(true);
+    try{
+      if(modal==="edit"){const u=await api.updateExam(form.id,form);setExams(es=>es.map(e=>e.id===u.id?u:e));}
+      else{const c=await api.createExam(form);setExams(es=>[c,...es]);}
+      setModal(null);setEditing(null);
+    }catch(err){alert("Save failed: "+err.message);}
+    finally{setSaving(false);}
   };
-  const handleDelete = async (id) => {
-    await api.deleteExam(id);
-    setExams(es=>es.filter(e=>e.id!==id));
+
+  const handleDelete=async(id)=>{
+    try{await api.deleteExam(id);setExams(es=>es.filter(e=>e.id!==id));}
+    catch(err){alert("Delete failed: "+err.message);}
     setDeleteId(null);
   };
-  const handleAssignSave = async (ids) => {
-    const updated = await api.updateExam(assigning.id, { assignedTo: ids });
-    setExams(es=>es.map(e=>e.id===assigning.id?updated:e));
+
+  const handleAssign=async(ids)=>{
+    try{const u=await api.updateExam(assigning.id,{assignedTo:ids});setExams(es=>es.map(e=>e.id===assigning.id?u:e));}
+    catch(err){alert("Assign failed: "+err.message);}
     setAssigning(null);
   };
-  const handlePreview = async (exam) => {
-    setPreviewLoading(true);
-    try {
-      const questions = await api.getExamQuestions(exam.id, true);
-      setPreviewing({ exam, questions });
-    } catch (e) {
-      alert("Ошибка загрузки вопросов: " + e.message);
-    } finally {
-      setPreviewLoading(false);
-    }
+
+  const handleToggleOpen=async(exam)=>{
+    try{const u=await api.updateExam(exam.id,{isOpen:!exam.isOpen});setExams(es=>es.map(e=>e.id===exam.id?u:e));}
+    catch(err){alert("Failed: "+err.message);}
   };
 
-  const statCounts = Object.fromEntries(Object.keys(STATUS_META).map(s=>[s,exams.filter(e=>e.status===s).length]));
+  const handlePreview=async(exam)=>{
+    setPreviewLoading(true);
+    try{const q=await api.getExamQuestions(exam.id,true);setPreviewing({exam,questions:q});}
+    catch(err){alert("Error: "+err.message);}
+    finally{setPreviewLoading(false);}
+  };
 
-  return (
-    <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box" }}>
+  const statCounts=Object.fromEntries(Object.keys(STATUS_META).map(s=>[s,exams.filter(e=>e.status===s).length]));
+
+  return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px 40px",minWidth:0,width:"100%",boxSizing:"border-box"}}>
       {/* Header */}
-      <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:24 }}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:24}}>
         <div>
-          <h1 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:32,color:C.text,margin:"0 0 4px",fontWeight:600 }}>Exam Management</h1>
-          <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,margin:0 }}>Exam Management · Create & Assign</p>
+          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,color:C.text,margin:"0 0 4px",fontWeight:600}}>Exam Management</h1>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.muted,margin:0}}>{exams.length} exam{exams.length!==1?"s":""} · {students.length} students · {sections.length} sections</p>
         </div>
-        <Btn variant="primary" onClick={()=>{setEditing(null);setModal("create")}}>+ New Exam</Btn>
+        <Btn variant="primary" onClick={()=>{setEditing(null);setModal("create");}}>+ New Exam</Btn>
       </div>
 
       {/* Status cards */}
-      <div style={{ display:"flex",gap:12,marginBottom:24,flexWrap:"wrap" }}>
+      <div style={{display:"flex",gap:10,marginBottom:22,flexWrap:"wrap"}}>
         {Object.entries(STATUS_META).map(([s,m])=>(
           <div key={s} onClick={()=>setFilterStatus(filterStatus===s?"all":s)}
-            style={{ background:filterStatus===s?m.color+"18":C.card,border:`1px solid ${filterStatus===s?m.color+"55":C.border}`,borderRadius:12,padding:"14px 20px",cursor:"pointer",transition:"all .15s",minWidth:100 }}>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:700,color:m.color }}>{statCounts[s]||0}</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,marginTop:2 }}>{m.label}</div>
+            style={{background:filterStatus===s?m.color+"18":C.card,border:`1px solid ${filterStatus===s?m.color+"55":C.border}`,borderRadius:12,padding:"11px 16px",cursor:"pointer",transition:"all .15s",minWidth:80}}>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:m.color}}>{statCounts[s]||0}</div>
+            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,marginTop:2}}>{m.label}</div>
           </div>
         ))}
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"11px 16px",minWidth:80}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.success}}>{exams.filter(e=>e.isOpen).length}</div>
+          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,marginTop:2}}>🟢 Open</div>
+        </div>
       </div>
 
       {/* Filters */}
-      <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 18px",marginBottom:20,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center" }}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Որ. քննություններ..." style={{ flex:"1 1 180px",background:C.panel,border:`1.5px solid ${C.border2}`,borderRadius:9,padding:"8px 14px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none" }} />
-        <div style={{ display:"flex",gap:6 }}>
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"11px 14px",marginBottom:18,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search exams…"
+          style={{flex:"1 1 160px",background:C.panel,border:`1.5px solid ${C.border2}`,borderRadius:9,padding:"7px 12px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none"}}/>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
           {[{value:"all",label:"All"},...LEVELS.map(l=>({value:l,label:l}))].map(({value,label})=>{
-            const lc=LEVEL_COLORS[value]||C.gold;
-            const act=filterLevel===value;
-            return <button key={value} onClick={()=>setFilterLevel(value)} style={{ background:act?(lc+"22"):"transparent",border:`1px solid ${act?lc:C.border2}`,borderRadius:8,padding:"6px 12px",color:act?lc:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,cursor:"pointer",transition:"all .15s" }}>{label}</button>;
+            const lc=LEVEL_COLORS[value]||C.gold;const act=filterLevel===value;
+            return(<button key={value} onClick={()=>setFilterLevel(value)} style={{background:act?lc+"22":"transparent",border:`1px solid ${act?lc:C.border2}`,borderRadius:7,padding:"4px 10px",color:act?lc:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:500,cursor:"pointer",transition:"all .12s"}}>{label}</button>);
           })}
         </div>
       </div>
 
       {/* Grid */}
-      {loading ? (
-        <div style={{ textAlign:"center",padding:"60px",color:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:14 }}>Loading…</div>
-      ) : filtered.length===0 ? (
-        <div style={{ textAlign:"center",padding:"60px",color:C.muted,fontFamily:"'DM Sans',sans-serif",fontSize:14 }}>No exams found</div>
-      ) : (
-        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:18 }}>
+      {loading?<div style={{textAlign:"center",padding:"60px",color:C.muted,fontFamily:"'DM Sans',sans-serif"}}>Loading…</div>
+      :error?<div style={{textAlign:"center",padding:"60px",color:C.danger,fontFamily:"'DM Sans',sans-serif"}}>Error: {error}</div>
+      :filtered.length===0?<div style={{textAlign:"center",padding:"60px",color:C.muted,fontFamily:"'DM Sans',sans-serif"}}>No exams found</div>
+      :(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:16}}>
           {filtered.map(exam=>(
-            <ExamCard key={exam.id} exam={exam}
-              allStudents={students}
-              onEdit={e=>{setEditing(e);setModal("edit")}}
+            <ExamCard key={exam.id} exam={exam} allStudents={students}
+              onEdit={e=>{setEditing(e);setModal("edit");}}
               onDelete={id=>setDeleteId(id)}
               onAssign={e=>setAssigning(e)}
               onViewResults={e=>setViewingResults(e)}
               onPreview={handlePreview}
+              onToggleOpen={handleToggleOpen}
             />
           ))}
         </div>
       )}
 
-      {/* Wizard Modal */}
-      {(modal==="create"||modal==="edit") && (
-        <Modal title={modal==="edit"?"Edit Exam":"New Exam"} subtitle="4-step wizard" onClose={()=>{setModal(null);setEditing(null)}} wide>
-          <ExamWizard initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null)}} students={students} sections={sections} />
+      {/* Wizard */}
+      {(modal==="create"||modal==="edit")&&(
+        <Modal title={modal==="edit"?"Edit Exam":"New Exam"} subtitle={modal==="edit"?`#${editing?.id} · ${editing?.title}`:"4-step wizard"} onClose={()=>{setModal(null);setEditing(null);}} wide>
+          {saving&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.gold,marginBottom:12,textAlign:"center"}}>Saving…</div>}
+          <ExamWizard initial={editing} onSave={handleSave} onCancel={()=>{setModal(null);setEditing(null);}} students={students} sections={sections} centers={centers}/>
         </Modal>
       )}
 
-      {/* Assign Modal */}
-      {assigning && <AssignModal exam={assigning} onClose={()=>setAssigning(null)} onSave={handleAssignSave} students={students} />}
+      {assigning&&<AssignModal exam={assigning} onClose={()=>setAssigning(null)} onSave={handleAssign} students={students}/>}
+      {viewingResults&&<ResultsModal exam={viewingResults} onClose={()=>setViewingResults(null)} allStudents={students}/>}
 
-      {/* Results Modal */}
-      {viewingResults && <ResultsModal exam={viewingResults} onClose={()=>setViewingResults(null)} allStudents={students} />}
-
-      {/* Delete Confirm */}
-      {deleteId && (
+      {deleteId&&(
         <Modal title="Delete Exam?" onClose={()=>setDeleteId(null)}>
-          <p style={{ fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted,marginBottom:24 }}>This action cannot be undone. Exam #{deleteId} will be permanently deleted.</p>
-          <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,color:C.muted,marginBottom:22}}>Exam #{deleteId} and all assignments will be permanently deleted.</p>
+          <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
             <Btn onClick={()=>setDeleteId(null)}>Cancel</Btn>
             <Btn variant="danger" onClick={()=>handleDelete(deleteId)}>✕ Delete</Btn>
           </div>
         </Modal>
       )}
 
-      {/* Preview Modal — loads questions without saving to DB */}
-      {previewLoading && (
-        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999 }}>
-          <div style={{ color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:16 }}>Загрузка вопросов...</div>
-        </div>
-      )}
-      {previewing && (
-        <Modal title={`Preview: ${previewing.exam.title}`} subtitle={`${previewing.questions.length} вопросов — только для просмотра, не сохраняется`} onClose={()=>setPreviewing(null)} wide>
-          <ExamPreview exam={previewing.exam} questions={previewing.questions} onClose={()=>setPreviewing(null)} />
+      {previewLoading&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}><div style={{color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:15}}>Loading preview…</div></div>}
+      {previewing&&(
+        <Modal title={`Preview: ${previewing.exam.title}`} subtitle={`${previewing.questions.length} questions — read-only, not saved`} onClose={()=>setPreviewing(null)} wide>
+          <ExamPreview exam={previewing.exam} questions={previewing.questions} onClose={()=>setPreviewing(null)}/>
         </Modal>
       )}
     </div>
   );
 }
 
-// ── App ───────────────────────────────────────────────────────────────────────
-export default function AdminExams({ theme }) {
-  if (theme) C = theme;
-  return (
+// ── Export ────────────────────────────────────────────────────────────────────
+export default function AdminExams({theme}){
+  if(theme)C=theme;
+  return(
     <>
       <style>{FONTS}{`
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:5px;height:5px}
         ::-webkit-scrollbar-thumb{background:#243050;border-radius:3px}
         ::-webkit-scrollbar-track{background:transparent}
-        @keyframes fadeSlideIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         button:active{transform:scale(.97)}
         select option{background:#080f1a}
         input[type=date],input[type=time]{color-scheme:dark}
       `}</style>
-      <div style={{ flex:1, display:"flex", overflow:"hidden", minWidth:0 }}>
-        <ExamsPage />
+      <div style={{flex:1,display:"flex",overflow:"hidden",minWidth:0}}>
+        <ExamsPage/>
       </div>
     </>
   );

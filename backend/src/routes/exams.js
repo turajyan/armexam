@@ -146,14 +146,24 @@ function flattenExam(exam) {
 
 function sanitize(body) {
   const allowed = [
-    "title","examType","level","duration","passingScore",
-    "shuffle","showResults","showQuestionLevel","showQuestionPoints",
-    "subpools","placementTemplate","placementThresholds","showPlacementThreshold",
-    "status","startDate","endDate","examCenterId",
+    "title", "examType", "level", "duration", "passingScore",
+    "shuffle", "showResults", "showQuestionLevel", "showQuestionPoints",
+    "subpools", "placementTemplate", "placementThresholds", "showPlacementThreshold",
+    "status", "isOpen",
+    "startDate", "endDate", "startTime",
+    "examCenterId",
   ];
-  return Object.fromEntries(
+  const out = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   );
+  // Coerce date strings -> ISO or null
+  for (const f of ["startDate", "endDate"]) {
+    if (out[f] === "" || out[f] === undefined) out[f] = null;
+    else if (typeof out[f] === "string" && out[f] && !out[f].includes("T"))
+      out[f] = new Date(out[f]).toISOString();
+  }
+  if (out.startTime === "") out.startTime = null;
+  return out;
 }
 
 function pick(arr, n) {
