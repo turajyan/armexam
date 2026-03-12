@@ -541,41 +541,171 @@ function QuestionCard({ q, index, total, answer, onAnswer,
   );
 }
 
+// ── Section Intro Screen ──────────────────────────────────────────────────────
+function SectionIntro({ section, sectionIndex, totalSections, onStart, T }) {
+  const catColors = {
+    READING:   T.gold,
+    LISTENING: '#a78bfa',
+    SPEAKING:  '#f87171',
+    WRITING:   '#60a5fa',
+  };
+  const c = catColors[section.category] ?? T.gold;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: T.bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 100,
+    }}>
+      <div style={{
+        maxWidth: 520, width: '90%', textAlign: 'center',
+        padding: '48px 40px',
+        background: T.card,
+        border: `1px solid ${c}33`,
+        borderRadius: 24,
+        boxShadow: `0 0 80px ${c}18`,
+      }}>
+        {/* Section counter */}
+        <div style={{ fontSize: 11, color: T.muted, letterSpacing: 2,
+          textTransform: 'uppercase', marginBottom: 20, fontFamily: "'DM Sans',sans-serif" }}>
+          Section {sectionIndex + 1} of {totalSections}
+        </div>
+
+        {/* Icon */}
+        <div style={{ fontSize: 56, marginBottom: 16, lineHeight: 1 }}>
+          {section.icon}
+        </div>
+
+        {/* Label */}
+        <div style={{
+          fontFamily: "'Cormorant Garamond',serif",
+          fontSize: 34, fontWeight: 700, color: c, marginBottom: 10,
+        }}>
+          {section.label}
+        </div>
+
+        {/* Question count */}
+        <div style={{
+          display: 'inline-block',
+          background: c + '15', border: `1px solid ${c}33`,
+          borderRadius: 20, padding: '5px 16px', marginBottom: 20,
+          fontSize: 13, color: c, fontWeight: 600,
+          fontFamily: "'DM Sans',sans-serif",
+        }}>
+          {section.questionCount} question{section.questionCount !== 1 ? 's' : ''}
+        </div>
+
+        {/* Instruction */}
+        <div style={{
+          background: T.panel, border: `1px solid ${T.border}`,
+          borderRadius: 14, padding: '16px 20px', marginBottom: 32,
+          fontSize: 14, color: T.muted, lineHeight: 1.7,
+          fontFamily: "'DM Sans',sans-serif",
+        }}>
+          {section.instruction}
+        </div>
+
+        {/* Rules list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 32, textAlign: 'left' }}>
+          {section.category === 'LISTENING' && [
+            '🔊 Audio plays automatically when the question loads',
+            '🔒 You cannot go back to previous questions',
+            '▶ You may replay audio within the allowed limit',
+          ].map((r, i) => <Rule key={i} text={r} T={T} />)}
+
+          {section.category === 'SPEAKING' && [
+            '⏱ You will have preparation time before recording',
+            '🎙 Recording starts automatically after prep time',
+            '🔒 You cannot go back or skip questions',
+          ].map((r, i) => <Rule key={i} text={r} T={T} />)}
+
+          {section.category === 'WRITING' && [
+            '✏ Type your response in the text area',
+            '🚫 Copy-paste is disabled',
+            '📊 A word counter will guide you to the required length',
+          ].map((r, i) => <Rule key={i} text={r} T={T} />)}
+
+          {section.category === 'READING' && [
+            '📖 Read the text and answer the questions',
+            '↔ You can navigate freely between questions',
+            '✏ You can change your answers at any time',
+          ].map((r, i) => <Rule key={i} text={r} T={T} />)}
+        </div>
+
+        <button onClick={onStart} style={{
+          background: `linear-gradient(135deg, ${c}, ${c}bb)`,
+          border: 'none', borderRadius: 14,
+          padding: '15px 48px',
+          color: '#fff', fontWeight: 700, fontSize: 16,
+          cursor: 'pointer', fontFamily: "'DM Sans',sans-serif",
+          boxShadow: `0 4px 24px ${c}44`,
+          transition: 'transform .15s, box-shadow .15s',
+        }}>
+          Start {section.label} →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Rule({ text, T }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 10,
+      padding: '8px 12px',
+      background: T.panel, border: `1px solid ${T.border}`,
+      borderRadius: 8, fontSize: 13, color: T.muted,
+      fontFamily: "'DM Sans',sans-serif",
+    }}>
+      {text}
+    </div>
+  );
+}
+
 // ── Main ExamScreen ────────────────────────────────────────────────────────────
 export default function ExamScreen({ T, session, backendUrl, onFinish }) {
   const {
-    sessionId, studentName, examTitle, examType, examConfig, questions, answers: initAnswers,
+    sessionId, studentName, examTitle, examType, examConfig,
+    questions, answers: initAnswers,
+    sections: initSections,
   } = session;
 
-  const [answers,      setAnswers]      = useState(initAnswers || {});
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [finishing,    setFinishing]    = useState(false);
-  const [showConfirm,  setShowConfirm]  = useState(false);
-  // LISTENING: track if media has played at least once per question
-  const [mediaPlayed,  setMediaPlayed]  = useState({});
+  const [answers,        setAnswers]        = useState(initAnswers || {});
+  const [currentIndex,   setCurrentIndex]   = useState(0);
+  const [finishing,      setFinishing]      = useState(false);
+  const [showConfirm,    setShowConfirm]    = useState(false);
+  const [mediaPlayed,    setMediaPlayed]    = useState({});  // { [qId]: true }
+  // Section intro: null = no intro shown, sectionId = showing intro for that section
+  const [introFor,       setIntroFor]       = useState(
+    initSections?.length > 0 ? initSections[0].id : null
+  );
 
-  const config  = examConfig || { duration:60 };
-  const totalQ  = questions.length;
-  const answered = Object.keys(answers).length;
+  const config    = examConfig || { duration: 60 };
+  const sections  = initSections ?? [];
+  const totalQ    = questions.length;
+  const answered  = Object.keys(answers).length;
 
   const handleExpire = useCallback(() => finish(), []);
-  const { fmt:timerFmt, urgent, pct:timerPct } = useTimer(config.duration || 60, handleExpire);
+  const { fmt: timerFmt, urgent, pct: timerPct } = useTimer(config.duration || 60, handleExpire);
 
   const q        = questions[currentIndex];
   const category = q ? questionCategory(q) : 'READING';
 
-  // ── Navigation rules per category ───────────────────────────────────────
-  // READING:   free — can go anywhere
-  // LISTENING: linear — Prev disabled; Next enabled only after media played
-  // SPEAKING:  no navigation (recorder manages itself, auto-advance on done)
-  // WRITING:   free (like READING)
+  // ── Which section are we in? ───────────────────────────────────────────────
+  const currentSection = sections.findLast?.(s => s.startIndex <= currentIndex)
+    ?? sections[0]
+    ?? { id: '', label: '', icon: '📝', category: 'READING', questionCount: totalQ, startIndex: 0 };
+  const sectionIndex       = sections.indexOf(currentSection);
+  const posInSection       = currentIndex - currentSection.startIndex;
+  const isLastInSection    = posInSection === currentSection.questionCount - 1;
+  const isLastQuestion     = currentIndex === totalQ - 1;
+
+  // ── Navigation rules ───────────────────────────────────────────────────────
   const canGoPrev = category !== 'LISTENING' && category !== 'SPEAKING' && currentIndex > 0;
   const canGoNext = (() => {
-    if (currentIndex >= totalQ - 1) return false;
-    if (category === 'SPEAKING') return false;          // recorder handles advance
-    if (category === 'LISTENING') {
-      return !!mediaPlayed[q?.id];                      // must have played audio first
-    }
+    if (isLastQuestion) return false;
+    if (category === 'SPEAKING') return false;
+    if (category === 'LISTENING') return !!mediaPlayed[q?.id];
     return true;
   })();
 
@@ -583,7 +713,18 @@ export default function ExamScreen({ T, session, backendUrl, onFinish }) {
   useEffect(() => {
     const a = answers[String(q?.id)];
     if (category === 'SPEAKING' && a?.startsWith?.('recorded_') && currentIndex < totalQ - 1) {
-      const t = setTimeout(() => setCurrentIndex(i => i + 1), 1200);
+      const nextIdx = currentIndex + 1;
+      const nextQ   = questions[nextIdx];
+      const nextSec = sections.findLast?.(s => s.startIndex <= nextIdx) ?? currentSection;
+
+      const advance = () => {
+        // Show section intro if moving to new section
+        if (nextSec.id !== currentSection.id) {
+          setIntroFor(nextSec.id);
+        }
+        setCurrentIndex(nextIdx);
+      };
+      const t = setTimeout(advance, 1200);
       return () => clearTimeout(t);
     }
   }, [answers, currentIndex]);
@@ -592,8 +733,7 @@ export default function ExamScreen({ T, session, backendUrl, onFinish }) {
     setAnswers(prev => ({ ...prev, [String(questionId)]: value }));
     try {
       await fetch(`${backendUrl}/api/session/answer`, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, questionId, answer: value }),
       });
     } catch {}
@@ -604,166 +744,232 @@ export default function ExamScreen({ T, session, backendUrl, onFinish }) {
     setFinishing(true);
     try {
       const r    = await fetch(`${backendUrl}/api/session/finish`, {
-        method:'POST', headers:{ 'Content-Type':'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId }),
       });
-      const data = await r.json();
-      onFinish(data);
-    } catch { onFinish({ result:null }); }
+      onFinish(await r.json());
+    } catch { onFinish({ result: null }); }
   };
 
-  const goTo = i => { if (i >= 0 && i < totalQ) setCurrentIndex(i); };
+  const goTo = (i) => {
+    if (i < 0 || i >= totalQ) return;
+    const targetSec = sections.findLast?.(s => s.startIndex <= i) ?? currentSection;
+    // Show section intro when crossing section boundary going forward
+    if (targetSec.id !== currentSection.id && i > currentIndex) {
+      setIntroFor(targetSec.id);
+    }
+    setCurrentIndex(i);
+  };
 
-  // ── Section divider awareness (show banner on section change) ─────────────
-  const prevQ      = currentIndex > 0 ? questions[currentIndex - 1] : null;
-  const newSection = prevQ && (prevQ.section !== q?.section || questionCategory(prevQ) !== category);
+  // ── Section intro shown? ───────────────────────────────────────────────────
+  const introSection = introFor ? sections.find(s => s.id === introFor) : null;
+  if (introSection) {
+    return (
+      <SectionIntro
+        section={introSection}
+        sectionIndex={sections.indexOf(introSection)}
+        totalSections={sections.length}
+        T={T}
+        onStart={() => setIntroFor(null)}
+      />
+    );
+  }
+
+  // ── Cat accent color ───────────────────────────────────────────────────────
+  const catColor = {
+    READING: T.gold, LISTENING: '#a78bfa', SPEAKING: '#f87171', WRITING: '#60a5fa',
+  }[category] ?? T.gold;
 
   return (
-    <div style={{ width:'100%', height:'100vh', display:'flex', flexDirection:'column', background:T.bg }}>
+    <div style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: T.bg }}>
 
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <div style={{
-        height:64, display:'flex', alignItems:'center',
-        padding:'0 24px', gap:16,
-        background:T.bg2, borderBottom:`1px solid ${T.border}`, flexShrink:0,
+        height: 64, display: 'flex', alignItems: 'center',
+        padding: '0 24px', gap: 16,
+        background: T.bg2, borderBottom: `1px solid ${T.border}`, flexShrink: 0,
       }}>
-        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20,
-          fontWeight:700, color:T.gold }}>ArmExam</div>
-        <div style={{ width:1, height:28, background:T.border2 }} />
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:13, fontWeight:600, color:T.text,
-            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {examTitle}
-          </div>
-          <div style={{ fontSize:11, color:T.muted }}>
-            {studentName} · {answered}/{totalQ} answered
-          </div>
-        </div>
+        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20,
+          fontWeight: 700, color: T.gold }}>ArmExam</div>
+        <div style={{ width: 1, height: 28, background: T.border2 }} />
 
-        {/* Category indicator (changes color with section) */}
-        <div style={{ fontSize:12, fontWeight:700, padding:'5px 12px', borderRadius:8,
-          color: category==='SPEAKING'?'#f87171':category==='WRITING'?'#60a5fa':
-                 category==='LISTENING'?'#a78bfa':T.gold,
-          background: (category==='SPEAKING'?'#f87171':category==='WRITING'?'#60a5fa':
-                       category==='LISTENING'?'#a78bfa':T.gold)+'15',
-          border:`1px solid ${(category==='SPEAKING'?'#f87171':category==='WRITING'?'#60a5fa':
-                  category==='LISTENING'?'#a78bfa':T.gold)}33`,
-          transition:'all .3s',
-        }}>
-          {category==='SPEAKING'?'🎙 Speaking':category==='WRITING'?'✍ Writing':
-           category==='LISTENING'?'🎧 Listening':'📖 Reading'}
+        {/* Section breadcrumb */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+          {sections.map((sec, i) => {
+            const isCurrent = sec.id === currentSection.id;
+            const isPast    = i < sectionIndex;
+            const secCat    = { READING: T.gold, LISTENING: '#a78bfa', SPEAKING: '#f87171', WRITING: '#60a5fa' }[sec.category] ?? T.gold;
+            return (
+              <div key={sec.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {i > 0 && <span style={{ color: T.border2, fontSize: 10 }}>›</span>}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px', borderRadius: 20,
+                  background: isCurrent ? secCat + '18' : 'transparent',
+                  border: `1px solid ${isCurrent ? secCat + '44' : 'transparent'}`,
+                  transition: 'all .3s',
+                }}>
+                  <span style={{ fontSize: 12 }}>{sec.icon}</span>
+                  <span style={{
+                    fontSize: 11, fontWeight: isCurrent ? 700 : 400,
+                    color: isCurrent ? secCat : isPast ? '#4ade8088' : T.muted,
+                    fontFamily: "'DM Sans',sans-serif",
+                  }}>
+                    {isPast ? '✓' : ''}{sec.label}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Timer */}
         <div style={{
-          display:'flex', alignItems:'center', gap:10,
-          background:T.timerBg, borderRadius:12, padding:'7px 14px',
-          border:`1px solid ${urgent ? T.error+'55' : T.border2}`,
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: T.timerBg, borderRadius: 12, padding: '7px 14px',
+          border: `1px solid ${urgent ? T.error + '55' : T.border2}`,
         }}>
-          <svg width="28" height="28" viewBox="0 0 28 28"
-            style={{ transform:'rotate(-90deg)', flexShrink:0 }}>
+          <svg width="28" height="28" viewBox="0 0 28 28" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
             <circle cx="14" cy="14" r="11" fill="none" stroke={T.border2} strokeWidth="2.5"/>
             <circle cx="14" cy="14" r="11" fill="none"
               stroke={urgent ? T.error : T.timerText} strokeWidth="2.5"
-              strokeDasharray={`${2*Math.PI*11}`}
-              strokeDashoffset={`${2*Math.PI*11*(1-timerPct)}`}
-              strokeLinecap="round" style={{ transition:'stroke-dashoffset 1s linear' }} />
+              strokeDasharray={`${2 * Math.PI * 11}`}
+              strokeDashoffset={`${2 * Math.PI * 11 * (1 - timerPct)}`}
+              strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s linear' }} />
           </svg>
           <div style={{
-            fontFamily:"'DM Mono',monospace", fontSize:18, fontWeight:700,
+            fontFamily: "'DM Mono',monospace", fontSize: 18, fontWeight: 700,
             color: urgent ? T.error : T.timerText,
             animation: urgent ? 'pulse 1s infinite' : 'none',
           }}>{timerFmt}</div>
         </div>
 
         <button onClick={() => setShowConfirm(true)} style={{
-          background:'transparent', border:`1.5px solid ${T.gold}66`,
-          borderRadius:10, padding:'8px 16px', cursor:'pointer',
-          color:T.gold, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
+          background: 'transparent', border: `1.5px solid ${T.gold}66`,
+          borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+          color: T.gold, fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 600,
         }}>Finish</button>
       </div>
 
-      {/* ── Body ──────────────────────────────────────────────────────────── */}
-      <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+      {/* ── Section progress bar (under top bar) ──────────────────────────── */}
+      <div style={{ height: 3, background: T.border, flexShrink: 0, display: 'flex' }}>
+        {sections.map((sec, i) => {
+          const secCat  = { READING: T.gold, LISTENING: '#a78bfa', SPEAKING: '#f87171', WRITING: '#60a5fa' }[sec.category] ?? T.gold;
+          const width   = (sec.questionCount / totalQ) * 100;
+          const isCur   = sec.id === currentSection.id;
+          const isPast  = i < sectionIndex;
+          // Progress within current section
+          const fill    = isPast ? 100 : isCur ? ((posInSection + 1) / sec.questionCount) * 100 : 0;
+          return (
+            <div key={sec.id} style={{ width: `${width}%`, background: '#ffffff10', position: 'relative' }}>
+              <div style={{
+                height: '100%', width: `${fill}%`,
+                background: secCat, transition: 'width .4s',
+              }} />
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Sidebar — hidden for SPEAKING (distraction-free) */}
+      {/* ── Body ──────────────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* Sidebar — hidden for SPEAKING */}
         {category !== 'SPEAKING' && (
           <div style={{
-            width:200, background:T.bg2, borderRight:`1px solid ${T.border}`,
-            padding:12, overflowY:'auto', flexShrink:0,
-            display:'flex', flexDirection:'column', gap:6,
+            width: 200, background: T.bg2, borderRight: `1px solid ${T.border}`,
+            padding: 12, overflowY: 'auto', flexShrink: 0,
+            display: 'flex', flexDirection: 'column', gap: 4,
           }}>
-            <div style={{ fontSize:10, color:T.muted, letterSpacing:1,
-              textTransform:'uppercase', marginBottom:6,
-              fontFamily:"'DM Sans',sans-serif" }}>Questions</div>
-            {questions.map((qn, i) => {
-              const isAns = answers[String(qn.id)] !== undefined;
-              const isCur = i === currentIndex;
-              const lc    = LEVEL_COLORS[qn.level] || '#94a3b8';
-              const cat   = questionCategory(qn);
-              // LISTENING: can only go forward (no clicking back)
-              const clickable = cat !== 'SPEAKING' &&
-                (cat !== 'LISTENING' || i <= currentIndex);
+            {/* Section groups in sidebar */}
+            {sections.map((sec, si) => {
+              const secCat   = { READING: T.gold, LISTENING: '#a78bfa', SPEAKING: '#f87171', WRITING: '#60a5fa' }[sec.category] ?? T.gold;
+              const isCurSec = sec.id === currentSection.id;
               return (
-                <button key={qn.id}
-                  onClick={() => clickable && goTo(i)}
-                  style={{
-                    display:'flex', alignItems:'center', gap:8, padding:'8px 10px',
-                    borderRadius:9, cursor: clickable ? 'pointer' : 'default',
-                    textAlign:'left',
-                    background: isCur ? T.gold+'18' : isAns ? '#4ade8010' : 'transparent',
-                    border:`1px solid ${isCur ? T.gold+'55' : isAns ? '#4ade8033' : T.border}`,
-                    opacity: clickable ? 1 : 0.45,
-                  }}>
+                <div key={sec.id}>
+                  {/* Section label */}
                   <div style={{
-                    width:22, height:22, borderRadius:6, flexShrink:0,
-                    background: isCur ? T.gold : isAns ? '#4ade80' : T.panel,
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    fontSize:9, fontWeight:700,
-                    color: isCur || isAns ? '#fff' : T.dim,
-                    fontFamily:"'DM Mono',monospace",
-                  }}>{i+1}</div>
-                  <div style={{ minWidth:0, flex:1 }}>
-                    <div style={{ fontSize:10, color: isCur ? T.gold : T.text,
-                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                      maxWidth:120 }}>
-                      {(qn.prompt ?? qn.text ?? '').slice(0, 28)}…
-                    </div>
-                    <div style={{ display:'flex', gap:3, marginTop:2 }}>
-                      <span style={{ fontSize:8, color:lc, background:lc+'18',
-                        borderRadius:3, padding:'1px 4px' }}>{qn.level}</span>
-                      {isAns && <span style={{ fontSize:8, color:'#4ade80' }}>✓</span>}
-                      {cat === 'LISTENING' && i > currentIndex &&
-                        <span style={{ fontSize:8, color:T.muted }}>🔒</span>}
-                    </div>
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '6px 8px 4px',
+                    fontSize: 9, fontWeight: 700, color: isCurSec ? secCat : T.muted,
+                    letterSpacing: 1, textTransform: 'uppercase',
+                    fontFamily: "'DM Sans',sans-serif",
+                    borderTop: si > 0 ? `1px solid ${T.border}` : 'none',
+                    marginTop: si > 0 ? 4 : 0,
+                  }}>
+                    <span>{sec.icon}</span>
+                    <span>{sec.label}</span>
                   </div>
-                </button>
+                  {/* Questions in this section */}
+                  {questions.slice(sec.startIndex, sec.startIndex + sec.questionCount).map((qn, qi) => {
+                    const absIdx  = sec.startIndex + qi;
+                    const isAns   = answers[String(qn.id)] !== undefined;
+                    const isCur   = absIdx === currentIndex;
+                    const lc      = LEVEL_COLORS[qn.level] || '#94a3b8';
+                    const qCat    = questionCategory(qn);
+                    const locked  = qCat === 'SPEAKING' ||
+                      (qCat === 'LISTENING' && absIdx > currentIndex);
+                    return (
+                      <button key={qn.id}
+                        onClick={() => !locked && goTo(absIdx)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 7,
+                          padding: '7px 8px', borderRadius: 8,
+                          cursor: locked ? 'default' : 'pointer', textAlign: 'left', width: '100%',
+                          background: isCur ? secCat + '18' : isAns ? '#4ade8010' : 'transparent',
+                          border: `1px solid ${isCur ? secCat + '55' : isAns ? '#4ade8033' : T.border}`,
+                          opacity: locked ? 0.4 : 1,
+                          transition: 'all .12s',
+                        }}>
+                        <div style={{
+                          width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                          background: isCur ? secCat : isAns ? '#4ade80' : T.panel,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 9, fontWeight: 700, color: isCur || isAns ? '#fff' : T.dim,
+                          fontFamily: "'DM Mono',monospace",
+                        }}>{absIdx + 1}</div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{
+                            fontSize: 10, color: isCur ? secCat : T.text,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 115,
+                          }}>{(qn.prompt ?? qn.text ?? '').slice(0, 26)}…</div>
+                          <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
+                            <span style={{ fontSize: 8, color: lc, background: lc + '18', borderRadius: 3, padding: '1px 4px' }}>{qn.level}</span>
+                            {isAns && <span style={{ fontSize: 8, color: '#4ade80' }}>✓</span>}
+                            {locked && <span style={{ fontSize: 8, color: T.muted }}>🔒</span>}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>
         )}
 
-        {/* Question area */}
-        <div style={{ flex:1, overflowY:'auto', padding:'32px 48px', maxWidth:800 }}>
+        {/* Question content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px 48px', maxWidth: 800 }}>
 
-          {/* Section change banner */}
-          {newSection && (
-            <div style={{ background:T.gold+'10', border:`1px solid ${T.gold}33`,
-              borderRadius:12, padding:'10px 16px', marginBottom:20,
-              display:'flex', alignItems:'center', gap:10 }}>
-              <span style={{ fontSize:16 }}>
-                {category==='SPEAKING'?'🎙':category==='WRITING'?'✍':
-                 category==='LISTENING'?'🎧':'📖'}
-              </span>
+          {/* Section header (shown once at top of each section's first question) */}
+          {posInSection === 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 18px', borderRadius: 14, marginBottom: 24,
+              background: catColor + '10', border: `1px solid ${catColor}33`,
+            }}>
+              <span style={{ fontSize: 22 }}>{currentSection.icon}</span>
               <div>
-                <div style={{ fontSize:12, fontWeight:700, color:T.gold }}>
-                  New section: {q?.section ?? category}
+                <div style={{ fontSize: 14, fontWeight: 700, color: catColor,
+                  fontFamily: "'DM Sans',sans-serif" }}>
+                  {currentSection.label}
+                  <span style={{ fontSize: 11, fontWeight: 400, color: T.muted, marginLeft: 8 }}>
+                    Section {sectionIndex + 1} of {sections.length}
+                    {' · '}{currentSection.questionCount} questions
+                  </span>
                 </div>
-                <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>
-                  {category==='LISTENING' && 'Listen carefully — you cannot go back in this section.'}
-                  {category==='SPEAKING'  && 'Speak clearly — your response will be recorded automatically.'}
-                  {category==='WRITING'   && 'Write your response. Copy-paste is disabled.'}
-                  {category==='READING'   && 'Read the text and answer the questions.'}
+                <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                  {currentSection.instruction}
                 </div>
               </div>
             </div>
@@ -782,81 +988,126 @@ export default function ExamScreen({ T, session, backendUrl, onFinish }) {
 
           {/* Navigation */}
           {category !== 'SPEAKING' && (
-            <div style={{ display:'flex', justifyContent:'space-between',
-              marginTop:36, paddingTop:24, borderTop:`1px solid ${T.border}` }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginTop: 36, paddingTop: 24, borderTop: `1px solid ${T.border}`,
+            }}>
               <button onClick={() => goTo(currentIndex - 1)} disabled={!canGoPrev} style={{
-                background:T.panel, border:`1px solid ${T.border2}`, borderRadius:10,
-                padding:'11px 24px', cursor: canGoPrev ? 'pointer' : 'not-allowed',
+                background: T.panel, border: `1px solid ${T.border2}`, borderRadius: 10,
+                padding: '11px 24px', cursor: canGoPrev ? 'pointer' : 'not-allowed',
                 color: canGoPrev ? T.text : T.dim,
-                fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:500,
+                fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 500,
               }}>
                 {category === 'LISTENING' ? '🔒 No back' : '← Previous'}
               </button>
 
-              {currentIndex < totalQ - 1 ? (
-                <button onClick={() => goTo(currentIndex + 1)}
-                  disabled={!canGoNext} style={{
-                    background: canGoNext ? T.gold : T.dim,
-                    border:'none', borderRadius:10,
-                    padding:'11px 28px', cursor: canGoNext ? 'pointer' : 'not-allowed',
-                    color: canGoNext ? '#1a1200' : '#ffffff44',
-                    fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:700,
-                    transition:'all .15s',
-                  }}>
-                  {category === 'LISTENING' && !mediaPlayed[q?.id]
-                    ? '🎧 Play audio first'
-                    : 'Next →'}
+              {/* Section mini-progress (within section) */}
+              <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans',sans-serif" }}>
+                {posInSection + 1} / {currentSection.questionCount}
+                {sections.length > 1 && (
+                  <span style={{ color: catColor, marginLeft: 6 }}>
+                    · {currentSection.label}
+                  </span>
+                )}
+              </div>
+
+              {isLastQuestion ? (
+                <button onClick={() => setShowConfirm(true)} style={{
+                  background: '#4ade80', border: 'none', borderRadius: 10,
+                  padding: '11px 28px', cursor: 'pointer',
+                  color: '#0a1a0a', fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 700,
+                }}>Finish Exam ✓</button>
+              ) : isLastInSection && sections[sectionIndex + 1] ? (
+                <button onClick={() => {
+                  const nextSec = sections[sectionIndex + 1];
+                  setIntroFor(nextSec.id);
+                  goTo(currentIndex + 1);
+                }} disabled={!canGoNext} style={{
+                  background: canGoNext ? catColor : T.dim, border: 'none', borderRadius: 10,
+                  padding: '11px 28px', cursor: canGoNext ? 'pointer' : 'not-allowed',
+                  color: canGoNext ? '#fff' : '#ffffff44',
+                  fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 700,
+                }}>
+                  Next Section →
                 </button>
               ) : (
-                <button onClick={() => setShowConfirm(true)} style={{
-                  background:'#4ade80', border:'none', borderRadius:10,
-                  padding:'11px 28px', cursor:'pointer',
-                  color:'#0a1a0a', fontFamily:"'DM Sans',sans-serif",
-                  fontSize:13, fontWeight:700,
-                }}>Finish Exam ✓</button>
+                <button onClick={() => goTo(currentIndex + 1)} disabled={!canGoNext} style={{
+                  background: canGoNext ? catColor : T.dim, border: 'none', borderRadius: 10,
+                  padding: '11px 28px', cursor: canGoNext ? 'pointer' : 'not-allowed',
+                  color: canGoNext ? (category === 'READING' ? '#1a1200' : '#fff') : '#ffffff44',
+                  fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 700,
+                  transition: 'all .15s',
+                }}>
+                  {category === 'LISTENING' && !mediaPlayed[q?.id] ? '🎧 Play first' : 'Next →'}
+                </button>
               )}
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Confirm modal ─────────────────────────────────────────────────── */}
+      {/* ── Confirm finish modal ───────────────────────────────────────────── */}
       {showConfirm && (
-        <div style={{ position:'fixed', inset:0, background:'#00000088',
-          backdropFilter:'blur(4px)', display:'flex', alignItems:'center',
-          justifyContent:'center', zIndex:9998 }}>
-          <div style={{ background:T.card, border:`1px solid ${T.border2}`,
-            borderRadius:20, padding:'40px 48px', maxWidth:420, width:'90%',
-            textAlign:'center', boxShadow:'0 24px 80px #00000055' }}>
-            <div style={{ fontSize:40, marginBottom:16 }}>🎓</div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24,
-              fontWeight:700, color:T.text, marginBottom:8 }}>Submit Exam?</div>
-            <div style={{ fontSize:13, color:T.muted, lineHeight:1.6, marginBottom:8 }}>
-              Answered <strong style={{ color:T.gold }}>{answered}</strong> of{' '}
-              <strong style={{ color:T.gold }}>{totalQ}</strong> questions.
+        <div style={{
+          position: 'fixed', inset: 0, background: '#00000088',
+          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 9998,
+        }}>
+          <div style={{
+            background: T.card, border: `1px solid ${T.border2}`,
+            borderRadius: 20, padding: '40px 48px', maxWidth: 420, width: '90%',
+            textAlign: 'center', boxShadow: '0 24px 80px #00000055',
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🎓</div>
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 24,
+              fontWeight: 700, color: T.text, marginBottom: 8 }}>Submit Exam?</div>
+            <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, marginBottom: 8 }}>
+              Answered <strong style={{ color: T.gold }}>{answered}</strong> of{' '}
+              <strong style={{ color: T.gold }}>{totalQ}</strong> questions.
+            </div>
+            {/* Section completion summary */}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center',
+              flexWrap: 'wrap', marginBottom: 16 }}>
+              {sections.map(sec => {
+                const secAns = questions
+                  .slice(sec.startIndex, sec.startIndex + sec.questionCount)
+                  .filter(q => answers[String(q.id)] !== undefined).length;
+                const done   = secAns === sec.questionCount;
+                const secCat = { READING: T.gold, LISTENING: '#a78bfa', SPEAKING: '#f87171', WRITING: '#60a5fa' }[sec.category] ?? T.gold;
+                return (
+                  <div key={sec.id} style={{
+                    padding: '6px 12px', borderRadius: 8, fontSize: 12,
+                    background: done ? '#4ade8015' : '#ff000015',
+                    border: `1px solid ${done ? '#4ade8044' : '#ff000044'}`,
+                    color: done ? '#4ade80' : '#f87171',
+                  }}>
+                    {sec.icon} {sec.label}: {secAns}/{sec.questionCount}
+                  </div>
+                );
+              })}
             </div>
             {answered < totalQ && (
-              <div style={{ background:T.warning+'18', border:`1px solid ${T.warning}44`,
-                borderRadius:10, padding:'10px 16px', marginBottom:20,
-                fontSize:12, color:T.warning }}>
+              <div style={{ background: T.warning + '18', border: `1px solid ${T.warning}44`,
+                borderRadius: 10, padding: '10px 16px', marginBottom: 16,
+                fontSize: 12, color: T.warning }}>
                 ⚠ {totalQ - answered} questions unanswered
               </div>
             )}
-            <div style={{ display:'flex', gap:12, marginTop:24 }}>
+            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               <button onClick={() => setShowConfirm(false)} style={{
-                flex:1, padding:'12px', background:T.panel,
-                border:`1px solid ${T.border2}`, borderRadius:12,
-                cursor:'pointer', color:T.muted,
-                fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                flex: 1, padding: '12px', background: T.panel,
+                border: `1px solid ${T.border2}`, borderRadius: 12,
+                cursor: 'pointer', color: T.muted,
+                fontFamily: "'DM Sans',sans-serif", fontSize: 13,
               }}>Cancel</button>
               <button onClick={() => { setShowConfirm(false); finish(); }}
                 disabled={finishing} style={{
-                  flex:1, padding:'12px',
+                  flex: 1, padding: '12px',
                   background: finishing ? T.dim : '#4ade80',
-                  border:'none', borderRadius:12,
+                  border: 'none', borderRadius: 12,
                   cursor: finishing ? 'not-allowed' : 'pointer',
-                  color:'#0a1a0a', fontFamily:"'DM Sans',sans-serif",
-                  fontSize:13, fontWeight:700,
+                  color: '#0a1a0a', fontFamily: "'DM Sans',sans-serif",
+                  fontSize: 13, fontWeight: 700,
                 }}>{finishing ? 'Submitting…' : 'Submit ✓'}</button>
             </div>
           </div>

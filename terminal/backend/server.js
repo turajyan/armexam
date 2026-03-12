@@ -66,60 +66,93 @@ async function fetchQuestions() {
 // Canonical level order used for sorting and ladder algorithm
 const LEVEL_ORDER = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
 
-function buildQuestions(exam, questions) {
+// Maps section name → category
+const SECTION_CATEGORY = {
+  Reading:    'READING',
+  Listening:  'LISTENING',
+  Speaking:   'SPEAKING',
+  Writing:    'WRITING',
+  Grammar:    'READING',
+  Vocabulary: 'READING',
+};
+function sectionCategory(name) {
+  return SECTION_CATEGORY[name] ?? 'READING';
+}
+
+// Section meta shown on intro screen
+const SECTION_META = {
+  READING:   { icon: '📖', instruction: 'Read each text carefully. You can navigate freely and change your answers.' },
+  LISTENING: { icon: '🎧', instruction: 'Audio plays automatically. You cannot go back within this section.' },
+  SPEAKING:  { icon: '🎙', instruction: 'You will have preparation time before each recording starts automatically.' },
+  WRITING:   { icon: '✍',  instruction: 'Write your responses. Copy-paste is disabled in this section.' },
+};
+
+/**
+ * buildExam(exam, questionBank)
+ * Returns { sections, questions }
+ *
+ * sections[]:
+ *   { id, category, icon, label, instruction, questionCount, startIndex }
+ *
+ * questions[]: flat array, each question has .sectionId, .category, .orderIndex
+ */
+function buildExam(exam, questionBank) {
   const byLevelSection = (level, section) =>
-    questions.filter(q => q.level === level && q.section === section);
+    questionBank.filter(q => q.level === level && q.section === section);
 
   if (exam.examType === 'placement') {
-    // ── Step 1: collect questions grouped by section ─────────────────────
-    // Key: section name  →  Value: array of picked questions (shuffled within level)
+    // Step 1: collect per section
     const bySection = {};
-
     for (const row of exam.placementTemplate || []) {
       for (const sp of row.subpools || []) {
         const pool = byLevelSection(row.level, sp.section);
         if (pool.length < sp.count)
           throw new Error(`Not enough questions: ${row.level}/${sp.section} — need ${sp.count}, have ${pool.length}`);
         if (!bySection[sp.section]) bySection[sp.section] = [];
-        // Within one level+section: shuffle, then push
         shuffle(pool).slice(0, sp.count).forEach(q =>
           bySection[sp.section].push({ ...q, points: row.pointsEach })
         );
       }
     }
 
-    // ── Step 2: sort each section's questions A1 → C2 ────────────────────
-    // Within one level questions stay shuffled (random order among peers).
-    // Across levels: strict ascending — A1 always before A2, etc.
+    // Step 2: sort each section A1 → C2
     for (const sec of Object.keys(bySection)) {
       bySection[sec].sort((a, b) =>
         (LEVEL_ORDER[a.level] ?? 99) - (LEVEL_ORDER[b.level] ?? 99)
       );
     }
 
-    // ── Step 3: interleave sections in section order, then assign orderIndex
-    // Section order: use the order sections first appear in placementTemplate subpools
+    // Step 3: canonical section order from template
     const sectionOrder = [];
-    for (const row of exam.placementTemplate || []) {
-      for (const sp of row.subpools || []) {
+    for (const row of exam.placementTemplate || [])
+      for (const sp of row.subpools || [])
         if (!sectionOrder.includes(sp.section)) sectionOrder.push(sp.section);
-      }
+    for (const sec of Object.keys(bySection))
+      if (!sectionOrder.includes(sec)) sectionOrder.push(sec);
+
+    // Step 4: build flat array + sections manifest
+    const flatQuestions = [];
+    const sections = [];
+    for (const secName of sectionOrder) {
+      const qs = bySection[secName] ?? [];
+      if (qs.length === 0) continue;
+      const cat  = sectionCategory(secName);
+      const meta = SECTION_META[cat];
+      sections.push({
+        id:            secName,
+        category:      cat,
+        icon:          meta.icon,
+        label:         secName,
+        instruction:   meta.instruction,
+        questionCount: qs.length,
+        startIndex:    flatQuestions.length,
+      });
+      qs.forEach(q => flatQuestions.push({ ...q, sectionId: secName, category: cat }));
     }
 
-    // Build final flat array: all of section1 (A1→C2), then section2 (A1→C2), …
-    const result = [];
-    for (const sec of sectionOrder) {
-      if (bySection[sec]) result.push(...bySection[sec]);
-    }
-    // Any sections not in sectionOrder (shouldn't happen, but safety net)
-    for (const sec of Object.keys(bySection)) {
-      if (!sectionOrder.includes(sec)) result.push(...bySection[sec]);
-    }
-
-    // ── Step 4: stamp orderIndex ──────────────────────────────────────────
-    result.forEach((q, i) => { q.orderIndex = i + 1; });
-
-    return result;
+    // Step 5: stamp orderIndex
+    flatQuestions.forEach((q, i) => { q.orderIndex = i + 1; });
+    return { sections, questions: flatQuestions };
   }
 
   // ── Fixed exam ────────────────────────────────────────────────────────────
@@ -128,11 +161,22 @@ function buildQuestions(exam, questions) {
     const pool = byLevelSection(exam.level, sp.section);
     if (pool.length < sp.count)
       throw new Error(`Not enough questions: ${exam.level}/${sp.section} — need ${sp.count}, have ${pool.length}`);
-    shuffle(pool).slice(0, sp.count).forEach(q => result.push({ ...q }));
+    shuffle(pool).slice(0, sp.count).forEach(q =>
+      result.push({ ...q, sectionId: sp.section, category: sectionCategory(sp.section) })
+    );
   }
-  const final = exam.shuffle ? shuffle(result) : result;
-  final.forEach((q, i) => { q.orderIndex = i + 1; });
-  return final;
+  const flat = exam.shuffle ? shuffle(result) : result;
+  flat.forEach((q, i) => { q.orderIndex = i + 1; });
+  const sections = [{
+    id:            exam.level ?? 'Exam',
+    category:      'READING',
+    icon:          '📝',
+    label:         exam.title ?? 'Exam',
+    instruction:   'Answer all questions. You can navigate freely.',
+    questionCount: flat.length,
+    startIndex:    0,
+  }];
+  return { sections, questions: flat };
 }
 
 function calcResult(exam, questions, answers) {
@@ -329,12 +373,13 @@ app.post('/api/session/start', async (req, res) => {
     }
   }
 
-  let questions;
+  let examData;
   try {
-    questions = buildQuestions(exam, allQuestions);
+    examData = buildExam(exam, allQuestions);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
+  const { sections, questions } = examData;
 
   const session = {
     sessionId: randomUUID(),
@@ -355,6 +400,8 @@ app.post('/api/session/start', async (req, res) => {
       name: exam.examCenter.name,
       city: exam.examCenter.city?.name,
     } : null,
+    // Sections manifest (for ExamScreen section-aware UI)
+    sections,
     // Exam config (from admin settings)
     examConfig: {
       duration:              exam.duration       ?? 60,
