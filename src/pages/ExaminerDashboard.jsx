@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { formatDateTime } from "../dateUtils.js";
 
 const LEVEL_COLOR  = { A1:"#4ade80", A2:"#86efac", B1:"#60a5fa", B2:"#93c5fd", C1:"#f59e0b", C2:"#fbbf24" };
-const STATUS_COLOR = { pending:"#f59e0b", grading:"#60a5fa", completed:"#4ade80", auto:"#94a3b8" };
+const STATUS_COLOR = { pending:"#f59e0b", graded:"#4ade80", auto:"#94a3b8" };
 const CAT_ICON     = { SPEAKING:"🎙️", WRITING:"✍️" };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,7 +33,10 @@ export default function ExaminerDashboard({ theme: T }) {
   const loadQueue = async (status) => {
     setLoading(true);
     try {
-      const data = await apiFetch(`/api/grading/queue?gradingStatus=${status}`);
+      // Each tab maps to a dedicated grading endpoint (no generic /queue route)
+    const ENDPOINT = { pending: '/api/grading/pending', graded: '/api/grading/graded', auto: '/api/grading/auto' };
+    const endpoint = ENDPOINT[status] ?? '/api/grading/pending';
+    const data = await apiFetch(endpoint);
       setQueue(data);
     } catch (e) { showMsg(false, e.message); }
     finally     { setLoading(false); }
@@ -214,9 +217,9 @@ export default function ExaminerDashboard({ theme: T }) {
       {/* Tabs */}
       <div style={{ display:"flex", gap:8, marginBottom:24 }}>
         {[
-          { key:"pending",   label:"⏳ Pending"     },
-          { key:"grading",   label:"✏️ In Progress"  },
-          { key:"completed", label:"✓ Completed"    },
+          { key:"pending", label:"⏳ Pending"   },
+          { key:"graded",  label:"✏️ Graded"    },
+          { key:"auto",    label:"⚡ Auto"       },
         ].map(({ key, label }) => {
           const color = STATUS_COLOR[key];
           return (
@@ -602,6 +605,12 @@ function PublishButton({ resultId, T, onPublished }) {
       {state==="loading" ? "Publishing…" : state==="done" ? "✓ Published" : "📤 Publish Results"}
     </button>
   );
+}
+
+// Initialise rubric draft scores to 0 for all defined rubrics
+function initRubrics(defs) {
+  if (!Array.isArray(defs)) return {};
+  return Object.fromEntries(defs.map(r => [r.id, 0]));
 }
 
 async function apiFetch(path, method="GET", body=undefined) {
