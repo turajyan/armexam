@@ -1,0 +1,239 @@
+[
+  {
+    "id": 1,
+    "title": "Summer B1 Examination",
+    "examType": "fixed",
+    "level": "B1",
+    "duration": 45,
+    "passingScore": 70,
+    "shuffle": true,
+    "showResults": true,
+    "showQuestionLevel": true,
+    "showQuestionPoints": true,
+    "subpools": [
+      {
+        "section": "Reading",
+        "count": 3
+      },
+      {
+        "section": "Grammar",
+        "count": 2
+      },
+      {
+        "section": "Vocabulary",
+        "count": 2
+      }
+    ],
+    "assignedTo": [
+      1,
+      2,
+      7
+    ],
+    "status": "active",
+    "startDate": "2025-06-01",
+    "endDate": "2025-09-30",
+    "createdAt": "2025-05-15"
+  },
+  {
+    "id": 2,
+    "title": "A2 Entrance Test",
+    "examType": "fixed",
+    "level": "A2",
+    "duration": 30,
+    "passingScore": 60,
+    "shuffle": false,
+    "showResults": true,
+    "showQuestionLevel": true,
+    "showQuestionPoints": true,
+    "subpools": [
+      {
+        "section": "Reading",
+        "count": 3
+      },
+      {
+        "section": "Grammar",
+        "count": 2
+      }
+    ],
+    "assignedTo": [
+      2,
+      7
+    ],
+    "status": "active",
+    "startDate": "2025-07-01",
+    "endDate": "2025-09-30",
+    "createdAt": "2025-05-20"
+  },
+  {
+    "id": 3,
+    "title": "C1–C2 Final Examination",
+    "examType": "fixed",
+    "level": "C1",
+    "duration": 60,
+    "passingScore": 80,
+    "shuffle": true,
+    "showResults": true,
+    "showQuestionLevel": true,
+    "showQuestionPoints": true,
+    "subpools": [
+      {
+        "section": "Reading",
+        "count": 2
+      },
+      {
+        "section": "Listening",
+        "count": 2
+      },
+      {
+        "section": "Writing",
+        "count": 1
+      }
+    ],
+    "assignedTo": [
+      3,
+      4,
+      8
+    ],
+    "status": "active",
+    "startDate": "2025-04-10",
+    "endDate": "2025-12-31",
+    "createdAt": "2025-04-01"
+  },
+  {
+    "id": 4,
+    "title": "Language Placement Test",
+    "examType": "placement",
+    "level": null,
+    "duration": 60,
+    "passingScore": null,
+    "shuffle": true,
+    "showResults": true,
+    "showQuestionLevel": true,
+    "showQuestionPoints": true,
+    "assignedTo": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "status": "active",
+    "startDate": "2025-09-01",
+    "endDate": "2025-12-31",
+    "createdAt": "2025-08-01",
+    "placementTemplate": [
+      {
+        "level": "A1",
+        "pointsEach": 1,
+        "subpools": [
+          {
+            "section": "Reading",
+            "count": 3
+          },
+          {
+            "section": "Grammar",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "level": "A2",
+        "pointsEach": 1,
+        "subpools": [
+          {
+            "section": "Reading",
+            "count": 3
+          },
+          {
+            "section": "Vocabulary",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "level": "B1",
+        "pointsEach": 2,
+        "subpools": [
+          {
+            "section": "Reading",
+            "count": 2
+          },
+          {
+            "section": "Listening",
+            "count": 2
+          },
+          {
+            "section": "Grammar",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "level": "B2",
+        "pointsEach": 2,
+        "subpools": [
+          {
+            "section": "Reading",
+            "count": 2
+          },
+          {
+            "section": "Listening",
+            "count": 2
+          },
+          {
+            "section": "Writing",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "level": "C1",
+        "pointsEach": 3,
+        "subpools": [
+          {
+            "section": "Reading",
+            "count": 2
+          },
+          {
+            "section": "Listening",
+            "count": 2
+          },
+          {
+            "section": "Writing",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "level": "C2",
+        "pointsEach": 3,
+        "subpools": [
+          {
+            "section": "Reading",
+            "count": 2
+          },
+          {
+            "section": "Grammar",
+            "count": 2
+          },
+          {
+            "section": "Writing",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "placementThresholds": {
+      "A1": 60,
+      "A2": 60,
+      "B1": 60,
+      "B2": 60,
+      "C1": 60,
+      "C2": 60
+    },
+    "showPlacementThreshold": true
+  }
+]
