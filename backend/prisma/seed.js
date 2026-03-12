@@ -531,7 +531,9 @@ async function main() {
         showResults: true, showQuestionLevel: true, showQuestionPoints: true,
         placementTemplate: PLACEMENT_TEMPLATE,
         placementThresholds: PLACEMENT_THRESHOLDS,
-        examCenterId: centers[i].id, status: "active",
+        examCenterId: centers[i].id, status: "active", isOpen: true,
+        startDate: new Date("2026-04-15"), endDate: new Date("2026-04-15"),
+        startTime: "10:00",
       },
     });
     placementExams.push(ex);
@@ -556,8 +558,9 @@ async function main() {
         showResults: true, showQuestionLevel: true, showQuestionPoints: true,
         subpools: fd.subpools,
         examCenterId: centers[0].id,
-        status: "active",
-        startDate: new Date("2025-01-01"), endDate: new Date("2025-12-31"),
+        status: "active", isOpen: true,
+        startDate: new Date("2026-04-01"), endDate: new Date("2026-06-30"),
+        startTime: "09:00",
       },
     });
     fixedExams.push(ex);

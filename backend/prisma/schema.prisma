@@ -105,6 +105,9 @@ model Question {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([level])                  // filter by level in stats/questions list
+  @@index([status])                 // filter by published/draft
 }
 
 // ─── People ───────────────────────────────────────────────────────────────────
@@ -247,4 +250,8 @@ model Result {
 
   exam    Exam    @relation(fields: [examId], references: [id])
   student Student @relation(fields: [studentId], references: [id])
+
+  @@index([gradingStatus])          // used by /api/grading/pending|graded|auto
+  @@index([examId])                 // used by result lookups per exam
+  @@index([studentId])              // used by student stats
 }
