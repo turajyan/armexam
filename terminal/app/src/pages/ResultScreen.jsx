@@ -47,10 +47,16 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
   const { score = 0, earnedPts = 0, totalPts = 0, passed, placementLevel,
           belowMinimum, passingScore, levelResults } = result;
   const isPlacement = session?.examType === 'placement';
+  // belowMinimum: explicit flag OR placement with no detected level and not pending
+  const isBelowMinimum = belowMinimum || (isPlacement && !placementLevel && !hasPending);
 
-  // Detect manual-grading questions (voice / writing)
+  // Detect manual-grading questions — must match ACTUAL question types from schema
+  const MANUAL_TYPES = new Set([
+    'SPEAKING_INDEPENDENT', 'SPEAKING_INTEGRATED',
+    'WRITING_INDEPENDENT',  'WRITING_INTEGRATED',
+  ]);
   const questions = session?.questions || [];
-  const manualQs  = questions.filter(q => q.type === 'voice' || q.type === 'writing');
+  const manualQs  = questions.filter(q => MANUAL_TYPES.has(q.type));
   const hasPending = manualQs.length > 0;
 
   // For partial results: auto-only score excludes manual question points
@@ -66,7 +72,7 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
   const displayScore   = allManual ? 0 : autoScore;
   const statusColor    = hasPending
     ? T.warning
-    : belowMinimum ? T.error
+    : isBelowMinimum ? T.error
     : isPlacement  ? T.blue
     : passed       ? T.success
     : T.error;
@@ -101,7 +107,7 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
         }}>
           {hasPending
             ? '⏳ AWAITING GRADING'
-            : belowMinimum  ? 'BELOW MINIMUM ✗'
+            : isBelowMinimum  ? 'BELOW MINIMUM ✗'
             : isPlacement   ? 'PLACEMENT RESULT'
             : passed        ? 'PASSED ✓'
             : 'NOT PASSED ✗'}
@@ -123,7 +129,7 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
               fontFamily: "'DM Sans',sans-serif", fontSize: 15, fontWeight: 700,
               color: T.warning, marginBottom: 8,
             }}>
-              Your result is not final yet
+              {isPlacement ? 'Your placement level is not final yet' : 'Your result is not final yet'}
             </div>
             <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.7 }}>
               {autoTotalPts > 0
@@ -131,8 +137,14 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
                 : null}
             </div>
             <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.7, marginTop: 4 }}>
-              {manualQs.length} answer{manualQs.length > 1 ? 's' : ''} ({manualQs.map(q => q.type).join(', ')}) require examiner review.
-              Your final score will be available after grading.
+              {manualQs.length} answer{manualQs.length > 1 ? 's' : ''} (
+              {[...new Set(manualQs.map(q =>
+                q.type.startsWith('SPEAKING') ? 'speaking' : 'writing'
+              ))].join(', ')}
+              ) require examiner review.
+              {isPlacement
+                ? ' Your final placement level will be available after grading.'
+                : ' Your final score will be available after grading.'}
             </div>
           </div>
         )}
@@ -140,7 +152,7 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
         {/* Placement level or below minimum message */}
         {isPlacement && !hasPending && (
           <div style={{ marginBottom: 24 }}>
-            {belowMinimum ? (
+            {isBelowMinimum ? (
               <div style={{
                 background: T.error + '15', border: `1px solid ${T.error}44`,
                 borderRadius: 16, padding: '16px 24px', textAlign: 'center',
@@ -257,8 +269,8 @@ export default function ResultScreen({ T, result: resultData, session, onDone })
       </div>
 
       {/* Particles */}
-      {passed && !belowMinimum && !isPlacement && <Confetti T={T} color={T.success} />}
-      {passed && !belowMinimum && isPlacement && <Confetti T={T} color={plColor} />}
+      {passed && !isBelowMinimum && !isPlacement && <Confetti T={T} color={T.success} />}
+      {passed && !isBelowMinimum && isPlacement && <Confetti T={T} color={plColor} />}
     </div>
   );
 }
