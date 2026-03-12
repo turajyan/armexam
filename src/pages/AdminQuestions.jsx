@@ -743,7 +743,13 @@ function StudentPreview({ q, onClose }) {
     setBankWords(wb);
     setPlaced({});
   };
-  useEffect(() => { initBank(); setChoiceAns(null); setMultiAns([]); setFillAns(""); setWritingAns(""); }, [q.id]);
+  useEffect(() => { initBank(); setChoiceAns(null); setMultiAns([]); setFillAns(""); setWritingAns("");
+    setTPlaced({}); setTBank(null); setTDrag(null);
+  }, [q.id]);
+  // DRAG_AND_DROP_TABLE state
+  const [tPlaced, setTPlaced] = useState({});
+  const [tBank,   setTBank]   = useState(null);
+  const [tDrag,   setTDrag]   = useState(null);
 
   const bank = bankWords || [...(c.wordBank || [])];
 
@@ -943,6 +949,91 @@ function StudentPreview({ q, onClose }) {
             {c.prepSeconds && <span style={{ fontSize:12, color:T.gold }}>⏱ Prep: {c.prepSeconds}s</span>}
             {c.recordSeconds && <span style={{ fontSize:12, color:T.gold }}>🎙 Record: {c.recordSeconds}s</span>}
           </div>
+        </div>
+      );
+    }
+
+    if (type === "DRAG_AND_DROP_TABLE") {
+      const columns = c.columns || [];
+      const items   = c.items   || [];
+      // placed: { itemId: colId }
+      const bank = tBank ?? [...items];
+
+      const dropIntoCol = (colId) => {
+        if (!tDrag) return;
+        setTPlaced(p => ({ ...p, [tDrag.id]: colId }));
+        setTBank(b => (b ?? items).filter(x => x.id !== tDrag.id));
+        setTDrag(null);
+      };
+      const returnItem = (itemId) => {
+        const item = items.find(x => x.id === itemId);
+        if (!item) return;
+        setTPlaced(p => { const n = {...p}; delete n[itemId]; return n; });
+        setTBank(b => [...(b ?? []), item]);
+      };
+
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          {/* Columns */}
+          <div style={{ display:"grid", gridTemplateColumns:`repeat(${columns.length}, 1fr)`, gap:12 }}>
+            {columns.map(col => {
+              const colItems = items.filter(it => tPlaced[it.id] === col.id);
+              return (
+                <div key={col.id}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => { e.preventDefault(); dropIntoCol(col.id); }}
+                  style={{ background:"#ffffff06", border:"2px dashed #ffffff22", borderRadius:12,
+                    minHeight:120, padding:12, transition:"border .15s" }}
+                  onDragEnter={e => e.currentTarget.style.borderColor = "#fb923c88"}
+                  onDragLeave={e => e.currentTarget.style.borderColor = "#ffffff22"}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700,
+                    color:"#fb923c", marginBottom:10, textAlign:"center",
+                    background:"#fb923c18", borderRadius:7, padding:"4px 0" }}>{col.title}</div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                    {colItems.map(it => (
+                      <div key={it.id} onClick={() => returnItem(it.id)}
+                        style={{ background:"#fb923c18", border:"1px solid #fb923c44",
+                          borderRadius:8, padding:"8px 12px", fontSize:13, color:T.text,
+                          fontFamily:"'DM Sans',sans-serif", cursor:"pointer",
+                          title:"Click to return" }}>
+                        {it.text}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* Bank */}
+          {bank.length > 0 && (
+            <div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted,
+                marginBottom:8, letterSpacing:.5, textTransform:"uppercase" }}>Drag items into columns</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                {bank.map(it => (
+                  <div key={it.id} draggable
+                    onDragStart={() => setTDrag(it)}
+                    onDragEnd={() => setTDrag(null)}
+                    style={{ background: tDrag?.id === it.id ? "#fb923c33" : "#ffffff0d",
+                      border:`1.5px solid ${tDrag?.id === it.id ? "#fb923c88" : "#ffffff22"}`,
+                      borderRadius:8, padding:"8px 16px", fontSize:13, color:T.text,
+                      fontFamily:"'DM Sans',sans-serif", cursor:"grab",
+                      userSelect:"none", transition:"all .15s" }}>
+                    {it.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {bank.length === 0 && (
+            <div style={{ fontSize:12, color:"#4ade80", textAlign:"center" }}>✓ All items placed</div>
+          )}
+          <button onClick={() => { setTPlaced({}); setTBank([...items]); }}
+            style={{ alignSelf:"flex-start", background:"transparent",
+              border:"1px solid #ffffff22", borderRadius:8, padding:"6px 14px",
+              color:T.muted, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
+            ↺ Reset
+          </button>
         </div>
       );
     }
