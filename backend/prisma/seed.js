@@ -458,16 +458,16 @@ const PLACEMENT_THRESHOLDS = { A1: 60, A2: 60, B1: 65, B2: 65, C1: 70, C2: 70 };
 // STUDENTS
 // ═════════════════════════════════════════════════════════════════════════════
 const STUDENTS_DATA = [
-  { name: "Անի Հակոբյան",     email: "ani@example.am",    gender: "female", country: "Armenia", documentType: "passport", documentNumber: "AA123456" },
-  { name: "Արամ Պետրոսյան",   email: "aram@example.am",   gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID789012" },
-  { name: "Մарine Grigoryan",  email: "marine@example.am", gender: "female", country: "Georgia", documentType: "passport", documentNumber: "GE345678" },
-  { name: "Դавит Саргсян",     email: "davit@example.am",  gender: "male",   country: "Armenia", documentType: "passport", documentNumber: "AA001234" },
-  { name: "Наташа К.",         email: "natasha@example.am",gender: "female", country: "Russia",  documentType: "passport", documentNumber: "RU998877" },
-  { name: "Հайк Авагян",       email: "hayk@example.am",   gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID111222" },
-  { name: "Софья Адамян",      email: "sofia@example.am",  gender: "female", country: "France",  documentType: "passport", documentNumber: "FR556677" },
-  { name: "Артур Мкртчян",     email: "artur@example.am",  gender: "male",   country: "Armenia", documentType: "passport", documentNumber: "AA333444" },
-  { name: "Алина Н.",          email: "alina@example.am",  gender: "female", country: "USA",     documentType: "passport", documentNumber: "US223344" },
-  { name: "Карен Г.",          email: "karen@example.am",  gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID667788" },
+  { name: "Անի Հակոբյան",     email: "ani@example.am",    gender: "female", country: "Armenia", documentType: "passport", documentNumber: "AA123456" , group: "Խ-101", level: "B1" },
+  { name: "Արամ Պետրոսյան",   email: "aram@example.am",   gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID789012" , group: "Խ-102", level: "A2" },
+  { name: "Մарine Grigoryan",  email: "marine@example.am", gender: "female", country: "Georgia", documentType: "passport", documentNumber: "GE345678" , group: "Խ-103", level: "B2" },
+  { name: "Դавит Саргсян",     email: "davit@example.am",  gender: "male",   country: "Armenia", documentType: "passport", documentNumber: "AA001234" , group: "Խ-101", level: "C1" },
+  { name: "Наташа К.",         email: "natasha@example.am",gender: "female", country: "Russia",  documentType: "passport", documentNumber: "RU998877" , group: "Խ-102", level: "A2" },
+  { name: "Հайк Авагян",       email: "hayk@example.am",   gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID111222" , group: "Խ-103", level: "B2" },
+  { name: "Софья Адамян",      email: "sofia@example.am",  gender: "female", country: "France",  documentType: "passport", documentNumber: "FR556677" , group: "Խ-101", level: "A1" },
+  { name: "Артур Мкртчян",     email: "artur@example.am",  gender: "male",   country: "Armenia", documentType: "passport", documentNumber: "AA333444" , group: "Խ-102", level: "B1" },
+  { name: "Алина Н.",          email: "alina@example.am",  gender: "female", country: "USA",     documentType: "passport", documentNumber: "US223344" , group: "Խ-101", level: "A1" },
+  { name: "Карен Г.",          email: "karen@example.am",  gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID667788" , group: "Խ-103", level: "A2" },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
