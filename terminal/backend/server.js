@@ -197,10 +197,18 @@ function calcResult(exam, questions, answers) {
       totalPts    += maxPts;
     }
 
-    // Highest level where threshold is met
-    let placementLevel = null;
+    // ── Ladder algorithm ("лестница") ──────────────────────────────────────
+    // Walk levels in order. Advance only if threshold is met.
+    // Stop immediately on first failure — scores above that level are ignored.
+    // This prevents "B1 by luck" when A2 was failed.
+    let placementLevel = null;          // null  → below minimum (Pre-A1)
     for (const lvl of LEVELS) {
-      if (levelResults[lvl]?.passed) placementLevel = lvl;
+      if (!levelResults[lvl]) continue; // level not in this exam's template
+      if (levelResults[lvl].passed) {
+        placementLevel = lvl;           // passed — climb the ladder
+      } else {
+        break;                          // failed — stop here, ignore higher levels
+      }
     }
 
     const overallPct = totalPts > 0 ? Math.round((totalEarned / totalPts) * 100) : 0;
