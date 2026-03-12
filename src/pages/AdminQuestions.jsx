@@ -849,6 +849,278 @@ function QuestionsPage() {
   );
 }
 
+// ── Question Stats Page ───────────────────────────────────────────────────────
+function QuestionStatsPage() {
+  const [rows,       setRows]       = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [sortKey,    setSortKey]    = useState("uses");
+  const [sortDir,    setSortDir]    = useState("desc");
+  const [filterLvl,  setFilterLvl]  = useState("all");
+  const [filterSec,  setFilterSec]  = useState("all");
+  const [search,     setSearch]     = useState("");
+  const [detail,     setDetail]     = useState(null); // row | null
+  const sections = [...new Set(rows.map(r => r.section))].sort();
+
+  useEffect(() => {
+    api.getQuestionStats().then(data => {
+      setRows(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const sort = (key) => {
+    if (sortKey === key) setSortDir(d => d === "desc" ? "asc" : "desc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const filtered = rows
+    .filter(r => {
+      if (filterLvl !== "all" && r.level !== filterLvl) return false;
+      if (filterSec !== "all" && r.section !== filterSec) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!r.prompt.toLowerCase().includes(q) && !String(r.questionId).includes(q)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const av = a[sortKey] ?? -1;
+      const bv = b[sortKey] ?? -1;
+      return sortDir === "desc" ? bv - av : av - bv;
+    });
+
+  // Summary totals
+  const totalUses    = rows.reduce((s, r) => s + r.uses, 0);
+  const unusedCount  = rows.filter(r => r.uses === 0).length;
+  const easyCount    = rows.filter(r => r.correctPct !== null && r.correctPct >= 80).length;
+  const hardCount    = rows.filter(r => r.correctPct !== null && r.correctPct <= 40).length;
+
+  const SortTh = ({ label, k, style={} }) => (
+    <th onClick={() => sort(k)} style={{
+      padding: "10px 14px", fontSize: 10, color: sortKey === k ? C.gold : C.muted,
+      fontWeight: 700, letterSpacing: .8, textTransform: "uppercase",
+      cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+      background: C.panel, borderBottom: `1px solid ${C.border}`,
+      textAlign: "left", ...style,
+    }}>
+      {label} {sortKey === k ? (sortDir === "desc" ? "↓" : "↑") : ""}
+    </th>
+  );
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "32px 40px", minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 32, color: C.text, margin: "0 0 4px", fontWeight: 600 }}>
+          Question Statistics
+        </h1>
+        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: C.muted, margin: 0 }}>
+          Usage and correctness rates across all submitted exams
+        </p>
+      </div>
+
+      {/* Summary cards */}
+      {!loading && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+          {[
+            { label: "Total questions used",  value: rows.length,   sub: `${totalUses} total appearances`,   color: C.gold },
+            { label: "Never used",            value: unusedCount,   sub: "in question bank",                 color: unusedCount > 0 ? C.warning : C.success },
+            { label: "Easy  (≥80% correct)",  value: easyCount,     sub: "consider increasing difficulty",   color: "#4ade80" },
+            { label: "Hard  (≤40% correct)",  value: hardCount,     sub: "review or rephrase",               color: "#f87171" },
+          ].map(({ label, value, sub, color }) => (
+            <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 34, fontWeight: 700, color, lineHeight: 1, marginBottom: 6 }}>{value}</div>
+              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: C.text, marginBottom: 3 }}>{label}</div>
+              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, color: C.muted }}>{sub}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Filters */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="🔍  Search by prompt or ID…"
+          style={{ flex: "1 1 200px", background: C.panel, border: `1.5px solid ${C.border2}`, borderRadius: 9, padding: "7px 12px", color: C.text, fontFamily: "'DM Sans',sans-serif", fontSize: 13, outline: "none" }} />
+        <div style={{ display: "flex", gap: 5 }}>
+          <Pill label="All Levels" active={filterLvl === "all"} onClick={() => setFilterLvl("all")} />
+          {LEVELS.map(l => <Pill key={l} label={l} active={filterLvl === l} onClick={() => setFilterLvl(l)} color={LEVEL_COLORS[l]} />)}
+        </div>
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          <Pill label="All Sections" active={filterSec === "all"} onClick={() => setFilterSec("all")} />
+          {sections.map(s => <Pill key={s} label={s} active={filterSec === s} onClick={() => setFilterSec(s)} />)}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+        {loading ? (
+          <div style={{ padding: 48, textAlign: "center", color: C.muted, fontFamily: "'DM Sans',sans-serif" }}>Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: 48, textAlign: "center", color: C.muted, fontFamily: "'DM Sans',sans-serif" }}>No data yet — stats appear after exams are submitted</div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'DM Sans',sans-serif" }}>
+              <thead>
+                <tr>
+                  <SortTh label="#"          k="questionId" style={{ width: 50 }} />
+                  <th style={{ padding: "10px 14px", fontSize: 10, color: C.muted, fontWeight: 700, letterSpacing: .8, textTransform: "uppercase", background: C.panel, borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>Question</th>
+                  <SortTh label="Level"      k="level"      style={{ width: 70 }} />
+                  <th style={{ padding: "10px 14px", fontSize: 10, color: C.muted, fontWeight: 700, letterSpacing: .8, textTransform: "uppercase", background: C.panel, borderBottom: `1px solid ${C.border}`, width: 90 }}>Section</th>
+                  <SortTh label="Used"       k="uses"       style={{ width: 70 }} />
+                  <SortTh label="Correct"    k="correct"    style={{ width: 80 }} />
+                  <SortTh label="Wrong"      k="incorrect"  style={{ width: 70 }} />
+                  <SortTh label="Skipped"    k="skipped"    style={{ width: 75 }} />
+                  <SortTh label="% Correct"  k="correctPct" style={{ width: 110 }} />
+                  <SortTh label="Last used"  k="lastUsed"   style={{ width: 100 }} />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((r, i) => (
+                  <StatsRow key={r.questionId} r={r} i={i} onDetail={() => setDetail(r)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: C.muted, marginTop: 10, textAlign: "right" }}>
+        {filtered.length} / {rows.length} questions
+      </div>
+
+      {/* Detail drawer */}
+      {detail && <StatsDetail r={detail} onClose={() => setDetail(null)} />}
+    </div>
+  );
+}
+
+function StatsRow({ r, i, onDetail }) {
+  const pct = r.correctPct;
+  const barColor = pct === null ? C.muted
+    : pct >= 80 ? "#4ade80"
+    : pct >= 60 ? C.gold
+    : pct >= 40 ? C.warning
+    : "#f87171";
+  const lc = LEVEL_COLORS[r.level] || C.muted;
+
+  return (
+    <tr
+      onClick={onDetail}
+      style={{ borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background .12s" }}
+      onMouseEnter={e => e.currentTarget.style.background = C.panel}
+      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+    >
+      <td style={{ padding: "11px 14px", fontSize: 12, color: C.muted }}>{r.questionId}</td>
+      <td style={{ padding: "11px 14px", maxWidth: 340, overflow: "hidden" }}>
+        <div style={{ fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.prompt || "—"}</div>
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{r.type}</div>
+      </td>
+      <td style={{ padding: "11px 14px" }}>
+        <span style={{ fontSize: 11, color: lc, background: lc + "18", borderRadius: 5, padding: "2px 8px", fontWeight: 700 }}>{r.level}</span>
+      </td>
+      <td style={{ padding: "11px 14px", fontSize: 12, color: C.muted }}>{r.section}</td>
+      <td style={{ padding: "11px 14px", fontSize: 13, color: C.text, fontWeight: r.uses > 0 ? 600 : 400 }}>{r.uses}</td>
+      <td style={{ padding: "11px 14px", fontSize: 13, color: "#4ade80" }}>{r.correct}</td>
+      <td style={{ padding: "11px 14px", fontSize: 13, color: "#f87171" }}>{r.incorrect}</td>
+      <td style={{ padding: "11px 14px", fontSize: 13, color: C.muted }}>{r.skipped}</td>
+      <td style={{ padding: "11px 14px", width: 110 }}>
+        {pct === null ? (
+          <span style={{ fontSize: 11, color: C.muted }}>—</span>
+        ) : (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+              <div style={{ flex: 1, height: 5, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ width: `${pct}%`, height: "100%", background: barColor, borderRadius: 3, transition: "width .4s" }} />
+              </div>
+              <span style={{ fontSize: 12, color: barColor, fontWeight: 700, minWidth: 32, textAlign: "right" }}>{pct}%</span>
+            </div>
+          </div>
+        )}
+      </td>
+      <td style={{ padding: "11px 14px", fontSize: 11, color: C.muted }}>
+        {r.lastUsed ? new Date(r.lastUsed).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" }) : "—"}
+      </td>
+    </tr>
+  );
+}
+
+function StatsDetail({ r, onClose }) {
+  const pct = r.correctPct;
+  const barColor = pct === null ? C.muted
+    : pct >= 80 ? "#4ade80" : pct >= 60 ? C.gold : pct >= 40 ? C.warning : "#f87171";
+  const lc = LEVEL_COLORS[r.level] || C.muted;
+  const answered = r.uses - r.skipped;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000077", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}
+      onClick={onClose}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: "32px 36px", width: "100%", maxWidth: 540, boxShadow: "0 32px 80px #00000099" }}
+        onClick={e => e.stopPropagation()}>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, color: C.text, fontWeight: 700, marginBottom: 4 }}>
+              Question #{r.questionId}
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <span style={{ fontSize: 11, color: lc, background: lc + "18", borderRadius: 5, padding: "2px 8px", fontWeight: 700 }}>{r.level}</span>
+              <span style={{ fontSize: 11, color: C.muted, background: C.panel, borderRadius: 5, padding: "2px 8px" }}>{r.section}</span>
+              <span style={{ fontSize: 11, color: C.muted, background: C.panel, borderRadius: 5, padding: "2px 8px" }}>{r.type}</span>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, width: 32, height: 32, color: C.muted, cursor: "pointer", fontSize: 16 }}>✕</button>
+        </div>
+
+        {/* Prompt */}
+        <div style={{ background: C.panel, borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: C.text, lineHeight: 1.6 }}>
+          {r.prompt || "—"}
+        </div>
+
+        {/* Stats grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+          {[
+            { label: "Used",     value: r.uses,      color: C.gold },
+            { label: "Correct",  value: r.correct,   color: "#4ade80" },
+            { label: "Wrong",    value: r.incorrect,  color: "#f87171" },
+            { label: "Skipped",  value: r.skipped,   color: C.muted },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: C.bg, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 26, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, color: C.muted, marginTop: 4 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Correctness bar */}
+        {pct !== null && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: C.muted }}>Correct rate ({answered} answered)</span>
+              <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 700, color: barColor }}>{pct}%</span>
+            </div>
+            <div style={{ height: 8, background: C.border, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: barColor, borderRadius: 4 }} />
+            </div>
+            <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, color: C.muted, marginTop: 6 }}>
+              {pct >= 80 ? "⚠ Easy — consider increasing difficulty"
+               : pct <= 40 ? "⚠ Hard — consider reviewing or rephrasing"
+               : "✓ Difficulty looks appropriate"}
+            </div>
+          </div>
+        )}
+
+        {r.lastUsed && (
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: C.muted }}>
+            Last used: {new Date(r.lastUsed).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 // ── Placeholder pages ─────────────────────────────────────────────────────────
 function PlaceholderPage({ title, icon }) {
   return (
@@ -863,6 +1135,8 @@ function PlaceholderPage({ title, icon }) {
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function AdminQuestions({ theme }) {
   if (theme) C = theme;
+  const [tab, setTab] = useState("questions"); // "questions" | "stats"
+
   return (
     <>
       <style>{`
@@ -870,7 +1144,29 @@ export default function AdminQuestions({ theme }) {
         button:active{transform:scale(.97)}
         select option{background:#080f1a}
       `}</style>
-      <QuestionsPage />
+      {/* Tab bar */}
+      <div style={{ display:"flex", gap:0, borderBottom:`1px solid ${C.border}`,
+        background:C.panel, paddingLeft:32, flexShrink:0 }}>
+        {[
+          { id:"questions", icon:"☰", label:"Questions" },
+          { id:"stats",     icon:"📊", label:"Statistics" },
+        ].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            background:"transparent",
+            borderBottom: tab===t.id ? `2px solid ${C.gold}` : "2px solid transparent",
+            border:"none", borderRadius:0,
+            padding:"14px 22px", marginBottom:-1,
+            color: tab===t.id ? C.gold : C.muted,
+            fontFamily:"'DM Sans',sans-serif", fontSize:13,
+            fontWeight: tab===t.id ? 600 : 400,
+            cursor:"pointer", display:"flex", alignItems:"center", gap:7,
+            transition:"color .15s",
+          }}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === "questions" ? <QuestionsPage /> : <QuestionStatsPage />}
     </>
   );
 }

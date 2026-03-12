@@ -99,6 +99,7 @@ export const api = {
 
   // ── Sections ─────────────────────────────────────────────────────────────────
   getSections:   ()           => adminReq('/sections'),
+  getQuestionStats: (params={}) => adminReq('/questions/stats?' + new URLSearchParams(params).toString()),
   createSection: (data)       => adminReq('/sections',       { method: 'POST',   body: JSON.stringify(data) }),
   updateSection: (id, data)   => adminReq(`/sections/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
   deleteSection: (id)         => adminReq(`/sections/${id}`, { method: 'DELETE' }),
