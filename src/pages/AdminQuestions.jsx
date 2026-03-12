@@ -539,45 +539,47 @@ function QRow({ q, onEdit, onDelete, onToggleStatus, onView }) {
   const hasImage = (q.media||[]).some(m => m.type === "image");
 
   return (
-    <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 70px 90px 90px 130px", alignItems:"center", gap:14, padding:"13px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
-      onMouseEnter={e=>e.currentTarget.style.background=C.card}
-      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-
-      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, fontWeight:500 }}>#{q.id}</span>
-
-      <div>
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-          {q.prompt || "(no prompt)"}
-        </div>
-        <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
-          <span style={{ fontSize:12 }}>{ti.icon}</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:ti.color }}>{ti.label}</span>
-          <span style={{ color:C.border }}>·</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{q.section}</span>
-          {hasAudio && <span title="has audio" style={{ fontSize:11 }}>🎧</span>}
-          {hasVideo && <span title="has video" style={{ fontSize:11 }}>🎬</span>}
-          {hasImage && <span title="has image" style={{ fontSize:11 }}>🖼</span>}
-        </div>
-      </div>
-
-      <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{q.level}</span>
-      <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:600, textAlign:"center" }}>{q.points}pt</span>
-      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center" }}>
-        {q.updatedAt ? new Date(q.updatedAt).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}) : "—"}
-      </span>
-
-      <button onClick={()=>onToggleStatus(q.id)} style={{ background:q.status==="published"?C.success+"18":"#f59e0b18", border:`1px solid ${q.status==="published"?C.success+"44":"#f59e0b44"}`, borderRadius:6, padding:"4px 10px", color:q.status==="published"?C.success:"#f59e0b", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>
-        {q.status==="published"?"● Published":"○ Draft"}
-      </button>
-
+    <>
       {rowPreview && <StudentPreview q={q} onClose={() => setRowPreview(false)} />}
-      <div style={{ display:"flex", gap:6, justifyContent:"flex-end" }}>
-        <button onClick={()=>setRowPreview(true)} title="Student preview" style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:"#60a5fa", fontSize:13, cursor:"pointer" }}>🎓</button>
-        <button onClick={()=>onView(q)}   title="View"   style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.info||"#60a5fa", fontSize:13, cursor:"pointer" }}>👁</button>
-        <button onClick={()=>onEdit(q)}   title="Edit"   style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.muted, fontSize:13, cursor:"pointer" }}>✎</button>
-        <button onClick={()=>onDelete(q.id)} title="Delete" style={{ background:"transparent", border:`1px solid #f8717130`, borderRadius:7, padding:"5px 11px", color:"#f87171", fontSize:13, cursor:"pointer" }}>✕</button>
+      <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 70px 90px 90px 160px", alignItems:"center", gap:14, padding:"13px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
+        onMouseEnter={e=>e.currentTarget.style.background=C.card}
+        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+
+        <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, fontWeight:500 }}>#{q.id}</span>
+
+        <div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+            {q.prompt || "(no prompt)"}
+          </div>
+          <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
+            <span style={{ fontSize:12 }}>{ti.icon}</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:ti.color }}>{ti.label}</span>
+            <span style={{ color:C.border }}>·</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{q.section}</span>
+            {hasAudio && <span title="has audio" style={{ fontSize:11 }}>🎧</span>}
+            {hasVideo && <span title="has video" style={{ fontSize:11 }}>🎬</span>}
+            {hasImage && <span title="has image" style={{ fontSize:11 }}>🖼</span>}
+          </div>
+        </div>
+
+        <span style={{ display:"inline-block", width:"fit-content", background:lc+"18", color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{q.level}</span>
+        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:600, textAlign:"center" }}>{q.points}pt</span>
+        <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center" }}>
+          {q.updatedAt ? new Date(q.updatedAt).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}) : "—"}
+        </span>
+
+        <button onClick={()=>onToggleStatus(q.id)} style={{ display:"inline-block", width:"fit-content", background:q.status==="published"?C.success+"18":"#f59e0b18", border:`1px solid ${q.status==="published"?C.success+"44":"#f59e0b44"}`, borderRadius:6, padding:"4px 10px", color:q.status==="published"?C.success:"#f59e0b", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>
+          {q.status==="published"?"● Published":"○ Draft"}
+        </button>
+
+        <div style={{ display:"flex", gap:5, justifyContent:"flex-end" }}>
+          <button onClick={()=>setRowPreview(true)} title="Student preview" style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 10px", color:"#60a5fa", fontSize:13, cursor:"pointer" }}>🎓</button>
+          <button onClick={()=>onView(q)}   title="View"   style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 10px", color:C.info||"#60a5fa", fontSize:13, cursor:"pointer" }}>👁</button>
+          <button onClick={()=>onEdit(q)}   title="Edit"   style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 10px", color:C.muted, fontSize:13, cursor:"pointer" }}>✎</button>
+          <button onClick={()=>onDelete(q.id)} title="Delete" style={{ background:"transparent", border:`1px solid #f8717130`, borderRadius:7, padding:"5px 10px", color:"#f87171", fontSize:13, cursor:"pointer" }}>✕</button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
