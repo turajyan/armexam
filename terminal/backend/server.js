@@ -326,6 +326,8 @@ app.post('/api/session/finish', (req, res) => {
       pct:          result.score,
       passed:       result.passed,
       placementLevel: result.placementLevel ?? null,
+      levelResults:   result.levelResults  ?? null,
+      belowMinimum:   result.belowMinimum  ?? false,
       answers:      s.answers,
     }),
   }).then(async r => {

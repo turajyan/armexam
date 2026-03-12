@@ -184,6 +184,8 @@ export default function ExaminerDashboard({ theme: T }) {
     // Auto-graded result view
     if (isAutoGraded && readOnly) {
       const autoQuestions = selected.allQuestions ?? [];
+      const isPlacement   = selected.exam?.examType === "placement";
+      const levelStats    = selected.levelStats ?? null;
       return (
         <>
         <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'DM Sans',sans-serif" }}>
@@ -208,28 +210,113 @@ export default function ExaminerDashboard({ theme: T }) {
                   {selected.score || 0} / {selected.totalPoints || 0}
                 </div>
               </div>
-              {selected.exam?.level && (
-                <span style={{ 
-                  fontSize: 12, fontWeight: 700, 
-                  color: LEVEL_COLORS[selected.exam.level] || T.muted,
-                  background: (LEVEL_COLORS[selected.exam.level] || T.muted) + "22",
-                  border: `1px solid ${(LEVEL_COLORS[selected.exam.level] || T.muted)}44`,
-                  borderRadius: 8, padding: "4px 12px",
-                }}>
-                  {selected.exam.level}
-                </span>
-              )}
-              <span style={{ 
+              {/* For placement: show detectedLevel; for fixed: show exam level */}
+              {(() => {
+                const lvl = selected.exam?.examType === "placement" ? selected.detectedLevel : selected.exam?.level;
+                const lc = LEVEL_COLORS[lvl] || T.muted;
+                if (!lvl) return null;
+                return (
+                  <span style={{
+                    fontSize: 13, fontWeight: 700,
+                    color: lc, background: lc + "22",
+                    border: `1px solid ${lc}44`,
+                    borderRadius: 8, padding: "4px 14px",
+                  }}>
+                    {selected.exam?.examType === "placement" ? "📍 " : ""}{lvl}
+                  </span>
+                );
+              })()}
+              <span style={{
                 fontSize: 11, fontWeight: 600,
                 color: selected.passed ? "#4cc98a" : "#c94c6f",
                 background: selected.passed ? "#4cc98a18" : "#c94c6f18",
                 padding: "4px 10px", borderRadius: 6,
               }}>
-                {selected.passed ? "✓ Passed" : "✕ Failed"}
+                {selected.passed ? "✓ Passed" : selected.detectedLevel === null && selected.exam?.examType === "placement" ? "✕ Below minimum" : "✕ Failed"}
               </span>
             </div>
           </div>
 
+          {/* Per-level breakdown for placement exams */}
+          {selected.exam?.examType === "placement" && selected.levelStats && (
+            <div style={{ padding: "12px 24px", borderBottom: `1px solid ${T.border}`, background: T.panel + "55" }}>
+              <div style={{ fontSize: 10, color: T.muted, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }}>
+                Per-level breakdown
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {["A1","A2","B1","B2","C1","C2"].map(lvl => {
+                  const r = selected.levelStats[lvl];
+                  if (!r) return null;
+                  const lc = LEVEL_COLORS[lvl] || T.muted;
+                  const isResult = lvl === selected.detectedLevel;
+                  return (
+                    <div key={lvl} style={{
+                      background: isResult ? lc + "18" : T.card,
+                      border: `1px solid ${isResult ? lc + "55" : T.border}`,
+                      borderRadius: 10, padding: "8px 14px", minWidth: 90,
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                        <span style={{ fontWeight: 700, fontSize: 12, color: lc }}>{lvl}</span>
+                        <span style={{ fontSize: 11, color: r.passed ? "#4cc98a" : "#c94c6f" }}>
+                          {r.passed ? "✓" : "✗"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: r.passed ? lc : T.muted }}>
+                        {r.pct}%
+                      </div>
+                      <div style={{ fontSize: 10, color: T.muted }}>
+                        {r.earnedPts}/{r.maxPts} pts
+                      </div>
+                      {isResult && (
+                        <div style={{ fontSize: 9, color: lc, fontWeight: 700, marginTop: 4 }}>← result</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Per-level breakdown for placement */}
+          {isPlacement && levelStats && (
+            <div style={{ padding: "12px 24px", borderBottom: `1px solid ${T.border}`, background: T.panel + "55" }}>
+              <div style={{ fontSize: 10, color: T.muted, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }}>
+                Per-level results
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {["A1","A2","B1","B2","C1","C2"].map(lvl => {
+                  const r = levelStats[lvl];
+                  if (!r) return null;
+                  const lc = LEVEL_COLORS[lvl] || T.muted;
+                  const isTarget = lvl === selected.detectedLevel;
+                  return (
+                    <div key={lvl} style={{
+                      background: isTarget ? lc + "18" : T.card,
+                      border: `1.5px solid ${isTarget ? lc + "66" : T.border}`,
+                      borderRadius: 10, padding: "8px 14px", minWidth: 90,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: lc, fontFamily: "'DM Mono',monospace" }}>{lvl}</span>
+                        <span style={{ fontSize: 10, color: r.passed ? "#4cc98a" : "#c94c6f" }}>{r.passed ? "✓" : "✗"}</span>
+                        {isTarget && <span style={{ fontSize: 9, color: lc, fontWeight: 700 }}>★</span>}
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: r.passed ? lc : "#c94c6f", fontFamily: "'DM Mono',monospace", lineHeight: 1 }}>
+                        {r.pct}%
+                      </div>
+                      <div style={{ fontSize: 10, color: T.muted, marginTop: 3 }}>
+                        {r.earnedPts}/{r.maxPts} pts
+                      </div>
+                      <div style={{ marginTop: 6, height: 3, background: T.border, borderRadius: 99, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${r.pct}%`, background: r.passed ? lc : "#c94c6f", borderRadius: 99 }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Placement detected level + fixed level badge in header */}
           {/* Questions list */}
           <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
             <div style={{ maxWidth: 800, margin: "0 auto" }}>
@@ -666,7 +753,7 @@ export default function ExaminerDashboard({ theme: T }) {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
                   {(() => {
-                    const level = tab === "auto" ? r.exam?.level : r.detectedLevel;
+                    const level = (r.exam?.examType === "placement") ? r.detectedLevel : (r.exam?.level || r.detectedLevel);
                     const lc = LEVEL_COLORS[level] || T.muted;
                     return (
                       <span style={{ 

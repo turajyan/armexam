@@ -35,7 +35,9 @@ export default async function resultsRoutes(fastify) {
 
   // POST /api/terminal/result — submit result from exam terminal (uses PIN auth, no student token)
   fastify.post("/api/terminal/result", async (req, reply) => {
-    const { pin, examId, studentId, score, totalPoints, pct, passed, placementLevel, answers } = req.body ?? {};
+    const { pin, examId, studentId, score, totalPoints, pct, passed,
+            placementLevel, answers, levelResults, belowMinimum } = req.body ?? {};
+
     if (!pin || examId == null || score == null || totalPoints == null || pct == null) {
       return reply.code(400).send({ error: "pin, examId, score, totalPoints, pct are required" });
     }
@@ -49,11 +51,19 @@ export default async function resultsRoutes(fastify) {
       return reply.code(403).send({ error: "PIN mismatch" });
     }
 
-    // Upsert — prevent duplicate results if terminal retries
+    // Prevent duplicate results
     const existing = await prisma.result.findFirst({
       where: { examId: Number(examId), studentId: Number(studentId) },
     });
     if (existing) return reply.code(200).send(existing);
+
+    // Check if exam has manual-graded questions (writing/voice) in answers
+    const answerIds = Object.keys(answers ?? {}).map(Number).filter(Boolean);
+    const hasManual = answerIds.length > 0
+      ? await prisma.question.count({ where: { id: { in: answerIds }, type: { in: ["writing", "voice"] } } })
+      : 0;
+
+    const gradingStatus = hasManual > 0 ? "pending" : "auto";
 
     const result = await prisma.result.create({
       data: {
@@ -65,6 +75,8 @@ export default async function resultsRoutes(fastify) {
         passed:        Boolean(passed),
         answers:       answers ?? {},
         detectedLevel: placementLevel ?? null,
+        levelStats:    levelResults ?? null,
+        gradingStatus,
       },
     });
 
