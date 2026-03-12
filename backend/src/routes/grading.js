@@ -100,41 +100,7 @@ export default async function gradingRoutes(fastify) {
     return autoRes.map(r => anonymize(r, req.admin.role));
   });
 
-  // GET /api/grading/:resultId  — full result with question details for grading
-  fastify.get("/api/grading/:resultId", { preHandler: adminHook }, async (req, reply) => {
-    const resultId = Number(req.params.resultId);
-    const result = await prisma.result.findUnique({
-      where: { id: resultId },
-      include: {
-        exam:    { select: { id: true, title: true, examType: true, subpools: true, placementTemplate: true, examCenterId: true, level: true, passingScore: true } },
-        student: { select: { id: true, name: true, email: true } },
-      },
-    });
-    if (!result) return reply.code(404).send({ error: "Результат не найден" });
-
-    if (req.admin.role === "center_admin" && result.exam.examCenterId !== req.admin.centerId) {
-      return reply.code(403).send({ error: "Нет доступа к результатам этого центра" });
-    }
-
-    // Gather question IDs from answers
-    const answers = result.answers ?? {};
-    const questionIds = Object.keys(answers).map(Number).filter(Boolean);
-    
-    // For auto-graded results, get all questions; for pending/graded, only manual types
-    const isAutoGraded = result.gradingStatus === "auto";
-    let questionWhere = { id: { in: questionIds } };
-    if (!isAutoGraded) {
-      questionWhere.type = { in: ["writing", "voice"] };
-    }
-    const questions = questionIds.length
-      ? await prisma.question.findMany({
-          where: questionWhere,
-          select: { id: true, type: true, text: true, points: true, level: true, minWords: true, maxWords: true, minSeconds: true, maxSeconds: true, correct: true, answer: true },
-        })
-      : [];
-
-    return anonymize({ ...result, gradableQuestions: isAutoGraded ? [] : questions, allQuestions: questions }, req.admin.role);
-  });
+  // GET /api/grading/:resultId moved to results.js (correct schema types + rubrics)
 
   // POST /api/grading/:resultId  — submit grades for manual questions
   fastify.post("/api/grading/:resultId", { preHandler: adminHook }, async (req, reply) => {
