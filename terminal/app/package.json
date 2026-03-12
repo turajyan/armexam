@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "ArmExam Exam Terminal — Kiosk Mode",
   "main": "main.js",
+  "type": "module",
   "scripts": {
     "start": "electron .",
-    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5174 && electron . --dev\"",
     "build:ui": "vite build",
     "dist": "npm run build:ui && electron-builder"
   },
