@@ -147,8 +147,9 @@ function fromApi(q) {
 
 function toApi(q) {
   // Normalise form state → API body (only new schema fields)
-  const { type, level, section, points, status, prompt, contextText, media, content, config } = q;
-  return { type, level, section, points: Number(points), status, prompt, contextText: contextText || null,
+  // id is kept so handleSave can route edit vs create
+  const { id, type, level, section, points, status, prompt, contextText, media, content, config } = q;
+  return { id, type, level, section, points: Number(points), status, prompt, contextText: contextText || null,
     media: media && media.length ? media : null, content, config: config && Object.keys(config).length ? config : null };
 }
 
