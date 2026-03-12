@@ -580,6 +580,27 @@ function ViewQuestion({ q, onEdit, onClose }) {
 
 
 // ── Questions Page ─────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"#000000b0", backdropFilter:"blur(8px)",
+      display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background:C.card, border:`1px solid ${C.border2}`, borderRadius:16,
+        width:"100%", maxWidth:820, maxHeight:"90vh", display:"flex", flexDirection:"column",
+        boxShadow:"0 24px 80px #000a" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"18px 24px", borderBottom:`1px solid ${C.border}`, flexShrink:0 }}>
+          <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700, color:C.text }}>{title}</span>
+          <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${C.border2}`,
+            borderRadius:8, width:34, height:34, color:C.muted, fontSize:18, cursor:"pointer",
+            display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+        </div>
+        <div style={{ overflowY:"auto", padding:"24px", flex:1 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function StatsBar({ questions }) {
   const total = questions.length;
   const byType = NEW_TYPES.map(t => ({ ...t, count: questions.filter(q => q.type === t.id).length }))
