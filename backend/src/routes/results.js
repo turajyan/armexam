@@ -36,7 +36,7 @@ export default async function resultsRoutes(fastify) {
   // POST /api/terminal/result — submit result from exam terminal (uses PIN auth, no student token)
   fastify.post("/api/terminal/result", async (req, reply) => {
     const { pin, examId, studentId, score, totalPoints, pct, passed,
-            placementLevel, answers, levelResults, belowMinimum } = req.body ?? {};
+            placementLevel, answers, levelResults, belowMinimum, gradingStatus: terminalGradingStatus } = req.body ?? {};
 
     if (!pin || examId == null || score == null || totalPoints == null || pct == null) {
       return reply.code(400).send({ error: "pin, examId, score, totalPoints, pct are required" });
@@ -57,13 +57,16 @@ export default async function resultsRoutes(fastify) {
     });
     if (existing) return reply.code(200).send(existing);
 
-    // Check if exam has manual-graded questions (writing/voice) in answers
-    const answerIds = Object.keys(answers ?? {}).map(Number).filter(Boolean);
-    const hasManual = answerIds.length > 0
-      ? await prisma.question.count({ where: { id: { in: answerIds }, type: { in: ["writing", "voice"] } } })
-      : 0;
-
-    const gradingStatus = hasManual > 0 ? "pending" : "auto";
+    // Use gradingStatus from terminal if provided, otherwise detect from answer keys
+    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
+    let gradingStatus = terminalGradingStatus ?? "auto";
+    if (!terminalGradingStatus) {
+      const answerIds = Object.keys(answers ?? {}).map(Number).filter(Boolean);
+      const hasManual = answerIds.length > 0
+        ? await prisma.question.count({ where: { id: { in: answerIds }, type: { in: MANUAL_TYPES } } })
+        : 0;
+      gradingStatus = hasManual > 0 ? "pending" : "auto";
+    }
 
     const result = await prisma.result.create({
       data: {

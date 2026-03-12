@@ -7,52 +7,107 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Question bank ────────────────────────────────────────────────────────────
+
 model Section {
   id        Int        @id @default(autoincrement())
   name      String     @unique
+
+  // Drives terminal UI behaviour for every question in this section.
+  // READING  – free navigation, can revisit & change answers until time runs out
+  // LISTENING – linear only, no going back; question shown after/during media
+  // SPEAKING – mic activated, strict prep+record timers, auto-upload, no going back
+  // WRITING  – clipboard blocked, spell-check off, rich text editor
+  category  String     @default("READING") // READING | LISTENING | SPEAKING | WRITING
+
   questions Question[]
 }
 
 model Question {
-  id          Int      @id @default(autoincrement())
-  type        String   // single_choice | multi_choice | multi_select | fill_blank | fill_wordbank | writing | audio | video | voice
-  level       String   // A1 | A2 | B1 | B2 | C1 | C2
-  sectionId   Int
-  section     Section  @relation(fields: [sectionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  points      Int      @default(1)
-  text        String
+  id        Int     @id @default(autoincrement())
+  sectionId Int
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  // Choice questions
-  options     Json?    // String[]
-  correct     Json?    // Int | Int[]
+  // Determines which React component renders in the kiosk terminal:
+  // SINGLE_CHOICE | MULTIPLE_CHOICE | FILL_IN_THE_BLANKS |
+  // DRAG_TO_TEXT | TEXT_INSERTION |
+  // DRAG_AND_DROP_TABLE | DRAG_AND_DROP_IMAGE | IMAGE_CLICK |
+  // SPEAKING_INDEPENDENT | SPEAKING_INTEGRATED |
+  // WRITING_INDEPENDENT  | WRITING_INTEGRATED
+  type   String
 
-  // Fill blank
-  answer      String?
+  level  String  // A1 | A2 | B1 | B2 | C1 | C2
+  points Int     @default(1)
+  status String  @default("published") // published | draft | archived
 
-  // Word bank
-  segments    Json?    // { type: "text"|"blank", content?: string, id?: number }[]
-  wordBank    Json?    // String[]
+  // ── Context (shown left or above the prompt) ──────────────────────────────
+  // Reading passage, quote, instructions, etc.
+  contextText String?  @db.Text
 
-  // Audio / Video / Image
-  audioSrc    String?
-  videoSrc    String?
-  imageSrc    String?
-  maxPlays    Int?
-  pauseSeconds Int?
+  // Attached media: [{ type: "image"|"audio"|"video", url: "...", maxPlays?: 2, autoPlay?: false }]
+  media       Json?
 
-  // Voice
-  maxSeconds  Int?
-  minSeconds  Int?
-  maxAttempts Int?
+  // ── Prompt (task instruction) ─────────────────────────────────────────────
+  prompt      String  @db.Text
 
-  // Writing
-  minWords    Int?
-  maxWords    Int?
+  // ── Answer data — structure is type-specific ──────────────────────────────
+  //
+  // SINGLE_CHOICE:
+  //   { options: string[], correct: number }
+  //
+  // MULTIPLE_CHOICE:
+  //   { options: string[], correct: number[], requiredCount?: number }
+  //
+  // FILL_IN_THE_BLANKS:
+  //   { segments: [{ type:"text"|"blank", value:string, id?:number, answer?:string }] }
+  //
+  // DRAG_TO_TEXT  (inline drag into {slot_N} placeholders):
+  //   { text: string, wordBank: string[], slots: { slot_1: "answer", slot_2: "answer" } }
+  //
+  // TEXT_INSERTION  (click marker [N] to insert a sentence):
+  //   { passages: string[], markers: [{ id:number, correct:number }] }
+  //   contextText contains the base text with [1],[2],[3] markers
+  //
+  // DRAG_AND_DROP_TABLE  (kanban-style distribution):
+  //   { columns: [{id:string, title:string}], items: [{id:string, text:string}],
+  //     correct: { "item_id": "col_id" } }
+  //
+  // DRAG_AND_DROP_IMAGE  (drag labels onto image hotspots):
+  //   { labels: [{id:string, text:string}],
+  //     hotspots: [{id:string, x:number, y:number, correct:string}] }
+  //   media contains [{ type:"image", url:"..." }]
+  //
+  // IMAGE_CLICK  (click the correct zone on an image):
+  //   { hotspots: [{id:string, x:number, y:number, width:number, height:number, correct:boolean}] }
+  //   media contains [{ type:"image", url:"..." }]
+  //
+  // SPEAKING_INDEPENDENT:
+  //   { prepSeconds: 30, recordSeconds: 60, maxAttempts: 1 }
+  //
+  // SPEAKING_INTEGRATED:
+  //   { prepSeconds: 30, recordSeconds: 90, maxAttempts: 1 }
+  //   media: [{ type:"audio"|"video", url:"...", maxPlays:1 }]
+  //   contextText: optional reading passage
+  //
+  // WRITING_INDEPENDENT:
+  //   { minWords: 150, maxWords: 300 }
+  //
+  // WRITING_INTEGRATED:
+  //   { minWords: 200, maxWords: 350 }
+  //   contextText: source text (stays visible while writing)
+  //   media: [{ type:"audio", url:"...", maxPlays:2 }]
+  //
+  content     Json?
 
-  status      String   @default("published")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // ── Per-question kiosk overrides (merged on top of section category defaults) ──
+  // e.g. { maxPlays: 1, autoPlay: true, prepSeconds: 45, recordSeconds: 120 }
+  config      Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
+// ─── People ───────────────────────────────────────────────────────────────────
 
 model Student {
   id             Int      @id @default(autoincrement())
@@ -63,8 +118,8 @@ model Student {
   country        String   @default("")
   documentType   String   @default("passport")  // passport | id_card
   documentNumber String   @default("")
-  gender         String   @default("")   // male | female | other
-  level          String?  // detected level
+  gender         String   @default("")           // male | female | other
+  level          String?                         // last detected placement level
   status         String   @default("active")
   sessionToken   String?  @unique
   createdAt      DateTime @default(now())
@@ -72,12 +127,6 @@ model Student {
 
   exams   ExamAssignment[]
   results Result[]
-}
-
-model City {
-  id      Int          @id @default(autoincrement())
-  name    String       @unique
-  centers ExamCenter[]
 }
 
 model Admin {
@@ -94,6 +143,14 @@ model Admin {
   updatedAt    DateTime    @updatedAt
 }
 
+// ─── Geography ────────────────────────────────────────────────────────────────
+
+model City {
+  id      Int          @id @default(autoincrement())
+  name    String       @unique
+  centers ExamCenter[]
+}
+
 model ExamCenter {
   id      Int    @id @default(autoincrement())
   name    String
@@ -106,34 +163,39 @@ model ExamCenter {
   admins  Admin[]
 }
 
+// ─── Exams ────────────────────────────────────────────────────────────────────
+
 model Exam {
-  id                    Int      @id @default(autoincrement())
-  title                 String
-  examType              String   @default("fixed") // fixed | placement
-  level                 String?  // null for placement
-  duration              Int      @default(60)       // minutes
-  passingScore          Int?     // percent, null for placement
-  shuffle               Boolean  @default(false)
-  showResults           Boolean  @default(true)
-  showQuestionLevel     Boolean  @default(true)
-  showQuestionPoints    Boolean  @default(true)
+  id           Int     @id @default(autoincrement())
+  title        String
+  examType     String  @default("fixed")  // fixed | placement
+  level        String?                    // target level for fixed exams; null for placement
+  duration     Int     @default(60)       // minutes
+  passingScore Int?                       // % threshold for fixed exams
+  shuffle      Boolean @default(false)
+  showResults           Boolean @default(true)
+  showQuestionLevel     Boolean @default(true)
+  showQuestionPoints    Boolean @default(true)
 
-  // Fixed exam subpools: [{ section, count }]
-  subpools              Json?
+  // Fixed exam — question pool per section:
+  // [{ section: "Reading", count: 5 }, { section: "Grammar", count: 3 }]
+  subpools Json?
 
-  // Placement exam
-  placementTemplate     Json?    // [{ level, pointsEach, subpools: [{ section, count }] }]
-  placementThresholds   Json?    // { A1: 60, A2: 60, ... }
+  // Placement exam — level-by-level pools:
+  // [{ level:"A1", pointsEach:1, subpools:[{ section:"Reading", count:3 }] }, ...]
+  placementTemplate    Json?
+  // { A1: 60, A2: 60, B1: 65, B2: 65, C1: 70, C2: 70 }
+  placementThresholds  Json?
   showPlacementThreshold Boolean @default(false)
 
-  // Exam center & open registration
+  // Centre & registration
   examCenterId Int?
   examCenter   ExamCenter? @relation(fields: [examCenterId], references: [id])
-  isOpen       Boolean     @default(false) // students can self-register
+  isOpen       Boolean     @default(false)
+  startDate    DateTime?
+  endDate      DateTime?
 
   status    String   @default("active")  // active | draft | archived
-  startDate DateTime?
-  endDate   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -144,7 +206,7 @@ model Exam {
 model ExamAssignment {
   examId    Int
   studentId Int
-  pin       String   @unique  // 8-char PIN (A-Z + 0-9) for student exam access
+  pin       String   @unique  // 8-char alphanumeric PIN for kiosk login
   createdAt DateTime @default(now())
 
   exam    Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
@@ -153,24 +215,34 @@ model ExamAssignment {
   @@id([examId, studentId])
 }
 
-model Result {
-  id             Int      @id @default(autoincrement())
-  examId         Int
-  studentId      Int
-  score          Int      // earned points (auto + manual)
-  totalPoints    Int
-  pct            Int      // 0-100
-  passed         Boolean?
-  answers        Json?    // { questionId: answer }
-  detectedLevel  String?  // for placement exams
-  levelStats     Json?    // for placement: { A1: { earned, maxPts, pct }, ... }
-  submittedAt    DateTime @default(now())
+// ─── Results ─────────────────────────────────────────────────────────────────
 
-  // Manual grading (writing / speaking)
-  gradingStatus  String   @default("auto")  // auto | pending | graded
-  manualGrades   Json?    // { [questionId]: { earnedPoints, maxPoints, status: "approved"|"partial"|"declined", notes } }
-  gradedById     Int?
-  gradedAt       DateTime?
+model Result {
+  id          Int      @id @default(autoincrement())
+  examId      Int
+  studentId   Int
+  score       Int      // earned points (auto-graded + any manual additions)
+  totalPoints Int
+  pct         Int      // 0–100
+  passed      Boolean?
+
+  // { questionId: answer }
+  // voice answers: value is "/voice/<filename>.webm"
+  answers     Json?
+
+  // Placement only
+  detectedLevel String?  // e.g. "B2"
+  // { A1: { earnedPts, maxPts, pct, passed }, A2: { ... }, ... }
+  levelStats    Json?
+
+  submittedAt DateTime @default(now())
+
+  // Manual grading (WRITING / SPEAKING question types)
+  gradingStatus String   @default("auto")  // auto | pending | graded
+  // { [questionId]: { earnedPoints, maxPoints, status:"approved"|"partial"|"declined", notes } }
+  manualGrades  Json?
+  gradedById    Int?
+  gradedAt      DateTime?
 
   exam    Exam    @relation(fields: [examId], references: [id])
   student Student @relation(fields: [studentId], references: [id])

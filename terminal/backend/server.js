@@ -91,23 +91,84 @@ function buildQuestions(exam, questions) {
 }
 
 function calcResult(exam, questions, answers) {
-  // ── Score individual question ──────────────────────────────────────────────
+  // ── Score individual question using new content structure ─────────────────
   function scoreQuestion(q) {
     const ans = answers[String(q.id)];
     if (ans === undefined || ans === null || ans === '') return 0;
-    if (q.type === 'single_choice') {
-      return Number(ans) === q.correct ? q.points : 0;
+
+    const c = q.content || {};
+
+    switch (q.type) {
+      case 'SINGLE_CHOICE': {
+        return Number(ans) === c.correct ? q.points : 0;
+      }
+      case 'MULTIPLE_CHOICE': {
+        const given   = new Set((Array.isArray(ans) ? ans : [ans]).map(Number));
+        const correct = new Set(Array.isArray(c.correct) ? c.correct : [c.correct]);
+        return (given.size === correct.size && [...given].every(x => correct.has(x))) ? q.points : 0;
+      }
+      case 'FILL_IN_THE_BLANKS': {
+        // ans: { [blankId]: "typed text" }
+        if (typeof ans !== 'object') return 0;
+        const norm    = s => String(s).trim().toLowerCase();
+        const blanks  = (c.segments || []).filter(s => s.type === 'blank');
+        if (blanks.length === 0) return 0;
+        const allCorrect = blanks.every(b => norm(ans[b.id] ?? '') === norm(b.answer ?? ''));
+        return allCorrect ? q.points : 0;
+      }
+      case 'DRAG_TO_TEXT': {
+        // ans: { slot_1: "word", slot_2: "word" }
+        if (typeof ans !== 'object') return 0;
+        const norm = s => String(s).trim().toLowerCase();
+        const slots = c.slots || {};
+        const allCorrect = Object.entries(slots).every(
+          ([slot, expected]) => norm(ans[slot] ?? '') === norm(expected)
+        );
+        return allCorrect ? q.points : 0;
+      }
+      case 'DRAG_AND_DROP_TABLE': {
+        // ans: { item_1: "col_1", item_2: "col_2", ... }
+        if (typeof ans !== 'object') return 0;
+        const correct = c.correct || {};
+        const allCorrect = Object.entries(correct).every(
+          ([itemId, colId]) => ans[itemId] === colId
+        );
+        return allCorrect ? q.points : 0;
+      }
+      case 'TEXT_INSERTION': {
+        // ans: { [markerId]: sentenceIndex }
+        if (typeof ans !== 'object') return 0;
+        const markers = c.markers || [];
+        const allCorrect = markers.every(m => Number(ans[m.id] ?? -1) === m.correct);
+        return allCorrect ? q.points : 0;
+      }
+      case 'IMAGE_CLICK': {
+        // ans: { x: 45.2, y: 32.1 }  — check if inside correct hotspot
+        if (typeof ans !== 'object') return 0;
+        const { x, y } = ans;
+        const hit = (c.hotspots || []).find(h =>
+          h.correct &&
+          x >= h.x && x <= h.x + (h.width || 10) &&
+          y >= h.y && y <= h.y + (h.height || 10)
+        );
+        return hit ? q.points : 0;
+      }
+      case 'DRAG_AND_DROP_IMAGE': {
+        // ans: { [hotspotId]: labelIndex }
+        if (typeof ans !== 'object') return 0;
+        const hotspots = c.hotspots || [];
+        const allCorrect = hotspots.every(h => Number(ans[h.id] ?? -1) === h.correct);
+        return allCorrect ? q.points : 0;
+      }
+      // Manual grading types → 0 until examiner scores
+      case 'WRITING_INDEPENDENT':
+      case 'WRITING_INTEGRATED':
+      case 'SPEAKING_INDEPENDENT':
+      case 'SPEAKING_INTEGRATED':
+        return 0;
+      default:
+        return 0;
     }
-    if (q.type === 'multi_choice' || q.type === 'multi_select') {
-      const u = new Set((Array.isArray(ans) ? ans : [ans]).map(Number));
-      const c = new Set(q.correct);
-      return ([...u].every(x => c.has(x)) && u.size === c.size) ? q.points : 0;
-    }
-    if (q.type === 'fill_blank') {
-      const norm = s => String(s).trim().toLowerCase();
-      return norm(ans) === norm(q.answer || q.correctAnswer || '') ? q.points : 0;
-    }
-    return 0; // writing / voice → manual grading
   }
 
   if (exam.examType === 'placement') {
@@ -319,22 +380,27 @@ app.post('/api/session/finish', (req, res) => {
     answersWithVoice[qid] = `/voice/${filename}`; // relative URL served by terminal backend
   }
 
+  // Determine if manual grading is needed
+  const MANUAL_TYPES = new Set(['WRITING_INDEPENDENT','WRITING_INTEGRATED','SPEAKING_INDEPENDENT','SPEAKING_INTEGRATED']);
+  const hasManual = s.questions.some(q => MANUAL_TYPES.has(q.type));
+
   // Push result to main backend using PIN-authenticated endpoint
   fetch(`${MAIN_API}/api/terminal/result`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      pin:          s.pin,
-      examId:       s.examId,
-      studentId:    s.studentId,
-      score:        result.earnedPts,
-      totalPoints:  result.totalPts,
-      pct:          result.score,
-      passed:       result.passed,
+      pin:           s.pin,
+      examId:        s.examId,
+      studentId:     s.studentId,
+      score:         result.earnedPts,
+      totalPoints:   result.totalPts,
+      pct:           result.score,
+      passed:        result.passed,
       placementLevel: result.placementLevel ?? null,
       levelResults:   result.levelResults  ?? null,
       belowMinimum:   result.belowMinimum  ?? false,
-      answers:      answersWithVoice,
+      answers:        answersWithVoice,
+      gradingStatus:  hasManual ? 'pending' : 'auto',
     }),
   }).then(async r => {
     if (!r.ok) {

@@ -5,20 +5,23 @@ export default async function questionsRoutes(fastify) {
   const adminHook     = requireAdmin(prisma);
   const moderatorHook = requireRole("super_admin", "center_admin", "moderator")(prisma);
 
-  // Flatten: replace sectionId + section relation with section name string
+  // Format: replace sectionId/section relation → flat { section, category }
   function fmt(q) {
     const { sectionId, section, ...rest } = q;
-    return { ...rest, section: section?.name ?? String(sectionId) };
+    return {
+      ...rest,
+      section:  section?.name     ?? String(sectionId),
+      category: section?.category ?? "READING",
+    };
   }
 
-  // Resolve section name → id
   async function resolveSectionId(name, reply) {
     const sec = await prisma.section.findUnique({ where: { name } });
     if (!sec) { reply.code(400).send({ error: `Section '${name}' not found` }); return null; }
     return sec.id;
   }
 
-  // GET /api/questions?level=B1&section=Reading&type=single_choice
+  // GET /api/questions?level=B1&section=Reading&type=SINGLE_CHOICE&status=published
   fastify.get("/api/questions", { preHandler: adminHook }, async (req) => {
     const { level, section, type, status } = req.query;
     const where = {};
@@ -30,12 +33,12 @@ export default async function questionsRoutes(fastify) {
       if (!sec) return [];
       where.sectionId = sec.id;
     }
-    const questions = await prisma.question.findMany({
+    const qs = await prisma.question.findMany({
       where,
       include: { section: true },
-      orderBy: { id: "asc" },
+      orderBy: [{ level: "asc" }, { id: "asc" }],
     });
-    return questions.map(fmt);
+    return qs.map(fmt);
   });
 
   // GET /api/questions/:id
@@ -49,10 +52,11 @@ export default async function questionsRoutes(fastify) {
   });
 
   // POST /api/questions
+  // Required: type, level, section, prompt
   fastify.post("/api/questions", { preHandler: moderatorHook }, async (req, reply) => {
-    const { type, level, section, text } = req.body ?? {};
-    if (!type || !level || !section || !text) {
-      return reply.code(400).send({ error: "type, level, section, text are required" });
+    const { type, level, section, prompt } = req.body ?? {};
+    if (!type || !level || !section || !prompt) {
+      return reply.code(400).send({ error: "type, level, section, prompt are required" });
     }
     const sectionId = await resolveSectionId(section, reply);
     if (sectionId === null) return;
@@ -84,16 +88,20 @@ export default async function questionsRoutes(fastify) {
     await prisma.question.delete({ where: { id: Number(req.params.id) } });
     return reply.code(204).send();
   });
+
+  // GET /api/sections  — list all sections with category
+  fastify.get("/api/sections", { preHandler: adminHook }, async () => {
+    return prisma.section.findMany({ orderBy: { name: "asc" } });
+  });
 }
 
+// Only allow known Question fields through to Prisma
 function sanitize(body) {
   const allowed = [
-    "type","level","points","text",
-    "options","correct","answer",
-    "segments","wordBank",
-    "audioSrc","videoSrc","maxPlays","pauseSeconds",
-    "maxSeconds","minSeconds","maxAttempts",
-    "minWords","maxWords","status",
+    "type", "level", "points", "status",
+    "contextText", "media",
+    "prompt",
+    "content", "config",
   ];
   return Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
