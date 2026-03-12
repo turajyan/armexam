@@ -6,23 +6,14 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+G
 // ── Constants ────────────────────────────────────────────────────────────────
 const LEVELS = ["A1","A2","B1","B2","C1","C2"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
-const QTYPES = [
-  { id:"single_choice", label:"Single Choice", icon:"◉", color:"#60a5fa" },
-  { id:"multi_choice",  label:"Multi Choice",  icon:"☑", color:"#a78bfa" },
-  { id:"multi_select",  label:"Multi Select",  icon:"⊞", color:"#34d399" },
-  { id:"audio",         label:"Audio",         icon:"🎧", color:"#f59e0b" },
-  { id:"video",         label:"Video",         icon:"🎬", color:"#f87171" },
-  { id:"fill_blank",    label:"Fill Blank",    icon:"✎", color:"#e879f9" },
-  { id:"fill_wordbank", label:"Word Bank",     icon:"🧩", color:"#f472b6" },
-  { id:"writing",       label:"Writing",       icon:"✍", color:"#94a3b8" },
-  { id:"voice",         label:"Voice",         icon:"🎤", color:"#fb923c" },
-];
+// Question types — canonical list (new schema). Also aliased as QTYPES below for filter pills.
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 let C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",dim:"#1e293b",success:"#22c55e",danger:"#f87171",warning:"#f59e0b",info:"#60a5fa",purple:"#a78bfa",scrollThumb:"#243050",sidebarBg:"#080f1a",topbarBg:"#080f1acc" };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const qtype = (id) => QTYPES.find(q=>q.id===id) || QTYPES[0];
+// ntypeInfo() defined below with NEW_TYPES — aliased here for early-reference callsites
+// ntypeInfo and QTYPES defined after NEW_TYPES const (line ~85)
 
 function Badge({ children, color="#64748b", bg }) {
   return <span style={{ background: bg||(color+"18"), color, border:`1px solid ${color}33`, borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", letterSpacing:.5 }}>{children}</span>;
@@ -72,627 +63,520 @@ function Textarea({ label, value, onChange, placeholder, rows=4 }) {
   );
 }
 
-function UploadZone({ label, accept, icon, hint, onFile, fileName, onClear }) {
-  const [drag, setDrag] = useState(false);
-  const ref = useRef();
-  const handleFile = f => { if (f && onFile) onFile(f); };
-  const handleClear = (e) => {
-    e.stopPropagation();
-    if (ref.current) ref.current.value = "";
-    if (onClear) onClear();
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+// Build a blank question state for the form.
+// `initial` comes from the API (new schema): prompt, content{}, media[], contextText, config{}
+const NEW_TYPES = [
+  { id:"SINGLE_CHOICE",       label:"Single Choice",     icon:"◉",  color:"#60a5fa", hasOptions:true,  hasMedia:false },
+  { id:"MULTIPLE_CHOICE",     label:"Multiple Choice",   icon:"☑",  color:"#a78bfa", hasOptions:true,  hasMedia:false },
+  { id:"FILL_IN_THE_BLANKS",  label:"Fill Blanks",       icon:"✎",  color:"#e879f9", hasOptions:false, hasMedia:false },
+  { id:"DRAG_TO_TEXT",        label:"Drag to Text",      icon:"🧩", color:"#f472b6", hasOptions:false, hasMedia:false },
+  { id:"TEXT_INSERTION",      label:"Text Insertion",    icon:"↩",  color:"#34d399", hasOptions:false, hasMedia:false },
+  { id:"DRAG_AND_DROP_TABLE", label:"D&D Table",         icon:"⊞",  color:"#fb923c", hasOptions:false, hasMedia:false },
+  { id:"DRAG_AND_DROP_IMAGE", label:"D&D Image",         icon:"🗺",  color:"#f59e0b", hasOptions:false, hasMedia:true  },
+  { id:"IMAGE_CLICK",         label:"Image Click",       icon:"🎯", color:"#f87171", hasOptions:false, hasMedia:true  },
+  { id:"SPEAKING_INDEPENDENT",label:"Speaking (Indep.)", icon:"🎤", color:"#fb923c", hasOptions:false, hasMedia:false },
+  { id:"SPEAKING_INTEGRATED", label:"Speaking (Integ.)", icon:"🎙", color:"#f97316", hasOptions:false, hasMedia:true  },
+  { id:"WRITING_INDEPENDENT", label:"Writing (Indep.)",  icon:"✍",  color:"#94a3b8", hasOptions:false, hasMedia:false },
+  { id:"WRITING_INTEGRATED",  label:"Writing (Integ.)",  icon:"📝", color:"#64748b", hasOptions:false, hasMedia:true  },
+];
+const ntypeInfo = (id) => NEW_TYPES.find(t => t.id === id) || NEW_TYPES[0];
+const qtype = ntypeInfo;   // alias used in StatsBar / legacy call-sites
+const QTYPES = NEW_TYPES;  // alias used in filter pill rows
+
+function blankContent(type) {
+  switch (type) {
+    case "SINGLE_CHOICE":
+    case "MULTIPLE_CHOICE":
+      return { options: ["", "", "", ""], correct: type === "SINGLE_CHOICE" ? 0 : [] };
+    case "FILL_IN_THE_BLANKS":
+      return { segments: [{ type: "text", value: "Text " }, { type: "blank", id: 1, answer: "" }, { type: "text", value: "." }] };
+    case "DRAG_TO_TEXT":
+      return { text: "The sun {slot_1} every day.", wordBank: ["rises", "falls", "sleeps"], slots: { slot_1: "rises" } };
+    case "TEXT_INSERTION":
+      return { passages: ["Sentence to insert."], markers: [{ id: 1, correct: 0 }] };
+    case "DRAG_AND_DROP_TABLE":
+      return { columns: [{ id: "col_a", title: "Group A" }, { id: "col_b", title: "Group B" }], items: [{ id: "i1", text: "Item 1" }, { id: "i2", text: "Item 2" }], correct: { i1: "col_a", i2: "col_b" } };
+    case "DRAG_AND_DROP_IMAGE":
+      return { labels: [{ id: "lbl1", text: "Label 1" }], hotspots: [{ id: "hs1", x: 50, y: 50, correct: "lbl1" }] };
+    case "IMAGE_CLICK":
+      return { hotspots: [{ id: "hs1", x: 10, y: 10, width: 20, height: 20, correct: true }] };
+    case "SPEAKING_INDEPENDENT":
+    case "SPEAKING_INTEGRATED":
+      return { prepSeconds: 30, recordSeconds: 60, maxAttempts: 1, rubrics: [
+        { id: "fluency", label: "Fluency & Coherence", maxScore: 5 },
+        { id: "lexical", label: "Lexical Resource", maxScore: 5 },
+        { id: "grammar", label: "Grammatical Range", maxScore: 5 },
+        { id: "pronunciation", label: "Pronunciation", maxScore: 5 },
+      ]};
+    case "WRITING_INDEPENDENT":
+    case "WRITING_INTEGRATED":
+      return { minWords: 150, maxWords: 300, rubrics: [
+        { id: "task_response", label: "Task Response", maxScore: 5 },
+        { id: "coherence", label: "Coherence & Cohesion", maxScore: 5 },
+        { id: "lexical", label: "Lexical Resource", maxScore: 5 },
+        { id: "grammar", label: "Grammatical Range", maxScore: 5 },
+      ]};
+    default:
+      return {};
+  }
+}
+
+function blankQ() {
+  return { type: "SINGLE_CHOICE", level: "B1", section: "Reading", points: 1, status: "draft",
+    prompt: "", contextText: "", media: [], content: blankContent("SINGLE_CHOICE"), config: {} };
+}
+
+function fromApi(q) {
+  // Normalise API response → form state
+  return {
+    id: q.id,
+    type: q.type || "SINGLE_CHOICE",
+    level: q.level || "B1",
+    section: q.section || "Reading",
+    points: q.points ?? 1,
+    status: q.status || "draft",
+    prompt: q.prompt || "",
+    contextText: q.contextText || "",
+    media: Array.isArray(q.media) ? q.media : [],
+    content: q.content || blankContent(q.type),
+    config: q.config || {},
   };
+}
+
+function toApi(q) {
+  // Normalise form state → API body (only new schema fields)
+  const { type, level, section, points, status, prompt, contextText, media, content, config } = q;
+  return { type, level, section, points: Number(points), status, prompt, contextText: contextText || null,
+    media: media && media.length ? media : null, content, config: config && Object.keys(config).length ? config : null };
+}
+
+// ── Media editor ──────────────────────────────────────────────────────────────
+function MediaEditor({ media = [], onChange }) {
+  const add = (type) => onChange([...media, { type, url: "", maxPlays: type === "audio" ? 2 : 1 }]);
+  const upd = (i, patch) => onChange(media.map((m, j) => j === i ? { ...m, ...patch } : m));
+  const del = (i) => onChange(media.filter((_, j) => j !== i));
+
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
-      {label && (
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>{label}</label>
-          {fileName && onClear && (
-            <button onClick={handleClear} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 2px", lineHeight:1 }} title="Remove">✕</button>
+    <div>
+      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", marginBottom:8 }}>
+        Media  <span style={{ color:C.muted, fontWeight:400, textTransform:"none" }}>(audio / video / image)</span>
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:8 }}>
+        {media.map((m, i) => (
+          <div key={i} style={{ display:"grid", gridTemplateColumns:"70px 1fr auto auto", gap:8, alignItems:"center", background:C.panel, border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 12px" }}>
+            <select value={m.type} onChange={e => upd(i, { type: e.target.value })}
+              style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:6, padding:"5px 8px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>
+              <option value="audio">audio</option>
+              <option value="video">video</option>
+              <option value="image">image</option>
+            </select>
+            <input value={m.url} onChange={e => upd(i, { url: e.target.value })}
+              placeholder="https://… or /uploads/file.mp3"
+              style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:8, padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none" }} />
+            {m.type !== "image" && (
+              <select value={m.maxPlays ?? 2} onChange={e => upd(i, { maxPlays: Number(e.target.value) })}
+                style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:6, padding:"5px 8px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>
+                {[1,2,3].map(n => <option key={n} value={n}>{n}×</option>)}
+              </select>
+            )}
+            <button onClick={() => del(i)} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 4px" }}>✕</button>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:6 }}>
+        {["audio","video","image"].map(t => (
+          <button key={t} onClick={() => add(t)} style={{ background:C.panel, border:`1px dashed ${C.border2}`, borderRadius:8, padding:"6px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" }}>
+            + {t}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Content editors per type ──────────────────────────────────────────────────
+function ChoiceEditor({ content, multi, onChange }) {
+  const opts = content.options || ["","","",""];
+  const correct = content.correct ?? (multi ? [] : 0);
+  const toggle = (i) => {
+    if (!multi) { onChange({ ...content, correct: i }); return; }
+    const cur = Array.isArray(correct) ? correct : [];
+    onChange({ ...content, correct: cur.includes(i) ? cur.filter(x=>x!==i) : [...cur, i] });
+  };
+  const isCorrect = (i) => Array.isArray(correct) ? correct.includes(i) : correct === i;
+  const setOpt = (i, v) => { const a = [...opts]; a[i] = v; onChange({ ...content, options: a }); };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+      <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>
+        Options  <span style={{ color:C.muted, fontWeight:400, textTransform:"none" }}>· click circle = correct</span>
+      </label>
+      {opts.map((opt, i) => (
+        <div key={i} style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <button onClick={() => toggle(i)} style={{ width:28, height:28, borderRadius: multi ? "6px" : "50%", border:`2px solid ${isCorrect(i) ? C.success : C.border2}`, background: isCorrect(i) ? C.success+"22" : "transparent", cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .15s" }}>
+            {isCorrect(i) && <svg width={12} height={12} viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke={C.success} strokeWidth={2} strokeLinecap="round" fill="none"/></svg>}
+          </button>
+          <input value={opt} onChange={e => setOpt(i, e.target.value)} placeholder={`Option ${i+1}…`}
+            style={{ flex:1, background:C.panel, border:`1.5px solid ${isCorrect(i) ? C.success+"55" : C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", transition:"border .15s" }} />
+          {opts.length > 2 && (
+            <button onClick={() => { const a=opts.filter((_,j)=>j!==i); onChange({...content,options:a}); }} style={{ background:"transparent", border:"none", color:C.muted, cursor:"pointer", fontSize:16, padding:"4px 6px" }}>✕</button>
           )}
         </div>
-      )}
-      <div
-        onClick={()=>ref.current.click()}
-        onDragOver={e=>{e.preventDefault();setDrag(true)}}
-        onDragLeave={()=>setDrag(false)}
-        onDrop={e=>{e.preventDefault();setDrag(false);handleFile(e.dataTransfer.files[0])}}
-        style={{ border:`2px dashed ${drag?C.gold:fileName?C.success:C.border2}`, borderRadius:12, padding:"24px 16px", textAlign:"center", cursor:"pointer", transition:"all .2s", background:drag?C.gold+"08":fileName?C.success+"08":"transparent" }}>
-        <div style={{ fontSize:28, marginBottom:6 }}>{icon}</div>
-        {fileName ? (
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.success }}>{fileName}</div>
-        ) : (
-          <>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>Drag or click to upload</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.dim, marginTop:4 }}>{hint}</div>
-          </>
-        )}
-        <input ref={ref} type="file" accept={accept} style={{ display:"none" }}
-          onChange={e=>{ handleFile(e.target.files[0]); e.target.value=""; }}
-        />
-      </div>
+      ))}
+      <button onClick={() => onChange({ ...content, options: [...opts, ""] })} style={{ background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:10, padding:"8px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer", marginTop:4 }}>
+        + Add option
+      </button>
     </div>
   );
 }
 
-// ── Question Form ─────────────────────────────────────────────────────────────
+function FillBlanksEditor({ content, onChange }) {
+  // Simple textarea-based editor: text with [[blank:answer]] markers
+  const segs = content.segments || [];
+  const display = segs.map(s => s.type === "blank" ? `[[${s.answer||""}]]` : s.value).join("");
 
-// ── Word Bank Editor (inside QuestionForm) ─────────────────────────────────────
-function WordBankEditor({ q, set }) {
-  const segments = q.segments || [];
-  const wordBank = q.wordBank || [];
-  const blankCount = segments.filter(s=>s.type==="blank").length;
-
-  const addWord = () => set("wordBank", [...wordBank, ""]);
-  const updateWord = (i, v) => { const w=[...wordBank]; w[i]=v; set("wordBank",w); };
-  const removeWord = (i) => set("wordBank", wordBank.filter((_,j)=>j!==i));
-
-  // Segments editor: text chunks + blank markers
-  const addText  = () => set("segments", [...segments, { type:"text",  content:"" }]);
-  const addBlank = () => set("segments", [...segments, { type:"blank", id: blankCount }]);
-  const updateSeg = (i, v) => { const s=[...segments]; s[i]={...s[i],content:v}; set("segments",s); };
-  const removeSeg = (i) => {
-    const s = segments.filter((_,j)=>j!==i);
-    // re-index blanks
-    let bi=0; s.forEach(seg=>{ if(seg.type==="blank") seg.id=bi++; });
-    set("segments",s);
-  };
-
-  // Correct answers: ordered list matching blanks
-  const correct = q.correct || [];
-  const updateCorrect = (blankIdx, word) => {
-    const c = [...correct];
-    c[blankIdx] = word;
-    set("correct", c);
+  const parse = (raw) => {
+    const parts = raw.split(/(\[\[.*?\]\])/);
+    let blankId = 1;
+    return parts.map(p => {
+      const m = p.match(/^\[\[(.*?)\]\]$/);
+      if (m) return { type: "blank", id: blankId++, answer: m[1] };
+      return { type: "text", value: p };
+    }).filter(s => s.type === "blank" || s.value);
   };
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
-      {/* Sentence builder */}
-      <div>
-        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
-          Sentence / Text Segments
-        </label>
-        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-          {segments.map((seg, i) => (
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <span style={{ background: seg.type==="blank"?"#f472b622":"#1e293b", color: seg.type==="blank"?"#f472b6":C.muted, borderRadius:6, padding:"2px 8px", fontSize:11, fontWeight:700, width:52, textAlign:"center", flexShrink:0 }}>
-                {seg.type==="blank" ? `Blank ${seg.id+1}` : "Text"}
-              </span>
-              {seg.type==="text"
-                ? <input value={seg.content} onChange={e=>updateSeg(i,e.target.value)}
-                    placeholder="Enter text..."
-                    style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 12px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
-                : <span style={{ flex:1, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#f472b6" }}>[ blank slot ]</span>
-              }
-              <button onClick={()=>removeSeg(i)} style={{ background:"transparent", border:"none", color:C.muted, cursor:"pointer", fontSize:15, padding:"4px" }}>✕</button>
-            </div>
-          ))}
-        </div>
-        <div style={{ display:"flex", gap:8, marginTop:10 }}>
-          <button onClick={addText} style={{ background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:9, padding:"7px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" }}>+ Text chunk</button>
-          <button onClick={addBlank} style={{ background:"#f472b612", border:`1px dashed #f472b644`, borderRadius:9, padding:"7px 14px", color:"#f472b6", fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" }}>+ Blank slot</button>
-        </div>
-      </div>
-
-      {/* Word bank */}
-      <div>
-        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
-          Word Bank (all available words, including distractors)
-        </label>
-        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-          {wordBank.map((w,i)=>(
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <input value={w} onChange={e=>updateWord(i,e.target.value)} placeholder={`Word ${i+1}...`}
-                style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 12px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
-              <button onClick={()=>removeWord(i)} style={{ background:"transparent", border:"none", color:C.muted, cursor:"pointer", fontSize:15, padding:"4px" }}>✕</button>
-            </div>
-          ))}
-          <button onClick={addWord} style={{ background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:9, padding:"7px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer", marginTop:2 }}>
-            + Add word
-          </button>
-        </div>
-      </div>
-
-      {/* Correct answers per blank */}
-      {blankCount > 0 && (
-        <div>
-          <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
-            Correct Answer per Blank
-          </label>
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {Array.from({length:blankCount}).map((_,bi)=>(
-              <div key={bi} style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#f472b6", fontWeight:700, width:60 }}>Blank {bi+1}</span>
-                <select value={correct[bi]||""} onChange={e=>updateCorrect(bi,e.target.value)}
-                  style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:9, padding:"8px 12px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }}>
-                  <option value="">— select correct word —</option>
-                  {wordBank.filter(Boolean).map(w=><option key={w} value={w}>{w}</option>)}
-                </select>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+      <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase" }}>
+        Segments  <span style={{ color:C.muted, fontWeight:400, textTransform:"none" }}>· use [[answer]] for blanks</span>
+      </label>
+      <textarea value={display} onChange={e => onChange({ ...content, segments: parse(e.target.value) })} rows={3}
+        style={{ background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", resize:"vertical" }}
+        placeholder="e.g. Ես ամեն օր [[արթնանում]] եմ ժամը [[ութին]]:" />
+      <div style={{ fontSize:11, color:C.muted }}>Preview: {segs.map((s,i) => s.type==="blank" ? <mark key={i} style={{ background:C.gold+"22", color:C.gold, borderRadius:4, padding:"1px 6px", margin:"0 2px" }}>{s.answer||"___"}</mark> : <span key={i}>{s.value}</span>)}</div>
     </div>
   );
 }
 
-// ── Question Form ───────────────────────────────────────────────────────────────
-function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
-  const isEdit = !!initial;
-  const blank = { type:"single_choice", level:"B1", section:"Reading", points:1, status:"draft", text:"", options:["","","",""], correct:0 };
-  const [q, setQ] = useState(initial ? {...initial, options: initial.options ? [...initial.options] : ["","","",""] } : blank);
-  const set = (k,v) => setQ(p=>({...p,[k]:v}));
+function DragToTextEditor({ content, onChange }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+      <div>
+        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:5 }}>
+          Text with {"{slot_N}"} placeholders
+        </label>
+        <input value={content.text || ""} onChange={e => onChange({ ...content, text: e.target.value })}
+          placeholder='e.g. The sun {slot_1} in the east.'
+          style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+      </div>
+      <div>
+        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:5 }}>Word bank (comma-separated)</label>
+        <input value={(content.wordBank||[]).join(", ")} onChange={e => onChange({ ...content, wordBank: e.target.value.split(",").map(s=>s.trim()).filter(Boolean) })}
+          placeholder="rises, sets, sleeps, runs"
+          style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }} />
+      </div>
+      <div>
+        <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:5 }}>
+          Correct answers (JSON: {`{"slot_1":"rises"}`})
+        </label>
+        <input value={JSON.stringify(content.slots||{})} onChange={e => { try { onChange({ ...content, slots: JSON.parse(e.target.value) }); } catch {} }}
+          style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", fontFamily:"monospace" }} />
+      </div>
+    </div>
+  );
+}
 
-  const toggleCorrect = (i) => {
-    if (["single_choice","audio","video"].includes(q.type)) { set("correct", i); }
-    else {
-      const cur = Array.isArray(q.correct) ? q.correct : [];
-      set("correct", cur.includes(i) ? cur.filter(x=>x!==i) : [...cur, i]);
+function SpeakingEditor({ content, onChange }) {
+  const set = (k,v) => onChange({ ...content, [k]: v });
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+      <Input label="Prep seconds" type="number" value={content.prepSeconds??30}   onChange={v=>set("prepSeconds",+v)} />
+      <Input label="Record seconds" type="number" value={content.recordSeconds??60} onChange={v=>set("recordSeconds",+v)} />
+      <Input label="Max attempts" type="number" value={content.maxAttempts??1}   onChange={v=>set("maxAttempts",+v)} />
+    </div>
+  );
+}
+
+function WritingEditor({ content, onChange }) {
+  const set = (k,v) => onChange({ ...content, [k]: v });
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+      <Input label="Min words" type="number" value={content.minWords??150} onChange={v=>set("minWords",+v)} />
+      <Input label="Max words" type="number" value={content.maxWords??300} onChange={v=>set("maxWords",+v)} />
+    </div>
+  );
+}
+
+function JsonEditor({ label, value, onChange }) {
+  const [raw, setRaw] = useState(() => JSON.stringify(value, null, 2));
+  const [err, setErr] = useState("");
+  const apply = (v) => { setRaw(v); try { onChange(JSON.parse(v)); setErr(""); } catch(e) { setErr(e.message); } };
+  return (
+    <div>
+      <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:5 }}>{label}</label>
+      <textarea value={raw} onChange={e => apply(e.target.value)} rows={5}
+        style={{ width:"100%", boxSizing:"border-box", background:C.panel, border:`1.5px solid ${err?C.danger:C.border2}`, borderRadius:10, padding:"10px 14px", color:C.text, fontFamily:"monospace", fontSize:12, outline:"none", resize:"vertical" }} />
+      {err && <div style={{ color:C.danger, fontSize:11, marginTop:4 }}>⚠ {err}</div>}
+    </div>
+  );
+}
+
+// ── QuestionForm ──────────────────────────────────────────────────────────────
+function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
+  const [q, setQ] = useState(() => initial ? fromApi(initial) : blankQ());
+  const setF = (k, v) => setQ(p => ({ ...p, [k]: v }));
+  const ti = ntypeInfo(q.type);
+
+  const changeType = (type) => setQ(p => ({
+    ...p, type,
+    content: blankContent(type),
+    media: ntypeInfo(type).hasMedia ? p.media : [],
+  }));
+
+  const contentEditor = () => {
+    switch (q.type) {
+      case "SINGLE_CHOICE":    return <ChoiceEditor content={q.content} multi={false} onChange={v => setF("content", v)} />;
+      case "MULTIPLE_CHOICE":  return <ChoiceEditor content={q.content} multi={true}  onChange={v => setF("content", v)} />;
+      case "FILL_IN_THE_BLANKS": return <FillBlanksEditor content={q.content} onChange={v => setF("content", v)} />;
+      case "DRAG_TO_TEXT":     return <DragToTextEditor content={q.content} onChange={v => setF("content", v)} />;
+      case "SPEAKING_INDEPENDENT":
+      case "SPEAKING_INTEGRATED": return <SpeakingEditor content={q.content} onChange={v => setF("content", v)} />;
+      case "WRITING_INDEPENDENT":
+      case "WRITING_INTEGRATED":  return <WritingEditor content={q.content} onChange={v => setF("content", v)} />;
+      default:
+        return <JsonEditor label="content (JSON)" value={q.content} onChange={v => setF("content", v)} />;
     }
   };
-  const isCorrect = (i) => Array.isArray(q.correct) ? q.correct.includes(i) : q.correct===i;
-
-  const hasOptions = ["single_choice","multi_choice","multi_select","audio","video"].includes(q.type);
-  const hasMedia   = ["audio","video"].includes(q.type);
-  const hasBlank    = q.type==="fill_blank";
-  const hasWordBank = q.type==="fill_wordbank";
-  const hasWriting  = q.type==="writing";
-  const hasVoice    = q.type==="voice";
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:22 }}>
+    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+
       {/* Type selector */}
       <div>
         <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>Question type</label>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-          {QTYPES.map(t=>(
-            <button key={t.id} onClick={()=>set("type",t.id)} style={{ background:q.type===t.id?(t.color+"20"):"transparent", border:`1.5px solid ${q.type===t.id?t.color:C.border}`, borderRadius:10, padding:"8px 14px", color:q.type===t.id?t.color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, cursor:"pointer", transition:"all .15s", display:"flex", alignItems:"center", gap:6 }}>
-              <span>{t.icon}</span>{t.label}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
+          {NEW_TYPES.map(t => (
+            <button key={t.id} onClick={() => changeType(t.id)} style={{ background: q.type===t.id ? t.color+"20":"transparent", border:`1.5px solid ${q.type===t.id?t.color:C.border}`, borderRadius:10, padding:"7px 13px", color:q.type===t.id?t.color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:500, cursor:"pointer", transition:"all .15s" }}>
+              {t.icon} {t.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Row: level + section + points + status */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 100px", gap:14 }}>
-        <Select label="Level" value={q.level} onChange={v=>set("level",v)} options={LEVELS} />
-        <Select label="Section" value={q.section} onChange={v=>set("section",v)} options={sections} />
-        <Input label="Points" value={q.points} onChange={v=>set("points",+v)} type="number" />
-        <Select label="Status" value={q.status} onChange={v=>set("status",v)} options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
+      {/* Level / Section / Points / Status */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 110px", gap:14 }}>
+        <Select label="Level"   value={q.level}   onChange={v=>setF("level",v)}   options={LEVELS} />
+        <Select label="Section" value={q.section} onChange={v=>setF("section",v)} options={sections} />
+        <Input  label="Points"  value={q.points}  onChange={v=>setF("points",+v)} type="number" />
+        <Select label="Status"  value={q.status}  onChange={v=>setF("status",v)}
+          options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
       </div>
 
-      {/* Question text */}
-      <Textarea label="Հարցի տեքստ" value={q.text} onChange={v=>set("text",v)} placeholder="Write the question in Armenian..." rows={3} />
+      {/* Context text (reading passage / instructions) */}
+      <Textarea label="Context text (optional — passage, instructions shown above prompt)"
+        value={q.contextText} onChange={v=>setF("contextText",v)}
+        placeholder="Reading passage, quote, scenario description…" rows={3} />
 
-      {/* Media upload */}
-      {hasMedia && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          {q.type==="audio" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              <UploadZone label="🎧 Audio file" accept="audio/*" icon="🎧" hint="MP3, WAV, OGG · max 50MB"
-                fileName={q.audioSrc ? (q.audioSrc.split("/").pop().split("?")[0] || "audio") : null}
-                onFile={f => { const url = URL.createObjectURL(f); set("audioSrc", url); set("_audioFile", f); }}
-                onClear={() => { set("audioSrc", ""); set("_audioFile", null); }}
-              />
-              <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                <input value={q.audioSrc||""} onChange={e=>set("audioSrc",e.target.value)}
-                  placeholder="or URL: https://..."
-                  style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 12px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, outline:"none" }}
-                />
-                {q.audioSrc && <button onClick={()=>{ set("audioSrc",""); set("_audioFile",null); }} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 4px" }} title="Clear">✕</button>}
-              </div>
-              {q.audioSrc && <audio controls src={q.audioSrc} style={{ width:"100%", accentColor:C.gold }} preload="metadata" />}
-            </div>
-          )}
-          {q.type==="video" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              <UploadZone label="🎬 Video file" accept="video/*" icon="🎬" hint="MP4, WebM · max 500MB"
-                fileName={q.videoSrc ? (q.videoSrc.split("/").pop().split("?")[0] || "video") : null}
-                onFile={f => { const url = URL.createObjectURL(f); set("videoSrc", url); set("_videoFile", f); }}
-                onClear={() => { set("videoSrc", ""); set("_videoFile", null); }}
-              />
-              <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                <input value={q.videoSrc||""} onChange={e=>set("videoSrc",e.target.value)}
-                  placeholder="or URL: https://..."
-                  style={{ flex:1, background:C.panel, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 12px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:11, outline:"none" }}
-                />
-                {q.videoSrc && <button onClick={()=>{ set("videoSrc",""); set("_videoFile",null); }} style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"0 4px" }} title="Clear">✕</button>}
-              </div>
-              {q.videoSrc && <video controls src={q.videoSrc} style={{ width:"100%", borderRadius:8, maxHeight:180 }} preload="metadata" />}
-            </div>
-          )}
-          <UploadZone label="Image (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
-            fileName={q.imageSrc ? (q.imageSrc.split("/").pop().split("?")[0] || "image") : null}
-            onFile={f => { const url = URL.createObjectURL(f); set("imageSrc", url); }}
-            onClear={() => set("imageSrc", "")}
-          />
+      {/* Prompt */}
+      <Textarea label="Prompt / Task instruction *"
+        value={q.prompt} onChange={v=>setF("prompt",v)}
+        placeholder="Write the task instruction in Armenian…" rows={2} />
+
+      {/* Media */}
+      <MediaEditor media={q.media} onChange={v=>setF("media",v)} />
+
+      {/* Content editor — type-specific */}
+      <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 18px" }}>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", marginBottom:14 }}>
+          {ti.icon} {ti.label} — answer configuration
         </div>
-      )}
-      {!hasMedia && (
-        <UploadZone label="Image (optional)" accept="image/*" icon="🖼" hint="PNG, JPG, WebP · max 5MB"
-          fileName={q.imageSrc ? (q.imageSrc.split("/").pop().split("?")[0] || "image") : null}
-          onFile={f => { const url = URL.createObjectURL(f); set("imageSrc", url); }}
-          onClear={() => set("imageSrc", "")}
-        />
-      )}
-
-      {/* Replay settings for audio/video */}
-      {hasMedia && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          <Select label="Repeat count" value={q.maxPlays||2} onChange={v=>set("maxPlays",+v)} options={[{value:1,label:"1 անգամ"},{value:2,label:"2 անգամ"},{value:3,label:"3 անգամ"}]} />
-          <Select label="Pause between" value={q.pauseSeconds||20} onChange={v=>set("pauseSeconds",+v)} options={[{value:20,label:"20 վ"},{value:25,label:"25 վ"},{value:30,label:"30 վ"}]} />
-        </div>
-      )}
-
-      {/* Options */}
-      {hasOptions && (
-        <div>
-          <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:10 }}>
-            Answer options
-            <span style={{ marginLeft:8, color:C.gold, fontSize:10 }}>· green = correct</span>
-          </label>
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {(q.options||[]).map((opt,i)=>(
-              <div key={i} style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <button onClick={()=>toggleCorrect(i)} style={{ width:30, height:30, borderRadius:["single_choice","audio","video"].includes(q.type)?"50%":"6px", border:`2px solid ${isCorrect(i)?C.success:C.border2}`, background:isCorrect(i)?C.success+"22":"transparent", cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .15s" }}>
-                  {isCorrect(i) && <svg width={13} height={13} viewBox="0 0 13 13"><path d="M2 7l3 3 6-6" stroke={C.success} strokeWidth={2} fill="none" strokeLinecap="round"/></svg>}
-                </button>
-                <input value={opt} onChange={e=>{const a=[...q.options];a[i]=e.target.value;set("options",a)}} placeholder={`Տ ${i+1}...`}
-                  style={{ flex:1, background:C.panel, border:`1.5px solid ${isCorrect(i)?C.success+"44":C.border2}`, borderRadius:10, padding:"9px 14px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:14, outline:"none", transition:"border .15s" }}
-                />
-                {q.options.length > 2 && (
-                  <button onClick={()=>{const a=q.options.filter((_,j)=>j!==i);set("options",a)}} style={{ background:"transparent", border:"none", color:C.muted, cursor:"pointer", fontSize:16, padding:"4px 6px" }}>✕</button>
-                )}
-              </div>
-            ))}
-            <button onClick={()=>set("options",[...q.options,""])} style={{ background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:10, padding:"9px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", marginTop:4 }}>
-              + Add option
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Fill blank */}
-      {hasBlank && <Input label="Correct answer" value={q.answer||""} onChange={v=>set("answer",v)} placeholder="Type correct word..." />}
-
-      {/* Fill Word Bank editor */}
-      {hasWordBank && (
-        <WordBankEditor q={q} set={set} />
-      )}
-
-      {/* Writing */}
-      {hasWriting && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          <Input label="Min words" value={q.minWords||150} onChange={v=>set("minWords",+v)} type="number" />
-          <Input label="Max words" value={q.maxWords||200} onChange={v=>set("maxWords",+v)} type="number" />
-        </div>
-      )}
-
-      {/* Voice settings */}
-      {hasVoice && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
-          <Input label="Max Attempts" value={q.maxAttempts||3} onChange={v=>set("maxAttempts",+v)} type="number" />
-          <Input label="Min seconds" value={q.minSeconds||10} onChange={v=>set("minSeconds",+v)} type="number" />
-          <Input label="Max seconds" value={q.maxSeconds||90} onChange={v=>set("maxSeconds",+v)} type="number" />
-        </div>
-      )}
+        {contentEditor()}
+      </div>
 
       {/* Actions */}
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
         <button onClick={onCancel} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Cancel</button>
-        <button onClick={()=>onSave(q)} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 28px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 16px ${C.gold}44` }}>
-          {isEdit ? "✓ Save" : "✓ Create"}
+        <button onClick={() => onSave(toApi(q))} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 28px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 16px ${C.gold}44` }}>
+          {q.id ? "✓ Save changes" : "✓ Create question"}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Question Row ──────────────────────────────────────────────────────────────
+// ── QRow (list row) ───────────────────────────────────────────────────────────
 function QRow({ q, onEdit, onDelete, onToggleStatus, onView }) {
-  const t = qtype(q.type);
-  const lc = LEVEL_COLORS[q.level]||"#94a3b8";
+  const ti = ntypeInfo(q.type);
+  const lc = LEVEL_COLORS[q.level] || "#94a3b8";
+  const hasAudio = (q.media||[]).some(m => m.type === "audio");
+  const hasVideo = (q.media||[]).some(m => m.type === "video");
+  const hasImage = (q.media||[]).some(m => m.type === "image");
+
   return (
-    <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 70px 90px 90px 130px", alignItems:"center", gap:14, padding:"14px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
+    <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 70px 90px 90px 130px", alignItems:"center", gap:14, padding:"13px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
       onMouseEnter={e=>e.currentTarget.style.background=C.card}
       onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+
       <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, fontWeight:500 }}>#{q.id}</span>
+
       <div>
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"100%" }}>{q.text}</div>
-        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-          <span style={{ fontSize:13 }}>{t.icon}</span>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.color }}>{t.label}</span>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          {q.prompt || "(no prompt)"}
+        </div>
+        <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
+          <span style={{ fontSize:12 }}>{ti.icon}</span>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:ti.color }}>{ti.label}</span>
           <span style={{ color:C.border }}>·</span>
           <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>{q.section}</span>
+          {hasAudio && <span title="has audio" style={{ fontSize:11 }}>🎧</span>}
+          {hasVideo && <span title="has video" style={{ fontSize:11 }}>🎬</span>}
+          {hasImage && <span title="has image" style={{ fontSize:11 }}>🖼</span>}
         </div>
       </div>
+
       <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textAlign:"center" }}>{q.level}</span>
       <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:C.gold, fontWeight:600, textAlign:"center" }}>{q.points}pt</span>
-      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center" }}>{q.createdAt}</span>
+      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, textAlign:"center" }}>
+        {q.updatedAt ? new Date(q.updatedAt).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}) : "—"}
+      </span>
+
       <button onClick={()=>onToggleStatus(q.id)} style={{ background:q.status==="published"?C.success+"18":"#f59e0b18", border:`1px solid ${q.status==="published"?C.success+"44":"#f59e0b44"}`, borderRadius:6, padding:"4px 10px", color:q.status==="published"?C.success:"#f59e0b", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>
         {q.status==="published"?"● Published":"○ Draft"}
       </button>
+
       <div style={{ display:"flex", gap:6, justifyContent:"flex-end" }}>
-        <button onClick={()=>onView(q)} title="View" style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.info||"#60a5fa", fontSize:13, cursor:"pointer" }}>👁</button>
-        <button onClick={()=>onEdit(q)} title="Edit" style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.muted, fontSize:13, cursor:"pointer" }}>✎</button>
+        <button onClick={()=>onView(q)}   title="View"   style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.info||"#60a5fa", fontSize:13, cursor:"pointer" }}>👁</button>
+        <button onClick={()=>onEdit(q)}   title="Edit"   style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:7, padding:"5px 11px", color:C.muted, fontSize:13, cursor:"pointer" }}>✎</button>
         <button onClick={()=>onDelete(q.id)} title="Delete" style={{ background:"transparent", border:`1px solid #f8717130`, borderRadius:7, padding:"5px 11px", color:"#f87171", fontSize:13, cursor:"pointer" }}>✕</button>
       </div>
     </div>
   );
 }
 
-// ── Stats Bar ─────────────────────────────────────────────────────────────────
-function StatsBar({ questions }) {
-  const total = questions.length;
-  const pub = questions.filter(q=>q.status==="published").length;
-  const byLevel = LEVELS.map(l=>({ l, n:questions.filter(q=>q.level===l).length }));
-  return (
-    <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
-      {[
-        { label:"Total", value:total, color:C.gold },
-        { label:"Published", value:pub, color:C.success },
-        { label:"Draft", value:total-pub, color:"#f59e0b" },
-      ].map(s=>(
-        <div key={s.label} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 20px", minWidth:100 }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:700, color:s.color }}>{s.value}</div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:2 }}>{s.label}</div>
-        </div>
-      ))}
-      <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 20px", display:"flex", gap:10, alignItems:"center" }}>
-        {byLevel.map(({l,n})=>(
-          <div key={l} style={{ textAlign:"center" }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:700, color:LEVEL_COLORS[l]||"#94a3b8" }}>{n}</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>{l}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Modal ─────────────────────────────────────────────────────────────────────
-function Modal({ title, onClose, children }) {
-  return (
-    <div style={{ position:"fixed", inset:0, background:"#00000090", backdropFilter:"blur(6px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }}
-      onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
-      <div style={{ background:C.panel, border:`1px solid ${C.border2}`, borderRadius:20, padding:"32px 36px", width:"100%", maxWidth:700, maxHeight:"90vh", overflowY:"auto", animation:"fadeSlideIn .3s ease", boxShadow:"0 32px 80px #00000099" }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
-          <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:C.text, margin:0, fontWeight:600 }}>{title}</h2>
-          <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:8, width:34, height:34, color:C.muted, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-const NAV = [
-  { id:"questions", icon:"📋", label:"Հարցեր" },
-  { id:"exams",     icon:"🎓", label:"Քննություններ" },
-  { id:"students",  icon:"👤", label:"Ուսանողներ" },
-  { id:"results",   icon:"📊", label:"Արդյունքներ" },
-  { id:"media",     icon:"📁", label:"Files" },
-  { id:"settings",  icon:"⚙️",  label:"Կարգավ." },
-];
-
-function Sidebar({ active, onNav }) {
-  return (
-    <aside style={{ width:220, background:C.panel, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", flexShrink:0, height:"100vh", position:"sticky", top:0 }}>
-      {/* Logo */}
-      <div style={{ padding:"24px 20px 20px", borderBottom:`1px solid ${C.border}` }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Cormorant Garamond',serif", fontWeight:700, fontSize:18, color:"white" }}>Հ</div>
-          <div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700, color:C.text, letterSpacing:.5 }}>ArmExam</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:C.muted, letterSpacing:1.5, textTransform:"uppercase" }}>Admin Panel</div>
-          </div>
-        </div>
-      </div>
-      {/* Nav */}
-      <nav style={{ flex:1, padding:"14px 12px", display:"flex", flexDirection:"column", gap:3 }}>
-        {NAV.map(n=>(
-          <button key={n.id} onClick={()=>onNav(n.id)} style={{ background:active===n.id?C.gold+"18":"transparent", border:`1px solid ${active===n.id?C.gold+"44":"transparent"}`, borderRadius:10, padding:"10px 14px", color:active===n.id?C.gold:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:active===n.id?600:400, cursor:"pointer", display:"flex", alignItems:"center", gap:10, textAlign:"left", transition:"all .15s" }}>
-            <span style={{ fontSize:16 }}>{n.icon}</span>{n.label}
-          </button>
-        ))}
-      </nav>
-      {/* User */}
-      <div style={{ padding:"16px 20px", borderTop:`1px solid ${C.border}` }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,#334155,#1e293b)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>👤</div>
-          <div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text, fontWeight:500 }}>Admin</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Examinator</div>
-          </div>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-
-// ── View Question Modal ───────────────────────────────────────────────────────
+// ── ViewQuestion ──────────────────────────────────────────────────────────────
 function ViewQuestion({ q, onEdit, onClose }) {
-  const t = qtype(q.type);
+  const ti = ntypeInfo(q.type);
   const lc = LEVEL_COLORS[q.level] || "#94a3b8";
-  const hasOptions = q.options && q.options.length > 0;
+  const media = Array.isArray(q.media) ? q.media : [];
+  const c = q.content || {};
 
-  const correctLabel = (idx) => {
-    if (Array.isArray(q.correct)) return q.correct.includes(idx);
-    return q.correct === idx;
+  const renderContent = () => {
+    if (["SINGLE_CHOICE","MULTIPLE_CHOICE"].includes(q.type) && c.options) {
+      const correct = c.correct;
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+          {c.options.map((opt, i) => {
+            const ok = Array.isArray(correct) ? correct.includes(i) : correct === i;
+            return (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 16px", background:ok?C.success+"0d":C.panel, border:`1.5px solid ${ok?C.success+"55":C.border}`, borderRadius:10 }}>
+                <div style={{ width:20, height:20, borderRadius:Array.isArray(correct)?"4px":"50%", border:`2px solid ${ok?C.success:C.border2}`, background:ok?C.success:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  {ok && <svg width={11} height={11} viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth={2} strokeLinecap="round" fill="none"/></svg>}
+                </div>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:ok?C.success:C.text, fontWeight:ok?600:400 }}>{opt}</span>
+                {ok && <span style={{ marginLeft:"auto", fontSize:11, color:C.success, fontWeight:700 }}>✓</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    if (q.type === "FILL_IN_THE_BLANKS" && c.segments) {
+      return (
+        <div style={{ background:C.panel, borderRadius:10, padding:"14px 18px", fontFamily:"'Cormorant Garamond',serif", fontSize:18, lineHeight:2, color:C.text }}>
+          {c.segments.map((s,i) => s.type==="blank"
+            ? <mark key={i} style={{ background:C.gold+"22", color:C.gold, borderRadius:5, padding:"2px 8px", margin:"0 2px", fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:700 }}>{s.answer}</mark>
+            : <span key={i}>{s.value}</span>)}
+        </div>
+      );
+    }
+    if (q.type === "DRAG_TO_TEXT") return (
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        <div style={{ background:C.panel, borderRadius:10, padding:"12px 16px", fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text }}>{c.text}</div>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          {(c.wordBank||[]).map((w,i) => <span key={i} style={{ background:C.info+"18", color:C.info, border:`1px solid ${C.info}33`, borderRadius:7, padding:"4px 12px", fontSize:12, fontWeight:500 }}>{w}</span>)}
+        </div>
+        <div style={{ fontSize:12, color:C.muted }}>Correct: {JSON.stringify(c.slots)}</div>
+      </div>
+    );
+    if (["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED"].includes(q.type)) return (
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+        {[["Prep",c.prepSeconds+"s"],["Record",c.recordSeconds+"s"],["Max attempts",c.maxAttempts]].map(([l,v])=>(
+          <div key={l} style={{ background:C.panel, borderRadius:10, padding:"12px", textAlign:"center" }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>{l}</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.gold, fontWeight:700 }}>{v}</div>
+          </div>
+        ))}
+      </div>
+    );
+    if (["WRITING_INDEPENDENT","WRITING_INTEGRATED"].includes(q.type)) return (
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        {[["Min words",c.minWords],["Max words",c.maxWords]].map(([l,v])=>(
+          <div key={l} style={{ background:C.panel, borderRadius:10, padding:"12px", textAlign:"center" }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>{l}</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.gold, fontWeight:700 }}>{v}</div>
+          </div>
+        ))}
+      </div>
+    );
+    return <pre style={{ background:C.panel, borderRadius:10, padding:"12px 16px", fontSize:11, color:C.muted, overflow:"auto", maxHeight:200 }}>{JSON.stringify(c, null, 2)}</pre>;
   };
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
-      {/* Meta row */}
+    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
         <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`, borderRadius:6, padding:"3px 10px", fontSize:12, fontWeight:700, fontFamily:"'DM Sans',sans-serif" }}>{q.level}</span>
-        <span style={{ background:t.color+"18", color:t.color, border:`1px solid ${t.color}33`, borderRadius:6, padding:"3px 10px", fontSize:12, fontWeight:600, fontFamily:"'DM Sans',sans-serif" }}>{t.icon} {t.label}</span>
+        <span style={{ background:ti.color+"18", color:ti.color, border:`1px solid ${ti.color}33`, borderRadius:6, padding:"3px 10px", fontSize:12, fontWeight:600, fontFamily:"'DM Sans',sans-serif" }}>{ti.icon} {ti.label}</span>
         <span style={{ background:C.dim, color:C.muted, borderRadius:6, padding:"3px 10px", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>{q.section}</span>
-        <span style={{ background:q.status==="published"?C.success+"18":"#f59e0b18", color:q.status==="published"?C.success:"#f59e0b", border:`1px solid ${q.status==="published"?C.success+"44":"#f59e0b44"}`, borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", marginLeft:"auto" }}>
-          {q.status==="published" ? "● Published" : "○ Draft"}
+        <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.gold, marginLeft:4 }}>{q.points}pt</span>
+        <span style={{ background:q.status==="published"?C.success+"18":"#f59e0b18", color:q.status==="published"?C.success:"#f59e0b", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", marginLeft:"auto" }}>
+          {q.status==="published"?"● Published":"○ Draft"}
         </span>
       </div>
 
-      {/* Question text */}
-      <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:14, padding:"20px 24px" }}>
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>Question Text</div>
-        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.text, lineHeight:1.7, margin:0 }}>{q.text}</p>
+      {q.contextText && (
+        <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 20px" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:8 }}>Context</div>
+          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:C.text, lineHeight:1.7, margin:0 }}>{q.contextText}</p>
+        </div>
+      )}
+
+      <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 20px" }}>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:8 }}>Prompt</div>
+        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, color:C.text, lineHeight:1.7, margin:0 }}>{q.prompt || "—"}</p>
       </div>
 
-      {/* Audio player preview */}
-      {q.type === "audio" && q.audioSrc && (
-        <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 20px" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:12 }}>Audio File</div>
-          <audio controls src={q.audioSrc} style={{ width:"100%", accentColor:C.gold }} preload="metadata" />
-          {q.maxPlays && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginTop:8 }}>
-            Max plays: <strong style={{color:C.gold}}>{q.maxPlays}×</strong>
-            {q.pauseSeconds ? <> · Pause between plays: <strong style={{color:C.gold}}>{q.pauseSeconds}s</strong></> : null}
-          </div>}
-        </div>
-      )}
-
-      {/* Video player preview */}
-      {q.type === "video" && q.videoSrc && (
-        <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 20px" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:12 }}>Video File</div>
-          <video controls src={q.videoSrc} style={{ width:"100%", borderRadius:8, maxHeight:300 }} preload="metadata" />
-          {q.maxPlays && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginTop:8 }}>
-            Max plays: <strong style={{color:C.gold}}>{q.maxPlays}×</strong>
-          </div>}
-        </div>
-      )}
-
-      {/* Options */}
-      {hasOptions && (
-        <div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>
-            Answer Options {Array.isArray(q.correct) ? "(multiple correct)" : "(one correct)"}
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {q.options.map((opt, i) => {
-              const isCorrect = correctLabel(i);
-              return (
-                <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", background:isCorrect?C.success+"0d":C.panel, border:`1.5px solid ${isCorrect?C.success+"55":C.border}`, borderRadius:10 }}>
-                  <div style={{ width:22, height:22, borderRadius:Array.isArray(q.correct)?4:"50%", border:`2px solid ${isCorrect?C.success:C.border2}`, background:isCorrect?C.success:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    {isCorrect && <svg width={12} height={12} viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth={2} strokeLinecap="round" fill="none"/></svg>}
-                  </div>
-                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:isCorrect?C.success:C.text, fontWeight:isCorrect?600:400 }}>{opt}</span>
-                  {isCorrect && <span style={{ marginLeft:"auto", fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.success, fontWeight:700 }}>✓ Correct</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Fill blank answer */}
-      {q.type === "fill_blank" && q.answer && (
-        <div style={{ background:C.success+"0d", border:`1px solid ${C.success}44`, borderRadius:12, padding:"14px 18px" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:6 }}>Correct Answer</div>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:16, color:C.success, fontWeight:700 }}>{q.answer}</span>
-        </div>
-      )}
-
-      {/* Word Bank preview */}
-      {q.type === "fill_wordbank" && (
-        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-          {/* Sentence with blanks */}
-          <div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>Sentence</div>
-            <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:14, padding:"18px 22px", fontFamily:"'Cormorant Garamond',serif", fontSize:19, color:C.text, lineHeight:2.2 }}>
-              {(q.segments || []).map((seg, i) => {
-                if (seg.type === "text") return <span key={i}>{seg.content}</span>;
-                // blank slot — show correct word if available
-                const correctWord = (q.correct || [])[seg.id] !== undefined
-                  ? (q.wordBank || [])[(q.correct || [])[seg.id]]
-                  : null;
-                return (
-                  <span key={i} style={{
-                    display:"inline-flex", alignItems:"center", justifyContent:"center",
-                    minWidth:80, height:32, margin:"0 4px",
-                    borderRadius:7, border:`2px dashed ${C.success}88`,
-                    background:C.success+"0d", padding:"0 10px", verticalAlign:"middle",
-                    fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.success, fontWeight:600,
-                  }}>
-                    {correctWord || `_${seg.id+1}_`}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-          {/* Word bank */}
-          <div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>
-              Word Bank ({(q.wordBank||[]).length} words)
-            </div>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-              {(q.wordBank || []).filter(Boolean).map((w, i) => (
-                <span key={i} style={{
-                  background:C.info+"15", color:C.info,
-                  border:`1.5px solid ${C.info}44`,
-                  borderRadius:8, padding:"6px 14px",
-                  fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:500,
-                }}>
-                  {w}
-                </span>
-              ))}
-            </div>
-          </div>
-          {/* Correct order */}
-          {q.correct && q.correct.length > 0 && (
-            <div style={{ background:C.success+"0d", border:`1px solid ${C.success}33`, borderRadius:10, padding:"12px 16px" }}>
-              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:8 }}>Correct Order</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:6, alignItems:"center" }}>
-                {(q.correct || []).map((wi, i) => (
-                  <span key={i} style={{ display:"flex", alignItems:"center", gap:4 }}>
-                    <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>#{i+1}</span>
-                    <span style={{ background:C.success+"18", color:C.success, border:`1px solid ${C.success}44`, borderRadius:6, padding:"3px 10px", fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600 }}>
-                      {(q.wordBank||[])[wi] || `word[${wi}]`}
-                    </span>
-                    {i < (q.correct||[]).length-1 && <span style={{ color:C.muted, fontSize:10 }}>→</span>}
-                  </span>
-                ))}
+      {media.length > 0 && (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {media.map((m, i) => (
+            <div key={i} style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 18px" }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:10 }}>
+                {m.type === "audio" ? "🎧" : m.type === "video" ? "🎬" : "🖼"} {m.type}
+                {m.maxPlays && <span style={{ marginLeft:8, color:C.gold }}>{m.maxPlays}× max plays</span>}
               </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Writing limits */}
-      {q.minWords && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
-          {[["Min Words", q.minWords], ["Max Words", q.maxWords], ["Points", q.points]].map(([l,v])=>(
-            <div key={l} style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"12px 16px", textAlign:"center" }}>
-              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, marginBottom:4 }}>{l}</div>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:C.gold, fontWeight:700 }}>{v}</div>
+              {m.type === "audio" && m.url && <audio controls src={m.url} style={{ width:"100%", accentColor:C.gold }} preload="metadata" />}
+              {m.type === "video" && m.url && <video controls src={m.url} style={{ width:"100%", borderRadius:8, maxHeight:240 }} preload="metadata" />}
+              {m.type === "image" && m.url && <img src={m.url} alt="" style={{ maxWidth:"100%", borderRadius:8 }} />}
+              {!m.url && <div style={{ fontSize:12, color:C.muted }}>No URL set</div>}
             </div>
           ))}
         </div>
       )}
 
-      {/* Info row */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Points</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:C.gold, fontWeight:700 }}>{q.points} pt</div>
-        </div>
-        <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 16px" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted }}>Created</div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text, marginTop:3 }}>{q.createdAt}</div>
-        </div>
+      <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 20px" }}>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:C.muted, letterSpacing:.8, textTransform:"uppercase", marginBottom:12 }}>Answer configuration</div>
+        {renderContent()}
       </div>
 
-      {/* Footer actions */}
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
         <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Close</button>
-        <button onClick={onEdit} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 24px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 14px ${C.gold}44` }}>✎ Edit This Question</button>
+        <button onClick={onEdit} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 24px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 14px ${C.gold}44` }}>✎ Edit</button>
       </div>
     </div>
   );
 }
+
 
 // ── Questions Page ─────────────────────────────────────────────────────────────
 function QuestionsPage() {
@@ -722,7 +606,7 @@ function QuestionsPage() {
     if (filterLevel!=="all" && q.level!==filterLevel) return false;
     if (filterStatus!=="all" && q.status!==filterStatus) return false;
     if (filterSection!=="all" && q.section!==filterSection) return false;
-    if (search && !q.text.toLowerCase().includes(search.toLowerCase()) && !String(q.id).includes(search)) return false;
+    if (search && !( (q.prompt||"").toLowerCase().includes(search.toLowerCase()) || String(q.id).includes(search) )) return false;
     return true;
   });
 
