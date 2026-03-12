@@ -30,6 +30,33 @@ function anonymize(result, role) {
 }
 
 
+const MANUAL_TYPES = ["WRITING_INDEPENDENT","WRITING_INTEGRATED","SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED"];
+
+async function enrichResults(prisma, results) {
+  return Promise.all(results.map(async (r) => {
+    const answerIds = Object.keys(r.answers ?? {}).map(Number).filter(Boolean);
+    const manualQs = answerIds.length
+      ? await prisma.question.findMany({
+          where: { id: { in: answerIds }, type: { in: MANUAL_TYPES } },
+          include: { section: { select: { name: true, category: true } } },
+        })
+      : [];
+    const grades = r.manualGrades ?? {};
+    const gradedCount  = manualQs.filter(q => grades[q.id]?.rawScore != null).length;
+    const pendingCount = manualQs.length - gradedCount;
+    return {
+      ...r,
+      manualQuestions: manualQs.map(q => ({
+        id: q.id, type: q.type, level: q.level, points: q.points,
+        section: q.section.name, category: q.section.category,
+        isGraded: grades[q.id]?.rawScore != null,
+      })),
+      gradedCount,
+      pendingCount,
+    };
+  }));
+}
+
 export default async function gradingRoutes(fastify) {
   const { prisma } = fastify;
   const adminHook = requireAdmin(prisma);
@@ -67,13 +94,13 @@ export default async function gradingRoutes(fastify) {
       where,
       orderBy: [{ gradedAt: "desc" }, { submittedAt: "desc" }],
       take: Math.min(Number(take ?? 200) || 200, 500),
-      select: {
-        id: true, gradingStatus: true, score: true, pct: true, passed: true, totalPoints: true, detectedLevel: true, submittedAt: true, gradedAt: true,
+      include: {
         exam:    { select: { id: true, title: true, examType: true, examCenterId: true, level: true } },
         student: { select: { id: true, name: true, email: true } },
       },
     });
-    return graded.map(r => anonymize(r, req.admin.role));
+    const enriched = await enrichResults(prisma, graded);
+    return enriched.map(r => anonymize(r, req.admin.role));
   });
 
   // GET /api/grading/auto  — auto-graded results (no manual grading needed)
@@ -89,13 +116,13 @@ export default async function gradingRoutes(fastify) {
       where,
       orderBy: { submittedAt: "desc" },
       take: Math.min(Number(take ?? 200) || 200, 500),
-      select: {
-        id: true, gradingStatus: true, score: true, pct: true, passed: true, totalPoints: true, detectedLevel: true, submittedAt: true,
+      include: {
         exam:    { select: { id: true, title: true, examType: true, examCenterId: true, level: true } },
         student: { select: { id: true, name: true, email: true } },
       },
     });
-    return autoRes.map(r => anonymize(r, req.admin.role));
+    const enriched = await enrichResults(prisma, autoRes);
+    return enriched.map(r => anonymize(r, req.admin.role));
   });
 
   // GET /api/grading/:resultId moved to results.js (correct schema types + rubrics)
