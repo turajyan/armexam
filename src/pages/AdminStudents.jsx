@@ -21,7 +21,7 @@ function Avatar({ letter, size=38, color=C.gold }) {
 
 function LevelBadge({ level, small }) {
   const c = LC[level]||"#94a3b8";
-  return <span style={{ background:c+"18",color:c,border:`1px solid ${c}33`,borderRadius:6,padding:small?"1px 7px":"3px 10px",fontSize:small?10:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif",letterSpacing:.4 }}>{level}</span>;
+  return <span style={{ display:"inline-block",width:"fit-content",background:c+"18",color:c,border:`1px solid ${c}33`,borderRadius:6,padding:small?"1px 7px":"3px 10px",fontSize:small?10:11,fontWeight:700,fontFamily:"'DM Sans',sans-serif",letterSpacing:.4 }}>{level}</span>;
 }
 
 function StatusDot({ status }) {
