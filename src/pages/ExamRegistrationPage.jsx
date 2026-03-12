@@ -71,8 +71,6 @@ export default function ExamRegistrationPage({ theme: T, onBack, onDone }) {
         passingScore: exam.passingScore,
         startDate:    result.startDate   || exam.startDate,
         endDate:      result.endDate     || exam.endDate,
-        startTime:    exam.startTime,
-        endTime:      exam.endTime,
         center:       exam.examCenter    || null,
       });
       setStep(4);
