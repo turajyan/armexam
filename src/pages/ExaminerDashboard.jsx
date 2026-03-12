@@ -6,6 +6,18 @@ const STATUS_COLOR = { pending:"#f59e0b", grading:"#60a5fa", completed:"#4ade80"
 const CAT_ICON     = { SPEAKING:"🎙️", WRITING:"✍️" };
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Resolves the display label for a result's candidate.
+// For examiners the API returns student.candidateCode; others see the real name.
+function candidateLabel(r) {
+  if (r?.student?.candidateCode) return r.student.candidateCode;
+  return r?.student?.name ?? `#${r?.studentId ?? "?"}`;
+}
+function candidateSub(r) {
+  // Sub-line: email for admins, nothing for examiners (candidateCode has no email)
+  return r?.student?.email ?? null;
+}
+
 export default function ExaminerDashboard({ theme: T }) {
   const [queue,    setQueue]    = useState([]);
   const [tab,      setTab]      = useState("pending");
@@ -92,7 +104,7 @@ export default function ExaminerDashboard({ theme: T }) {
           <button onClick={() => setSelected(null)} style={backBtn(T)}>← Back</button>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:14, fontWeight:600, color:T.text }}>{selected.exam?.title}</div>
-            <div style={{ fontSize:12, color:T.muted }}>{selected.student?.name} · {selected.student?.email}</div>
+            <div style={{ fontSize:12, color:T.muted }}>{candidateLabel(selected)}</div>
           </div>
           <GradingRing qs={qs} grades={grades} T={T} />
           {readOnly && <StatusBadge status="completed" T={T} />}
@@ -176,8 +188,8 @@ export default function ExaminerDashboard({ theme: T }) {
     const q = search.toLowerCase();
     return queue.filter(r =>
       !q ||
-      r.student?.name?.toLowerCase().includes(q) ||
-      r.student?.email?.toLowerCase().includes(q) ||
+      (r.student?.candidateCode ?? r.student?.name ?? "").toLowerCase().includes(q) ||
+      (r.student?.email ?? "").toLowerCase().includes(q) ||
       r.exam?.title?.toLowerCase().includes(q) ||
       String(r.id).includes(q)
     );
@@ -230,7 +242,7 @@ export default function ExaminerDashboard({ theme: T }) {
       )}
 
       <input value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="🔍  Search by student / exam / id…"
+        placeholder="🔍  Search by candidate / exam / id…"
         style={{ width:"100%", boxSizing:"border-box", marginBottom:16,
           background:T.panel, border:`1.5px solid ${T.border}`, borderRadius:10,
           padding:"9px 16px", color:T.text, fontSize:13, outline:"none" }} />
@@ -238,7 +250,7 @@ export default function ExaminerDashboard({ theme: T }) {
       <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, overflow:"hidden" }}>
         {/* Header row */}
         <div style={row({ T, header:true })}>
-          {["#","Student","Exam","Submitted","To grade","Status",""].map((h,i)=>(
+          {["#","Candidate","Exam","Submitted","To grade","Status",""].map((h,i)=>(
             <span key={i} style={{ fontSize:10, color:T.muted, fontWeight:700,
               textTransform:"uppercase", letterSpacing:.8 }}>{h}</span>
           ))}
@@ -256,8 +268,8 @@ export default function ExaminerDashboard({ theme: T }) {
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
             <span style={{ fontSize:12, color:T.muted }}>#{r.id}</span>
             <div>
-              <div style={{ fontSize:13, color:T.text, fontWeight:500 }}>{r.student?.name}</div>
-              <div style={{ fontSize:11, color:T.muted }}>{r.student?.email}</div>
+              <div style={{ fontSize:13, color:T.text, fontWeight:500 }}>{candidateLabel(r)}</div>
+              {candidateSub(r) && <div style={{ fontSize:11, color:T.muted }}>{candidateSub(r)}</div>}
             </div>
             <div>
               <div style={{ fontSize:13, color:T.text }}>{r.exam?.title}</div>

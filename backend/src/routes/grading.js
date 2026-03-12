@@ -2,6 +2,36 @@ import { requireAdmin } from "../middleware/adminAuth.js";
 
 const MANUAL_TYPES = new Set(["writing", "voice"]);
 
+/**
+ * Anonymise a result object for examiners.
+ * - Replaces student name/email with a stable candidate code derived from student.id
+ * - Strips examCenterId so the examiner cannot determine which centre the candidate attended
+ *
+ * The code is deterministic: student 4821 is always "Candidate #4821" for every examiner,
+ * making cross-reference by coordinators possible while keeping identity hidden from examiners.
+ */
+function anonymize(result, role) {
+  if (role !== "examiner") return result;
+
+  const studentId = result.student?.id ?? result.studentId;
+  // Pad to 4 digits minimum, prefix with exam id for extra separation
+  const code = String(studentId).padStart(4, "0");
+
+  const anon = {
+    ...result,
+    student: { id: studentId, candidateCode: `Candidate #${code}` },
+  };
+
+  // Strip centre info
+  if (anon.exam) {
+    const { examCenterId, ...examWithoutCenter } = anon.exam;
+    anon.exam = examWithoutCenter;
+  }
+
+  return anon;
+}
+
+
 export default async function gradingRoutes(fastify) {
   const { prisma } = fastify;
   const adminHook = requireAdmin(prisma);
@@ -15,7 +45,7 @@ export default async function gradingRoutes(fastify) {
     } else if (req.admin.role === "center_admin" && req.admin.centerId) {
       where.exam = { examCenterId: req.admin.centerId };
     }
-    return prisma.result.findMany({
+    const results = await prisma.result.findMany({
       where,
       orderBy: { submittedAt: "asc" },
       include: {
@@ -23,6 +53,7 @@ export default async function gradingRoutes(fastify) {
         student: { select: { id: true, name: true, email: true } },
       },
     });
+    return results.map(r => anonymize(r, req.admin.role));
   });
 
   // GET /api/grading/graded  — recently graded results (manual grading completed)
@@ -34,7 +65,7 @@ export default async function gradingRoutes(fastify) {
     } else if (req.admin.role === "center_admin" && req.admin.centerId) {
       where.exam = { examCenterId: req.admin.centerId };
     }
-    return prisma.result.findMany({
+    const graded = await prisma.result.findMany({
       where,
       orderBy: [{ gradedAt: "desc" }, { submittedAt: "desc" }],
       take: Math.min(Number(take ?? 200) || 200, 500),
@@ -44,6 +75,7 @@ export default async function gradingRoutes(fastify) {
         student: { select: { id: true, name: true, email: true } },
       },
     });
+    return graded.map(r => anonymize(r, req.admin.role));
   });
 
   // GET /api/grading/auto  — auto-graded results (no manual grading needed)
@@ -55,7 +87,7 @@ export default async function gradingRoutes(fastify) {
     } else if (req.admin.role === "center_admin" && req.admin.centerId) {
       where.exam = { examCenterId: req.admin.centerId };
     }
-    return prisma.result.findMany({
+    const autoRes = await prisma.result.findMany({
       where,
       orderBy: { submittedAt: "desc" },
       take: Math.min(Number(take ?? 200) || 200, 500),
@@ -65,6 +97,7 @@ export default async function gradingRoutes(fastify) {
         student: { select: { id: true, name: true, email: true } },
       },
     });
+    return autoRes.map(r => anonymize(r, req.admin.role));
   });
 
   // GET /api/grading/:resultId  — full result with question details for grading
@@ -100,7 +133,7 @@ export default async function gradingRoutes(fastify) {
         })
       : [];
 
-    return { ...result, gradableQuestions: isAutoGraded ? [] : questions, allQuestions: questions };
+    return anonymize({ ...result, gradableQuestions: isAutoGraded ? [] : questions, allQuestions: questions }, req.admin.role);
   });
 
   // POST /api/grading/:resultId  — submit grades for manual questions
@@ -170,7 +203,7 @@ export default async function gradingRoutes(fastify) {
         student: { select: { id: true, name: true, email: true } },
       },
     });
-    return updated;
+    return anonymize(updated, req.admin.role);
   });
 
   // GET /api/grading/stats  — examiner stats overview
