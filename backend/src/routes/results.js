@@ -8,6 +8,22 @@ const MANUAL_TYPES = [
   "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED",
 ];
 
+// Strip student identity for examiners — they see only a stable candidate code
+function anonymize(result, role) {
+  if (role !== "examiner") return result;
+  const studentId = result.student?.id ?? result.studentId;
+  const code = String(studentId).padStart(4, "0");
+  const anon = {
+    ...result,
+    student: { id: studentId, candidateCode: `Candidate #${code}` },
+  };
+  if (anon.exam) {
+    const { examCenterId, ...examWithoutCenter } = anon.exam;
+    anon.exam = examWithoutCenter;
+  }
+  return anon;
+}
+
 export default async function resultsRoutes(fastify) {
   const { prisma } = fastify;
   const adminHook = requireAdmin(prisma);
@@ -173,7 +189,7 @@ export default async function resultsRoutes(fastify) {
       };
     }));
 
-    return enriched;
+    return enriched.map(r => anonymize(r, req.admin.role));
   });
 
   // GET /api/grading/:resultId  — full detail for examiner view
@@ -196,7 +212,7 @@ export default async function resultsRoutes(fastify) {
       : [];
 
     const grades = result.manualGrades ?? {};
-    return {
+    const full = {
       ...result,
       manualQuestions: manualQs.map(q => ({
         id:          q.id,
@@ -213,6 +229,7 @@ export default async function resultsRoutes(fastify) {
         grade:       grades[q.id] ?? null,    // { rubrics, rawScore, scaledScore, feedback, ... }
       })),
     };
+    return anonymize(full, req.admin.role);
   });
 
   // PATCH /api/grading/:resultId/question/:questionId
