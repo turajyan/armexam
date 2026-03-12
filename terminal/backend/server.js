@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import { pipeline } from 'stream/promises';
 import { createWriteStream } from 'fs';
+import { networkInterfaces } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT       = 4000;
@@ -42,6 +43,13 @@ const heartbeatCache = new Map();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+function getLanIp() {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets))
+    for (const net of nets[name])
+      if (net.family === 'IPv4' && !net.internal) return net.address;
+  return 'unknown';
+}
 
 // Fetch full assignment data from main backend using PIN
 async function fetchPinData(pin) {
@@ -744,4 +752,18 @@ app.get('/', (_, res) => {
 </div></body></html>`);
 });
 
-app.listen(PORT, () => console.log(`✓ ArmExam Terminal Backend  http://localhost:${PORT}\n  Main API: ${MAIN_API}`));
+// Listen on all interfaces so LAN kiosks can connect
+// Use HOST env to restrict to specific interface if needed: HOST=127.0.0.1 for local-only
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  const lanIp = getLanIp();
+  console.log([
+    '✓ ArmExam Terminal Backend',
+    `  Local:    http://localhost:${PORT}`,
+    `  Network:  http://${lanIp}:${PORT}`,
+    `  Main API: ${MAIN_API}`,
+    '',
+    `  Kiosk terminal-config.json:`,
+    `  { "serverUrl": "http://${lanIp}:${PORT}" }`,
+  ].join('\n'));
+});

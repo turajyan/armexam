@@ -84,17 +84,57 @@ function rewriteSessionUrls(session, urlMap) {
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('terminal-theme') || 'dark');
-  const [screen, setScreen] = useState('pin'); // pin | prefetch | exam | result
+  const [screen, setScreen] = useState('connecting'); // connecting | pin | prefetch | exam | result
   const [prefetchProgress, setPrefetchProgress] = useState({ done: 0, total: 0, failed: 0 });
+  const [serverInfo, setServerInfo] = useState(null);
+  const [connectError, setConnectError] = useState(null);
   const [session, setSession] = useState(null);
   const [result, setResult] = useState(null);
   const [backendUrl, setBackendUrl] = useState(BACKEND || 'http://localhost:4000');
 
   useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.getBackendUrl().then(setBackendUrl);
+    if (!window.electronAPI) {
+      // Browser dev mode — go straight to PIN
+      setScreen('pin');
+      return;
+    }
+
+    // Get server URL from main process (reads terminal-config.json)
+    window.electronAPI.getBackendUrl().then(url => {
+      setBackendUrl(url);
+    });
+
+    window.electronAPI.getServerInfo().then(info => {
+      setServerInfo(info);
+    });
+
+    // Listen for connectivity result pushed by main process
+    window.electronAPI.onServerReady((data) => {
+      setConnectError(null);
+      setScreen('pin');
+    });
+
+    window.electronAPI.onServerUnreachable((data) => {
+      setConnectError(data);
+      // Stay on 'connecting' screen showing the error + retry button
+    });
+
+    // In dev mode Electron doesn't send these events — go to pin directly
+    if (process?.env?.NODE_ENV === 'development') {
+      setScreen('pin');
     }
   }, []);
+
+  const retryConnect = async () => {
+    setConnectError(null);
+    setScreen('connecting');
+    const result = await window.electronAPI.checkConnectivity();
+    if (result.ok) {
+      setScreen('pin');
+    } else {
+      setConnectError({ url: backendUrl, error: result.error });
+    }
+  };
 
   const T = THEMES[theme] || THEMES.dark;
 
@@ -195,6 +235,10 @@ export default function App() {
       {/* Theme switcher — always visible top-right corner */}
       <ThemeSwitcher theme={theme} setTheme={saveTheme} T={T} />
 
+      {screen === 'connecting' && (
+        <ConnectingScreen T={T} serverInfo={serverInfo} error={connectError}
+          backendUrl={backendUrl} onRetry={retryConnect} />
+      )}
       {screen === 'pin' && (
         <PinScreen T={T} backendUrl={backendUrl} onLogin={handleLogin} />
       )}
@@ -210,6 +254,132 @@ export default function App() {
     </div>
   );
 }
+
+// ── Connecting screen ─────────────────────────────────────────────────────────
+// Shown at startup while Electron checks reachability of the terminal server.
+function ConnectingScreen({ T, serverInfo, error, backendUrl, onRetry }) {
+  const isLan = serverInfo && !serverInfo.isLocal;
+  const url   = backendUrl || '…';
+
+  if (error) return (
+    <div style={{
+      position: 'fixed', inset: 0, background: T.bg,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'DM Sans', sans-serif", padding: 32,
+    }}>
+      <div style={{ fontSize: 52, marginBottom: 24 }}>⚠️</div>
+
+      <div style={{
+        fontFamily: "'Cormorant Garamond', serif",
+        fontSize: 28, fontWeight: 700, color: T.text, marginBottom: 8,
+      }}>Cannot reach server</div>
+
+      <div style={{
+        fontSize: 13, color: T.muted, marginBottom: 28,
+        maxWidth: 420, textAlign: 'center', lineHeight: 1.7,
+      }}>
+        The exam server at <code style={{
+          background: '#ffffff0e', borderRadius: 4,
+          padding: '1px 6px', color: T.gold, fontSize: 12,
+        }}>{url}</code> did not respond.
+      </div>
+
+      {/* Checklist */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`,
+        borderRadius: 14, padding: '20px 24px',
+        maxWidth: 400, width: '100%', marginBottom: 28,
+      }}>
+        {[
+          ['Is the server machine powered on?', true],
+          ['Are both machines on the same Wi-Fi / LAN?', true],
+          [`Is the server running on port 4000?`, true],
+          [`Error: ${error.error}`, false],
+        ].map(([text, isAction], i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            padding: '7px 0',
+            borderBottom: i < 3 ? `1px solid ${T.border}` : 'none',
+            fontSize: 13,
+            color: isAction ? T.muted : '#f87171',
+          }}>
+            <span>{isAction ? '→' : '✗'}</span>
+            <span>{text}</span>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={onRetry} style={{
+        background: T.gold, border: 'none', borderRadius: 12,
+        padding: '13px 36px', cursor: 'pointer',
+        color: '#1a1200', fontWeight: 700, fontSize: 15,
+        fontFamily: "'DM Sans', sans-serif",
+      }}>↺ Retry connection</button>
+
+      {/* Config hint */}
+      <div style={{
+        marginTop: 32, fontSize: 11, color: T.muted,
+        textAlign: 'center', lineHeight: 1.8, maxWidth: 380,
+      }}>
+        To change the server address, edit{' '}
+        <code style={{ color: T.gold, fontSize: 11 }}>terminal-config.json</code>
+        {' '}next to the application:<br/>
+        <code style={{
+          display: 'inline-block', marginTop: 6,
+          background: '#ffffff08', borderRadius: 6,
+          padding: '4px 10px', fontSize: 11, color: '#a78bfa',
+        }}>{'{ "serverUrl": "http://192.168.1.100:4000" }'}</code>
+      </div>
+    </div>
+  );
+
+  // Connecting spinner
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: T.bg,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      <div style={{
+        fontFamily: "'Cormorant Garamond', serif",
+        fontSize: 28, fontWeight: 700, color: T.gold,
+        marginBottom: 48, letterSpacing: 2,
+      }}>Հ ArmExam</div>
+
+      {/* Pulsing ring */}
+      <div style={{
+        width: 64, height: 64, borderRadius: '50%',
+        border: `3px solid ${T.border}`,
+        borderTopColor: T.gold,
+        animation: 'spin 1s linear infinite',
+        marginBottom: 28,
+      }} />
+
+      <div style={{ fontSize: 15, color: T.text, marginBottom: 8 }}>
+        Connecting to exam server…
+      </div>
+
+      <div style={{
+        fontSize: 12, color: T.muted,
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        {isLan ? '🌐' : '💻'}
+        <code style={{ fontSize: 11 }}>{url}</code>
+        {serverInfo?.configuredVia === 'config-file' && (
+          <span style={{ color: '#4ade80', fontSize: 10 }}>· config file</span>
+        )}
+        {serverInfo?.configuredVia === 'fallback' && (
+          <span style={{ color: '#f59e0b', fontSize: 10 }}>· fallback</span>
+        )}
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  );
+}
+
 
 // ── Prefetch loading screen ───────────────────────────────────────────────────
 function PrefetchScreen({ T, progress, session }) {

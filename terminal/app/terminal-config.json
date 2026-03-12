@@ -1,0 +1,4 @@
+{
+  "_comment": "ArmExam Terminal configuration. Place this file next to ArmExam Terminal.exe",
+  "serverUrl": "http://localhost:4000"
+}
