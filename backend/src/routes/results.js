@@ -307,7 +307,7 @@ export default async function resultsRoutes(fastify) {
           manualGrades:  grades,
           score:         finalScore,
           pct:           finalPct,
-          gradingStatus: "completed",
+          gradingStatus: "graded",
           gradedAt:      new Date(),
         },
       });
@@ -316,7 +316,7 @@ export default async function resultsRoutes(fastify) {
         where: { id: resultId },
         data: {
           manualGrades:  grades,
-          gradingStatus: "grading",   // in progress
+          gradingStatus: "pending",   // still in progress
         },
       });
     }
@@ -358,7 +358,7 @@ export default async function resultsRoutes(fastify) {
 
     const updated = await prisma.result.update({
       where: { id: resultId },
-      data: { score: finalScore, pct: finalPct, gradingStatus: "completed", gradedAt: new Date() },
+      data: { score: finalScore, pct: finalPct, gradingStatus: "graded", gradedAt: new Date() },
     });
 
     return { score: updated.score, pct: updated.pct, gradingStatus: updated.gradingStatus };
@@ -379,13 +379,13 @@ export default async function resultsRoutes(fastify) {
       },
     });
     if (!result) return reply.code(404).send({ error: "Not found" });
-    if (result.gradingStatus === "published") {
+    if (result.gradingStatus === "graded") {
       return reply.code(200).send({ already: true, result });
     }
 
     const updated = await prisma.result.update({
       where: { id: resultId },
-      data:  { gradingStatus: "published", gradedAt: result.gradedAt ?? new Date() },
+      data:  { gradingStatus: "graded",    gradedAt: result.gradedAt ?? new Date() },
     });
 
     // Fire-and-forget email — don't block HTTP response on SMTP
@@ -436,7 +436,7 @@ export default async function resultsRoutes(fastify) {
     }
 
     // Only published or completed results
-    if (!["published","completed","auto","graded"].includes(result.gradingStatus)) {
+    if (!["graded","auto"].includes(result.gradingStatus)) {
       return reply.code(403).send({ error: "Result not yet published" });
     }
 
