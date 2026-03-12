@@ -614,7 +614,7 @@ function initRubrics(defs) {
 }
 
 async function apiFetch(path, method="GET", body=undefined) {
-  const token = localStorage.getItem("adminToken");
+  const token = localStorage.getItem("armexam_admin_token");
   const res = await fetch(`http://localhost:3001${path}`, {
     method,
     headers: {
