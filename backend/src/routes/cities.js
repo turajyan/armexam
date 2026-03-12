@@ -104,7 +104,8 @@ export default async function citiesRoutes(fastify) {
     if (!center) return reply.code(404).send({ error: "Центр не найден" });
     return prisma.exam.findMany({
       where: { examCenterId: center.id, isOpen: true, status: "active" },
-      select: { id: true, title: true, examType: true, level: true, duration: true, startDate: true, endDate: true, passingScore: true },
+      select: { id: true, title: true, examType: true, level: true, duration: true, startDate: true, endDate: true, startTime: true, endTime: true, passingScore: true,
+        examCenter: { select: { id: true, name: true, city: { select: { id: true, name: true } } } } },
       orderBy: { startDate: "asc" },
     });
   });

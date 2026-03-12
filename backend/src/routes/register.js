@@ -15,7 +15,13 @@ export default async function registerRoutes(fastify) {
         exam: {
           select: {
             id: true, title: true, examType: true, level: true,
-            duration: true, startDate: true, endDate: true,
+            duration: true, passingScore: true,
+            shuffle: true, showResults: true, allowReview: true,
+            showQuestionLevel: true, showQuestionPoints: true,
+            showPlacementThreshold: true,
+            subpools: true, placementTemplate: true, placementThresholds: true,
+            maxAudioReplays: true, maxVideoReplays: true,
+            startDate: true, endDate: true, startTime: true, endTime: true,
             examCenter: { select: { id: true, name: true, city: { select: { id: true, name: true } } } },
           },
         },
