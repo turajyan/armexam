@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "ArmExam Exam Terminal — Kiosk Mode",
   "main": "main.cjs",
-  "type": "module",
   "scripts": {
     "start": "electron .",
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5174 && electron . --dev\"",
