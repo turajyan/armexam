@@ -335,43 +335,109 @@ const QUESTIONS = [
   {
     sectionName: "Speaking", type: "SPEAKING_INDEPENDENT", level: "A1", points: PTS.A1,
     prompt: "Ներկայացե՛ք հայերեն: Ասե՛ք ձեր անունը, տարիքը և ապրելու վայրը:",
-    content: { prepSeconds: 15, recordSeconds: 45, maxAttempts: 2 },
+    content: {
+      prepSeconds: 15,
+      recordSeconds: 45,
+      maxAttempts: 2,
+      rubrics: [
+        { id: "fluency",       label: "Fluency & Coherence",  maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+        { id: "pronunciation", label: "Pronunciation",        maxScore: 5 },
+      ],
+    },
   },
   {
     sectionName: "Speaking", type: "SPEAKING_INDEPENDENT", level: "B1", points: PTS.B1,
     prompt: "Պատմե՛ք ձեր սիրած եղանակի մասին: Ինչ կարող եք անել այդ եղանակին: (30-90 վ)",
-    content: { prepSeconds: 30, recordSeconds: 90, maxAttempts: 1 },
+    content: {
+      prepSeconds: 30,
+      recordSeconds: 90,
+      maxAttempts: 1,
+      rubrics: [
+        { id: "fluency",       label: "Fluency & Coherence",  maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+        { id: "pronunciation", label: "Pronunciation",        maxScore: 5 },
+      ],
+    },
   },
   {
     sectionName: "Speaking", type: "SPEAKING_INTEGRATED", level: "C1", points: PTS.C1,
     contextText: "Կարդացե՛ք հետևյալ տեքստը, ապա լսե՛ք ձայնագրությունը և ձեր պատասխանում համեմատե՛ք երկու աղբյուրի տեսակետները:",
     media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Vespers_of_Holy_Saturday_%28sample%29.ogg", maxPlays: 1 }],
     prompt: "Ելնելով տեքստից և ձայնագրությունից՝ բացատրե՛ք, թե ինչպես է ժամանակակից տեխնոլոգիան ազդում մշակութային ավանդույթների վրա:",
-    content: { prepSeconds: 45, recordSeconds: 120, maxAttempts: 1 },
+    content: {
+      prepSeconds: 45,
+      recordSeconds: 120,
+      maxAttempts: 1,
+      rubrics: [
+        { id: "fluency",       label: "Fluency & Coherence",  maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+        { id: "pronunciation", label: "Pronunciation",        maxScore: 5 },
+      ],
+    },
   },
 
   // ── WRITING ───────────────────────────────────────────────────────────────
   {
     sectionName: "Writing", type: "WRITING_INDEPENDENT", level: "B1", points: PTS.B1,
     prompt: "Գրե՛ք 100-150 բառ ձեր սիրած ժամանցի մասին: Ինչու՞ եք սիրում այն:",
-    content: { minWords: 100, maxWords: 150 },
+    content: {
+      minWords: 100,
+      maxWords: 150,
+      rubrics: [
+        { id: "task_response", label: "Task Response",        maxScore: 5 },
+        { id: "coherence",     label: "Coherence & Cohesion", maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+      ],
+    },
   },
   {
     sectionName: "Writing", type: "WRITING_INDEPENDENT", level: "B2", points: PTS.B2,
     prompt: "«Տեխնոլոգիաները ժամանակակից կյանքն ավելի հեշտ են դարձնում»: Համաձա՞յն եք: Հիմնավորե՛ք ձեր կարծիքը 150-200 բառով:",
-    content: { minWords: 150, maxWords: 200 },
+    content: {
+      minWords: 150,
+      maxWords: 200,
+      rubrics: [
+        { id: "task_response", label: "Task Response",        maxScore: 5 },
+        { id: "coherence",     label: "Coherence & Cohesion", maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+      ],
+    },
   },
   {
     sectionName: "Writing", type: "WRITING_INTEGRATED", level: "C1", points: PTS.C1,
     contextText: "Կարդացե՛ք հետևյալ հատվածը արհեստական բանականության ազդեցության մասին կրթության ոլորտում:\n\nԱրհեստական բանականության ներդրումը կրթության մեջ ստեղծում է հնարավորություններ անհատականացված ուսուցման համար: Այնուամենայնիվ, քննադատները կարծում են, որ մարդ-ուսուցչի դերը կրճատելը կհանգեցնի հուզական-սոցիալական կրթության անկման:",
     media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/1/19/MiniSunflower.ogg", maxPlays: 2 }],
     prompt: "Ելնելով ինչպես տեքստից, այնպես էլ ձայնագրությունից՝ գրե՛ք 200-250 բառ արհեստական բանականության դերի և սահմանափակումների մասին կրթության ոլորտում:",
-    content: { minWords: 200, maxWords: 250 },
+    content: {
+      minWords: 200,
+      maxWords: 250,
+      rubrics: [
+        { id: "task_response", label: "Task Response",        maxScore: 5 },
+        { id: "coherence",     label: "Coherence & Cohesion", maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+      ],
+    },
   },
   {
     sectionName: "Writing", type: "WRITING_INDEPENDENT", level: "C2", points: PTS.C2,
     prompt: "Ըստ Ֆուկոյի իշխանություն-գիտելիք հարաբերության տեսության՝ վերլուծե՛ք, թե ինչպես է կրթական ինստիտուտը վերարտադրում հեգեմոն դիսկուրսները: (250-350 բառ)",
-    content: { minWords: 250, maxWords: 350 },
+    content: {
+      minWords: 250,
+      maxWords: 350,
+      rubrics: [
+        { id: "task_response", label: "Task Response",        maxScore: 5 },
+        { id: "coherence",     label: "Coherence & Cohesion", maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+      ],
+    },
   },
 ];
 

@@ -122,6 +122,228 @@ export default async function resultsRoutes(fastify) {
     return reply.code(201).send(result);
   });
 
+  // ── Manual grading ───────────────────────────────────────────────────────────
+
+  // GET /api/grading/queue?examId=&level=&gradingStatus=pending
+  // Returns results that need manual grading, with question details
+  fastify.get("/api/grading/queue", { preHandler: adminHook }, async (req) => {
+    const { examId, gradingStatus = "pending" } = req.query;
+    const where = { gradingStatus };
+    if (examId) where.examId = Number(examId);
+
+    const results = await prisma.result.findMany({
+      where,
+      orderBy: { submittedAt: "asc" },
+      include: {
+        exam:    { select: { id: true, title: true, examType: true, level: true } },
+        student: { select: { id: true, name: true, email: true, country: true } },
+      },
+    });
+
+    // For each result, load the manual questions that were answered
+    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
+    const enriched = await Promise.all(results.map(async (r) => {
+      const answerIds = Object.keys(r.answers ?? {}).map(Number).filter(Boolean);
+      const manualQs = answerIds.length
+        ? await prisma.question.findMany({
+            where: { id: { in: answerIds }, type: { in: MANUAL_TYPES } },
+            include: { section: { select: { name: true, category: true } } },
+          })
+        : [];
+
+      const grades = r.manualGrades ?? {};
+      const gradedCount   = manualQs.filter(q => grades[q.id]?.rawScore != null).length;
+      const pendingCount  = manualQs.length - gradedCount;
+
+      return {
+        ...r,
+        manualQuestions: manualQs.map(q => ({
+          id: q.id, type: q.type, level: q.level, points: q.points,
+          section: q.section.name, category: q.section.category,
+          isGraded: grades[q.id]?.rawScore != null,
+        })),
+        gradedCount,
+        pendingCount,
+      };
+    }));
+
+    return enriched;
+  });
+
+  // GET /api/grading/:resultId  — full detail for examiner view
+  fastify.get("/api/grading/:resultId", { preHandler: adminHook }, async (req, reply) => {
+    const result = await prisma.result.findUnique({
+      where: { id: Number(req.params.resultId) },
+      include: {
+        exam:    { select: { id: true, title: true, examType: true, level: true, passingScore: true, placementThresholds: true } },
+        student: { select: { id: true, name: true, email: true, country: true, documentType: true, documentNumber: true } },
+      },
+    });
+    if (!result) return reply.code(404).send({ error: "Not found" });
+
+    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
+    const answerIds = Object.keys(result.answers ?? {}).map(Number).filter(Boolean);
+    const manualQs = answerIds.length
+      ? await prisma.question.findMany({
+          where: { id: { in: answerIds }, type: { in: MANUAL_TYPES } },
+          include: { section: { select: { name: true, category: true } } },
+        })
+      : [];
+
+    const grades = result.manualGrades ?? {};
+    return {
+      ...result,
+      manualQuestions: manualQs.map(q => ({
+        id:          q.id,
+        type:        q.type,
+        level:       q.level,
+        points:      q.points,
+        section:     q.section.name,
+        category:    q.section.category,
+        contextText: q.contextText,
+        media:       q.media,
+        prompt:      q.prompt,
+        content:     q.content,               // includes rubrics array
+        answer:      (result.answers ?? {})[q.id],
+        grade:       grades[q.id] ?? null,    // { rubrics, rawScore, scaledScore, feedback, ... }
+      })),
+    };
+  });
+
+  // PATCH /api/grading/:resultId/question/:questionId
+  // Examiner submits rubric scores for one question.
+  // Body: { rubrics: { fluency: 4, lexical: 3, ... }, feedback?: "..." }
+  fastify.patch("/api/grading/:resultId/question/:questionId", { preHandler: adminHook }, async (req, reply) => {
+    const resultId    = Number(req.params.resultId);
+    const questionId  = Number(req.params.questionId);
+    const { rubrics: rubricScores, feedback = "" } = req.body ?? {};
+
+    if (!rubricScores || typeof rubricScores !== "object") {
+      return reply.code(400).send({ error: "rubrics object is required" });
+    }
+
+    const [result, question] = await Promise.all([
+      prisma.result.findUnique({ where: { id: resultId } }),
+      prisma.question.findUnique({ where: { id: questionId } }),
+    ]);
+    if (!result)   return reply.code(404).send({ error: "Result not found" });
+    if (!question) return reply.code(404).send({ error: "Question not found" });
+
+    // Validate rubric ids against question definition
+    const definedRubrics = (question.content?.rubrics ?? []);
+    const maxRawScore    = definedRubrics.reduce((s, r) => s + r.maxScore, 0);
+
+    // Clamp each score to [0, rubric.maxScore]
+    const clampedScores = {};
+    for (const r of definedRubrics) {
+      const val = Number(rubricScores[r.id] ?? 0);
+      clampedScores[r.id] = Math.max(0, Math.min(r.maxScore, val));
+    }
+    const rawScore    = Object.values(clampedScores).reduce((s, v) => s + v, 0);
+    // scaledScore = round( rawScore / maxRawScore * question.points )
+    const scaledScore = maxRawScore > 0 ? Math.round((rawScore / maxRawScore) * question.points) : 0;
+
+    // Merge into manualGrades
+    const grades = { ...(result.manualGrades ?? {}) };
+    grades[questionId] = {
+      rubrics:      clampedScores,
+      rawScore,
+      maxRawScore,
+      scaledScore,
+      maxPoints:    question.points,
+      feedback,
+      gradedById:   req.admin?.id ?? null,
+      gradedAt:     new Date().toISOString(),
+    };
+
+    // Check if all manual questions are now graded → finalize
+    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
+    const answerIds = Object.keys(result.answers ?? {}).map(Number).filter(Boolean);
+    const manualQs  = answerIds.length
+      ? await prisma.question.findMany({ where: { id: { in: answerIds }, type: { in: MANUAL_TYPES } } })
+      : [];
+
+    const allGraded = manualQs.every(q => grades[q.id]?.rawScore != null);
+
+    let updatedResult;
+    if (allGraded) {
+      // Finalize: auto score (already in result.score) + sum of scaledScores
+      const manualTotal = Object.values(grades).reduce((s, g) => s + (g.scaledScore ?? 0), 0);
+      // result.score currently holds auto-only points; replace with full total
+      const autoScore   = result.score;          // was set by terminal (auto questions only)
+      const finalScore  = autoScore + manualTotal;
+      const finalPct    = Math.round((finalScore / result.totalPoints) * 100);
+
+      // Re-evaluate pass/fail
+      let passed = result.passed;
+      if (result.exam) {
+        // We don't have exam here, skip — terminal already set it or it'll be set below
+      }
+
+      updatedResult = await prisma.result.update({
+        where: { id: resultId },
+        data: {
+          manualGrades:  grades,
+          score:         finalScore,
+          pct:           finalPct,
+          gradingStatus: "completed",
+          gradedAt:      new Date(),
+        },
+      });
+    } else {
+      updatedResult = await prisma.result.update({
+        where: { id: resultId },
+        data: {
+          manualGrades:  grades,
+          gradingStatus: "grading",   // in progress
+        },
+      });
+    }
+
+    return {
+      questionId,
+      grade:        grades[questionId],
+      allGraded,
+      gradingStatus: updatedResult.gradingStatus,
+      score:         updatedResult.score,
+      pct:           updatedResult.pct,
+    };
+  });
+
+  // POST /api/grading/:resultId/finalize
+  // Force-finalize (e.g. if some questions were skipped/waived).
+  // Recalculates score from all available grades.
+  fastify.post("/api/grading/:resultId/finalize", { preHandler: adminHook }, async (req, reply) => {
+    const resultId = Number(req.params.resultId);
+    const result   = await prisma.result.findUnique({ where: { id: resultId } });
+    if (!result) return reply.code(404).send({ error: "Not found" });
+
+    const grades = result.manualGrades ?? {};
+    const manualTotal = Object.values(grades).reduce((s, g) => s + (g.scaledScore ?? 0), 0);
+
+    // Recalculate auto score (all non-manual answers)
+    const MANUAL_TYPES = ["WRITING_INDEPENDENT", "WRITING_INTEGRATED", "SPEAKING_INDEPENDENT", "SPEAKING_INTEGRATED"];
+    const answerIds = Object.keys(result.answers ?? {}).map(Number).filter(Boolean);
+    const manualIds = new Set(
+      answerIds.length
+        ? (await prisma.question.findMany({ where: { id: { in: answerIds }, type: { in: MANUAL_TYPES } }, select: { id: true } })).map(q => q.id)
+        : []
+    );
+
+    // Auto score = result.score minus any previously added manual scores
+    // Safest: just use the stored autoScore baseline
+    // Convention: result.score before finalization = auto-only score
+    const finalScore = result.score + manualTotal;
+    const finalPct   = Math.round((finalScore / result.totalPoints) * 100);
+
+    const updated = await prisma.result.update({
+      where: { id: resultId },
+      data: { score: finalScore, pct: finalPct, gradingStatus: "completed", gradedAt: new Date() },
+    });
+
+    return { score: updated.score, pct: updated.pct, gradingStatus: updated.gradingStatus };
+  });
+
   // ── Analytics ────────────────────────────────────────────────────────────────
 
   // GET /api/analytics/summary
