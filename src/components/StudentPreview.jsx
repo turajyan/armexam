@@ -602,7 +602,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
             <div key={i} style={{ marginBottom:16 }}>
               {m.type === "audio" && m.url && <audio controls src={m.url} style={{ width:"100%", accentColor:T.gold }} />}
               {m.type === "video" && m.url && <video controls src={m.url} style={{ width:"100%", borderRadius:12, maxHeight:240 }} />}
-              {m.type === "image" && m.url && type !== "DRAG_AND_DROP_IMAGE" && <img src={m.url} alt="" style={{ maxWidth:"100%", borderRadius:12, marginBottom:8 }} />}
+              {m.type === "image" && m.url && q.type !== "DRAG_AND_DROP_IMAGE" && <img src={m.url} alt="" style={{ maxWidth:"100%", borderRadius:12, marginBottom:8 }} />}
             </div>
           ))}
           {/* Context */}
