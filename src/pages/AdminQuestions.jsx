@@ -796,13 +796,12 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
       if (!c.hotspots?.length) e.content = "Click the image to add at least one hotspot";
       else if (c.hotspots.some(h => !h.correct)) e.content = "Assign all hotspots to a label";
     }
-    if (q.type === "DRAG_TO_TEXT") {
-      const slots = (c.slots || []).filter(s => s.type === "blank");
-      if (!slots.length) e.content = "Add at least one blank slot";
-    }
-    if (q.type === "FILL_IN_THE_BLANKS") {
-      const slots = (c.slots || []).filter(s => s.type === "blank");
-      if (!slots.length) e.content = "Add at least one blank";
+    if (q.type === "DRAG_TO_TEXT" || q.type === "FILL_IN_THE_BLANKS") {
+      // slots is an object { slot_name: answer } — check it has at least one key
+      const slotCount = c.slots && typeof c.slots === "object" && !Array.isArray(c.slots)
+        ? Object.keys(c.slots).length
+        : 0;
+      if (!slotCount) e.content = "Add at least one blank slot using the editor above";
     }
     return e;
   };
