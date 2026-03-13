@@ -756,6 +756,55 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
   const [q, setQ] = useState(() => initial ? fromApi(initial) : blankQ());
   const setF = (k, v) => setQ(p => ({ ...p, [k]: v }));
   const ti = ntypeInfo(q.type);
+  const [submitted, setSubmitted] = useState(false);
+
+  const validate = (q) => {
+    const e = {};
+    if (!q.prompt?.trim()) e.prompt = "Prompt is required";
+    if (!q.section)        e.section = "Section is required";
+    if (!q.level)          e.level   = "Level is required";
+    if (!(q.points > 0))   e.points  = "Points must be > 0";
+    // content checks
+    const c = q.content || {};
+    if (["SINGLE_CHOICE","MULTIPLE_CHOICE"].includes(q.type)) {
+      const opts = c.options || [];
+      if (opts.length < 2)                        e.content = "Add at least 2 options";
+      else if (opts.some(o => !o?.trim()))         e.content = "All options must have text";
+      else if (q.type === "SINGLE_CHOICE" && (c.correct == null || c.correct < 0 || c.correct >= opts.length))
+        e.content = "Select a correct answer";
+      else if (q.type === "MULTIPLE_CHOICE" && (!Array.isArray(c.correct) || c.correct.length === 0))
+        e.content = "Select at least one correct answer";
+    }
+    if (q.type === "DRAG_AND_DROP_TABLE") {
+      if (!c.columns?.length) e.content = "Add at least one column";
+      else if (!c.items?.length) e.content = "Add at least one item";
+      else if (c.items.some(it => !it.text?.trim())) e.content = "All items must have text";
+      else if (c.items.some(it => !c.correct?.[it.id])) e.content = "Assign all items to a column";
+    }
+    if (q.type === "DRAG_AND_DROP_IMAGE") {
+      if (!c.labels?.length)   e.content = "Add at least one label";
+      if (!c.hotspots?.length) e.content = "Click the image to add at least one hotspot";
+      else if (c.hotspots.some(h => !h.correct)) e.content = "Assign all hotspots to a label";
+    }
+    if (q.type === "DRAG_TO_TEXT") {
+      const slots = (c.slots || []).filter(s => s.type === "blank");
+      if (!slots.length) e.content = "Add at least one blank slot";
+    }
+    if (q.type === "FILL_IN_THE_BLANKS") {
+      const slots = (c.slots || []).filter(s => s.type === "blank");
+      if (!slots.length) e.content = "Add at least one blank";
+    }
+    return e;
+  };
+
+  const errors = submitted ? validate(q) : {};
+  const isValid = Object.keys(validate(q)).length === 0;
+
+  const handleSave = () => {
+    setSubmitted(true);
+    if (!isValid) return;
+    onSave(toApi(q));
+  };
 
   const changeType = (type) => setQ(p => ({
     ...p, type,
@@ -799,9 +848,18 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
 
       {/* Level / Section / Points / Status */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 110px", gap:14 }}>
-        <Select label="Level"   value={q.level}   onChange={v=>setF("level",v)}   options={LEVELS} />
-        <Select label="Section" value={q.section} onChange={v=>setF("section",v)} options={sections} />
-        <Input  label="Points"  value={q.points}  onChange={v=>setF("points",+v)} type="number" />
+        <div>
+          <Select label="Level"   value={q.level}   onChange={v=>setF("level",v)}   options={LEVELS} />
+          {errors.level   && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.danger, marginTop:3 }}>⚠ {errors.level}</div>}
+        </div>
+        <div>
+          <Select label="Section" value={q.section} onChange={v=>setF("section",v)} options={sections} />
+          {errors.section && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.danger, marginTop:3 }}>⚠ {errors.section}</div>}
+        </div>
+        <div>
+          <Input  label="Points"  value={q.points}  onChange={v=>setF("points",+v)} type="number" />
+          {errors.points  && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.danger, marginTop:3 }}>⚠ {errors.points}</div>}
+        </div>
         <Select label="Status"  value={q.status}  onChange={v=>setF("status",v)}
           options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
       </div>
@@ -812,9 +870,12 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
         placeholder="Reading passage, quote, scenario description…" rows={3} />
 
       {/* Prompt */}
-      <Textarea label="Prompt / Task instruction *"
-        value={q.prompt} onChange={v=>setF("prompt",v)}
-        placeholder="Write the task instruction in Armenian…" rows={2} />
+      <div>
+        <Textarea label="Prompt / Task instruction *"
+          value={q.prompt} onChange={v=>setF("prompt",v)}
+          placeholder="Write the task instruction in Armenian…" rows={2} />
+        {errors.prompt && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.danger, marginTop:4 }}>⚠ {errors.prompt}</div>}
+      </div>
 
       {/* Media */}
       <MediaEditor media={q.media} onChange={v=>setF("media",v)} />
@@ -827,10 +888,29 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
         {contentEditor()}
       </div>
 
+      {/* Content error */}
+      {errors.content && (
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.danger,
+          background:C.danger+"12", border:`1px solid ${C.danger}33`, borderRadius:8, padding:"8px 14px" }}>
+          ⚠ {errors.content}
+        </div>
+      )}
+
       {/* Actions */}
-      <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
+      <div style={{ display:"flex", gap:10, justifyContent:"flex-end", alignItems:"center", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
+        {submitted && !isValid && (
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.danger, marginRight:"auto" }}>
+            Fix the errors above to continue
+          </span>
+        )}
         <button onClick={onCancel} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Cancel</button>
-        <button onClick={() => onSave(toApi(q))} style={{ background:`linear-gradient(135deg,${C.gold},${C.goldDim})`, border:"none", borderRadius:10, padding:"10px 28px", color:"white", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer", boxShadow:`0 4px 16px ${C.gold}44` }}>
+        <button onClick={handleSave}
+          style={{ background: isValid ? `linear-gradient(135deg,${C.gold},${C.goldDim})` : C.border2,
+            border:"none", borderRadius:10, padding:"10px 28px", color: isValid ? "white" : C.muted,
+            fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600,
+            cursor: isValid ? "pointer" : "not-allowed",
+            boxShadow: isValid ? `0 4px 16px ${C.gold}44` : "none",
+            transition:"all .2s" }}>
           {q.id ? "✓ Save changes" : "✓ Create question"}
         </button>
       </div>

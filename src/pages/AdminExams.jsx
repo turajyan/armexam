@@ -204,12 +204,21 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
         </div>
       </div>
 
-      <Input label="Exam Title" value={form.title} onChange={v=>set("title",v)} placeholder={isp?"e.g. «Language Placement Test»":"e.g. «Summer B1 Examination»"}/>
+      <div>
+        <Input label="Exam Title" value={form.title} onChange={v=>set("title",v)} placeholder={isp?"e.g. «Language Placement Test»":"e.g. «Summer B1 Examination»"}/>
+        {wErr.title&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.danger,marginTop:3}}>⚠ {wErr.title}</div>}
+      </div>
 
       <div style={{display:"grid",gridTemplateColumns:isp?"1fr 1fr":"1fr 1fr 1fr",gap:14}}>
         {!isp&&<Sel label="Language Level" value={form.level||"B1"} onChange={v=>set("level",v)} options={LEVELS.map(l=>({value:l,label:l}))}/>}
-        <Input label="Duration" hint="min" value={form.duration} onChange={v=>set("duration",Math.max(1,+v))} type="number" min={1} max={480}/>
-        {!isp&&<Input label="Passing Score" hint="%" value={form.passingScore} onChange={v=>set("passingScore",Math.max(1,Math.min(100,+v)))} type="number" min={1} max={100}/>}
+        <div>
+          <Input label="Duration" hint="min" value={form.duration} onChange={v=>set("duration",Math.max(1,+v))} type="number" min={1} max={480}/>
+          {wErr.duration&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.danger,marginTop:3}}>⚠ {wErr.duration}</div>}
+        </div>
+        {!isp&&<div>
+          <Input label="Passing Score" hint="%" value={form.passingScore} onChange={v=>set("passingScore",Math.max(1,Math.min(100,+v)))} type="number" min={1} max={100}/>
+          {wErr.passingScore&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.danger,marginTop:3}}>⚠ {wErr.passingScore}</div>}
+        </div>}
       </div>
 
       {centers.length>0&&(
@@ -304,6 +313,7 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
         <span style={{color:"#fb923c",fontWeight:600}}>Speaking</span>
         {" "}(Receptive → Productive). Shuffle applies within each section.
       </div>
+      {wErr.subpools&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.danger,background:C.danger+"12",border:`1px solid ${C.danger}33`,borderRadius:8,padding:"8px 14px"}}>⚠ {wErr.subpools}</div>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>Question Rules · <span style={{color:C.gold}}>{fT.q} q total</span></span>
         <button onClick={addFSP} style={{background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 12px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600}}>+ Add rule</button>
       </div>
@@ -387,8 +397,14 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
       <Divider label="Exam Window"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-        <Input label="Start Date" value={form.startDate} onChange={v=>set("startDate",v)} type="date"/>
-        <Input label="End Date"   value={form.endDate}   onChange={v=>set("endDate",v)}   type="date"/>
+        <div>
+          <Input label="Start Date" value={form.startDate} onChange={v=>set("startDate",v)} type="date"/>
+          {wErr.startDate&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.danger,marginTop:3}}>⚠ {wErr.startDate}</div>}
+        </div>
+        <div>
+          <Input label="End Date"   value={form.endDate}   onChange={v=>set("endDate",v)}   type="date"/>
+          {wErr.endDate&&<div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.danger,marginTop:3}}>⚠ {wErr.endDate}</div>}
+        </div>
         <Input label="Start Time" hint="when session opens at kiosk" value={form.startTime} onChange={v=>set("startTime",v)} type="time"/>
       </div>
 
@@ -470,7 +486,11 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
       ))}
       <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:18,borderTop:`1px solid ${C.border}`}}>
         <Btn onClick={onCancel}>Cancel</Btn>
-        <Btn variant="primary" onClick={()=>onSave(form)}>✓ Save Changes</Btn>
+        <Btn variant="primary"
+          onClick={()=>{ setSubmitted(true); if(isWizardValid) onSave(form); }}
+          style={!isWizardValid?{opacity:.55,cursor:"not-allowed"}:{}}>
+          ✓ Save Changes
+        </Btn>
       </div>
     </div>
   );
@@ -481,11 +501,20 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
       <div style={{minHeight:380}}>{SCONTENT[step]}</div>
       <div style={{display:"flex",justifyContent:"space-between",marginTop:26,paddingTop:18,borderTop:`1px solid ${C.border}`}}>
         <Btn onClick={step===0?onCancel:()=>setStep(s=>s-1)}>{step===0?"Cancel":"← Back"}</Btn>
-        <div style={{display:"flex",gap:10}}>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          {step===3&&submitted&&!isWizardValid&&(
+            <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.danger}}>
+              Fix errors above to create
+            </span>
+          )}
           {step<3&&<Btn variant="ghost" onClick={()=>onSave({...form,status:"draft"})}>💾 Save Draft</Btn>}
           {step<3
             ?<Btn variant="primary" disabled={!canNext[step]} onClick={()=>setStep(s=>s+1)}>Next →</Btn>
-            :<Btn variant="primary" onClick={()=>onSave(form)}>✓ Create Exam</Btn>
+            :<Btn variant="primary"
+               onClick={()=>{ setSubmitted(true); if(isWizardValid) onSave(form); }}
+               style={!isWizardValid?{opacity:.55,cursor:"not-allowed"}:{}}>
+               ✓ Create Exam
+             </Btn>
           }
         </div>
       </div>
