@@ -101,7 +101,7 @@ function Divider({label}){
 function Modal({title,subtitle,onClose,children,wide}){
   return(
     <div style={{position:"fixed",inset:0,background:"#00000092",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}
-      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
       <div style={{background:C.panel,border:`1px solid ${C.border2}`,borderRadius:22,padding:"36px 40px",width:"100%",maxWidth:wide?960:700,maxHeight:"93vh",overflowY:"auto",animation:"fadeSlideIn .25s ease",boxShadow:"0 32px 80px #000000bb"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:28}}>
           <div>
