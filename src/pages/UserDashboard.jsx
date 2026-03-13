@@ -23,7 +23,7 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'DM Sans', sans-serif", paddingBottom: 40 }}>
+    <div style={{ height: "100vh", background: T.bg, fontFamily: "'DM Sans', sans-serif", overflowY: "auto" }}>
 
       {/* Top bar */}
       <div style={{
@@ -66,7 +66,7 @@ export default function UserDashboard({ theme: T, user, onRegisterExam, onLogout
         </div>}
       </div>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 48px" }}>
 
         {/* Greeting */}
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: T.text, fontWeight: 700, marginBottom: 6 }}>
