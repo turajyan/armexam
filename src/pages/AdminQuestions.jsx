@@ -125,7 +125,7 @@ function blankContent(type) {
 }
 
 function blankQ() {
-  return { type: "SINGLE_CHOICE", level: "B1", section: "Reading", points: 1, status: "draft",
+  return { type: "SINGLE_CHOICE", level: "B1", section: "", points: 1, status: "draft",
     prompt: "", contextText: "", media: [], content: blankContent("SINGLE_CHOICE"), config: {} };
 }
 
@@ -135,7 +135,7 @@ function fromApi(q) {
     id: q.id,
     type: q.type || "SINGLE_CHOICE",
     level: q.level || "B1",
-    section: q.section || "Reading",
+    section: q.section || "",
     points: q.points ?? 1,
     status: q.status || "draft",
     prompt: q.prompt || "",
@@ -753,10 +753,20 @@ function JsonEditor({ label, value, onChange }) {
 
 // ── QuestionForm ──────────────────────────────────────────────────────────────
 function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
-  const [q, setQ] = useState(() => initial ? fromApi(initial) : blankQ());
+  const [q, setQ] = useState(() => {
+    const base = initial ? fromApi(initial) : blankQ();
+    // Set section to first available if blank
+    if (!base.section && sections.length) base.section = sections[0];
+    return base;
+  });
   const setF = (k, v) => setQ(p => ({ ...p, [k]: v }));
   const ti = ntypeInfo(q.type);
   const [submitted, setSubmitted] = useState(false);
+
+  // When sections load async, set default section if still empty
+  useEffect(() => {
+    if (!q.section && sections.length) setF("section", sections[0]);
+  }, [sections]);
 
   const validate = (q) => {
     const e = {};
