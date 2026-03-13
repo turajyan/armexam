@@ -476,6 +476,11 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
 
       const HOTSPOT_W = 96; const HOTSPOT_H = 30;
       const isHsDragActive = (hsId) => ddiDragFrom === hsId;
+      const LABEL_COLORS = ["#f59e0b","#60a5fa","#4ade80","#f87171","#a78bfa","#34d399","#fb923c","#e879f9"];
+      const labelColor = (labelId) => {
+        const idx = labels.findIndex(l => l.id === labelId);
+        return idx >= 0 ? LABEL_COLORS[idx % LABEL_COLORS.length] : T.gold;
+      };
 
       return (
         <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -501,8 +506,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
                       left: `calc(${hs.x}% - ${HOTSPOT_W/2}px)`,
                       top:  `calc(${hs.y}% - ${HOTSPOT_H/2}px)`,
                       width: HOTSPOT_W, height: HOTSPOT_H,
-                      background: isDraggingThis ? T.gold+"18" : placed ? T.gold+"33" : ddiDrag ? "#ffffff1a" : "#ffffff12",
-                      border: `2px dashed ${isDraggingThis ? T.gold+"44" : placed ? T.gold+"aa" : ddiDrag ? "#ffffff66" : "#ffffff44"}`,
+                      background: isDraggingThis ? labelColor(placed)+"18" : placed ? labelColor(placed)+"33" : ddiDrag ? "#ffffff1a" : "#ffffff12",
+                      border: `2px dashed ${isDraggingThis ? labelColor(placed)+"44" : placed ? labelColor(placed)+"aa" : ddiDrag ? "#ffffff66" : "#ffffff44"}`,
                       borderRadius: 8,
                       cursor: placed ? "grab" : ddiDrag ? "copy" : "default",
                       display:"flex", alignItems:"center", justifyContent:"center",
@@ -511,7 +516,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
                     }}>
                     {placed
                       ? <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12,
-                          color: T.gold, fontWeight:600, pointerEvents:"none" }}>{labelText(placed)}</span>
+                          color: labelColor(placed), fontWeight:600, pointerEvents:"none" }}>{labelText(placed)}</span>
                       : <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11,
                           color: ddiDrag ? "#ffffff55" : "#ffffff33", pointerEvents:"none" }}>drop here</span>
                     }
@@ -532,9 +537,9 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
                 onDragEnd={endDrag}
                 style={{
                   padding:"6px 14px", borderRadius:8, cursor:"grab",
-                  background: ddiDrag===id ? T.gold+"44" : "#ffffff0e",
-                  border:`1.5px solid ${ddiDrag===id ? T.gold : "#ffffff22"}`,
-                  fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.text,
+                  background: ddiDrag===id ? labelColor(id)+"33" : labelColor(id)+"12",
+                  border:`1.5px solid ${ddiDrag===id ? labelColor(id) : labelColor(id)+"55"}`,
+                  fontFamily:"'DM Sans',sans-serif", fontSize:13, color:labelColor(id),
                   userSelect:"none", transition:"all .15s",
                 }}>
                 {labelText(id)}
