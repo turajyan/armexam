@@ -435,24 +435,29 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
       width:"100%", maxWidth:700, maxHeight:"90vh",
       display:"flex", flexDirection:"column", boxShadow:"0 32px 100px #000d" }}>
 
+        {/* Top bar: close button always top-right */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"10px 14px 0", flexShrink:0 }}>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
+            Student Preview
+          </span>
+          {onClose && <button onClick={onClose} style={{ background:"transparent", border:"1px solid #1a2540",
+            borderRadius:8, width:30, height:30, color:"#475569", fontSize:15, cursor:"pointer",
+            display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>✕</button>}
+        </div>
+
         {/* Nav dots (exam preview mode) */}
         {navDots && (
-          <div style={{ padding:"10px 16px 0", flexShrink:0 }}>{navDots}</div>
+          <div style={{ padding:"6px 14px 0", flexShrink:0 }}>{navDots}</div>
         )}
 
-        {/* Header */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:"12px 24px", borderBottom:"1px solid #1a2540", flexShrink:0 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#475569" }}>Student Preview</span>
-            <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`,
-              borderRadius:5, padding:"2px 8px", fontSize:10, fontWeight:700 }}>{q.level}</span>
-            <span style={{ background:ti.color+"18", color:ti.color, border:`1px solid ${ti.color}33`,
-              borderRadius:5, padding:"2px 8px", fontSize:10, fontWeight:600 }}>{ti.icon} {ti.label}</span>
-          </div>
-          {onClose && <button onClick={onClose} style={{ background:"transparent", border:"1px solid #1a2540",
-            borderRadius:8, width:32, height:32, color:"#475569", fontSize:16, cursor:"pointer",
-            display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>}
+        {/* Header: level + type badges */}
+        <div style={{ display:"flex", alignItems:"center", gap:10,
+          padding:"8px 14px 10px", borderBottom:"1px solid #1a2540", flexShrink:0 }}>
+          <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`,
+            borderRadius:5, padding:"2px 8px", fontSize:10, fontWeight:700 }}>{q.level}</span>
+          <span style={{ background:ti.color+"18", color:ti.color, border:`1px solid ${ti.color}33`,
+            borderRadius:5, padding:"2px 8px", fontSize:10, fontWeight:600 }}>{ti.icon} {ti.label}</span>
         </div>
 
         {/* Body */}

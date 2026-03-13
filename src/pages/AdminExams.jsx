@@ -649,27 +649,26 @@ function NavDots({questions, idx, setIdx, isp}){
   const SECTION_COLORS = {READING:"#60a5fa",LISTENING:"#34d399",SPEAKING:"#fb923c",WRITING:"#94a3b8"};
 
   if(isp){
-    // Placement: group by Level → Section
+    // Placement: Level label + section label + dots, all inline with wrapping
     const levels=[...new Set(questions.map(q=>q.level))];
     return(
-      <div style={{display:"flex",flexDirection:"column",gap:8,padding:"10px 14px",
-        background:C.panel,border:`1px solid ${C.border}`,borderRadius:10}}>
+      <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:"6px 14px",
+        padding:"8px 14px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10}}>
         {levels.map(lv=>{
           const lc=LEVEL_COLORS[lv]||"#94a3b8";
           const lqs=questions.map((q,i)=>({q,i})).filter(({q})=>q.level===lv);
-          // sub-group by section within level
           const secs=[...new Set(lqs.map(({q})=>q.section))];
           return(
-            <div key={lv} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div key={lv} style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
               <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,
-                color:lc,minWidth:22,flexShrink:0}}>{lv}</span>
+                color:lc,flexShrink:0}}>{lv}</span>
               {secs.map(sec=>{
                 const sc=SECTION_COLORS[sec]||C.muted;
                 const sq=lqs.filter(({q})=>q.section===sec);
                 return(
-                  <div key={`${lv}-${sec}`} style={{display:"flex",alignItems:"center",gap:5}}>
-                    <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:9,color:sc,
-                      textTransform:"uppercase",letterSpacing:.5,flexShrink:0}}>{sec}</span>
+                  <div key={`${lv}-${sec}`} style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                    <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:8,color:sc,
+                      textTransform:"uppercase",letterSpacing:.4,flexShrink:0}}>{sec}</span>
                     {sq.map(({i})=>(
                       <button key={`${lv}-${sec}-${i}`} onClick={()=>setIdx(i)} title={`Q${i+1}`}
                         style={{width:DOT,height:DOT,borderRadius:"50%",padding:0,cursor:"pointer",flexShrink:0,
