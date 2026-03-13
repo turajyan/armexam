@@ -44,7 +44,7 @@ function placementTotals(t=[]) {
   for(const r of t){const rq=(r.subpools||[]).reduce((s,sp)=>s+sp.count,0);q+=rq;pts+=rq*(r.pointsEach||1);}
   return{q,pts};
 }
-function fixedTotals(s=[]){return{q:s.reduce((a,sp)=>a+sp.count,0),pts:s.reduce((a,sp)=>a+sp.count*(sp.pointsEach||1),0)};}
+function fixedTotals(s){s=Array.isArray(s)?s:[];return{q:s.reduce((a,sp)=>a+sp.count,0),pts:s.reduce((a,sp)=>a+sp.count*(sp.pointsEach||1),0)};}
 
 // ── Atoms ─────────────────────────────────────────────────────────────────────
 function Badge({children,color,small}){
