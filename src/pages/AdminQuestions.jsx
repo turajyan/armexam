@@ -726,7 +726,8 @@ function Modal({ title, onClose, children }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#000000b0", backdropFilter:"blur(8px)",
       display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }}
-      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget._closeOnUp = true; }}
+      onMouseUp={e => { if (e.currentTarget._closeOnUp && e.target === e.currentTarget) onClose(); e.currentTarget._closeOnUp = false; }}>
       <div style={{ background:C.card, border:`1px solid ${C.border2}`, borderRadius:16,
         width:"100%", maxWidth:820, maxHeight:"90vh", display:"flex", flexDirection:"column",
         boxShadow:"0 24px 80px #000a" }}>

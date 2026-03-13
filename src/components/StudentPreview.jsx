@@ -624,7 +624,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#000000cc", backdropFilter:"blur(12px)",
       display:"flex", alignItems:"center", justifyContent:"center", zIndex:1100, padding:20 }}
-      onClick={e => { if (e.target === e.currentTarget && onClose) onClose(); }}>
+      onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget._closeOnUp = true; }}
+      onMouseUp={e => { if (e.currentTarget._closeOnUp && e.target === e.currentTarget && onClose) onClose(); e.currentTarget._closeOnUp = false; }}>
       {inner}
     </div>
   );
