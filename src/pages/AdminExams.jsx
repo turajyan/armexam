@@ -385,7 +385,7 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
       </div>
 
       <Divider label="Access"/>
-      <Toggle label="Open for Students" hint="Students can see and take this exam at the terminal" value={form.isOpen} onChange={v=>set("isOpen",v)}/>
+      <Toggle label="Open for Registration" hint="Students can see this exam in their personal cabinet and self-register" value={form.isOpen} onChange={v=>set("isOpen",v)}/>
 
       <Divider label="Student Display"/>
       <Toggle label="Show results after submission"      hint="Score displayed after finishing"              value={form.showResults}               onChange={v=>set("showResults",v)}/>
@@ -441,7 +441,7 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
         </div>
       )}
       <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,padding:"8px 12px",background:C.panel,borderRadius:8,border:`1px solid ${C.border}`}}>
-        💡 To assign students to this exam, use the <strong style={{color:C.text}}>Assign</strong> button on the exam card.
+        💡 Students self-register via their personal cabinet. Once registered they receive a PIN to use at the terminal.
       </div>
     </div>
   );
@@ -486,7 +486,7 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
 }
 
 // ── Exam Card ─────────────────────────────────────────────────────────────────
-function ExamCard({exam,onEdit,onDelete,onAssign,onViewResults,onPreview,onToggleOpen,allStudents=[]}){
+function ExamCard({exam,onEdit,onDelete,onViewResults,onPreview,onToggleOpen,allStudents=[]}){
   const sm=STATUS_META[exam.status]||STATUS_META.draft;
   const lc=LEVEL_COLORS[exam.level]||"#94a3b8";
   const isp=exam.examType==="placement";
@@ -503,13 +503,13 @@ function ExamCard({exam,onEdit,onDelete,onAssign,onViewResults,onPreview,onToggl
           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,flexWrap:"wrap"}}>
             {isp?<Badge color={C.purple}>📊 Placement</Badge>:<Badge color={lc}>{exam.level}</Badge>}
             <Badge color={sm.color}>{sm.icon} {sm.label}</Badge>
-            {exam.isOpen&&<Badge color={C.success}>🟢 Open</Badge>}
+            {exam.isOpen&&<Badge color={C.success}>🟢 Registration Open</Badge>}
           </div>
           <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:19,color:C.text,margin:"0 0 3px",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exam.title}</h3>
           <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted}}>#{exam.id}</div>
         </div>
         {/* isOpen toggle */}
-        <div title={exam.isOpen?"Close":"Open"} onClick={()=>onToggleOpen(exam)}
+        <div title={exam.isOpen?"Close registration":"Open for registration"} onClick={()=>onToggleOpen(exam)}
           style={{width:36,height:20,borderRadius:10,background:exam.isOpen?C.success:C.dim,cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0,marginTop:4}}>
           <div style={{position:"absolute",top:2,left:exam.isOpen?18:2,width:16,height:16,borderRadius:"50%",background:"white",transition:"left .2s",boxShadow:"0 1px 3px #0006"}}/>
         </div>
@@ -569,7 +569,6 @@ function ExamCard({exam,onEdit,onDelete,onAssign,onViewResults,onPreview,onToggl
       <div style={{display:"flex",gap:6,paddingTop:2}}>
         <Btn small onClick={()=>onEdit(exam)} style={{flex:1}}>✎ Edit</Btn>
         <Btn small onClick={()=>onPreview(exam)} variant="solid" color={C.purple+"22"} style={{flex:1}}><span style={{color:C.purple}}>▶ Preview</span></Btn>
-        <Btn small onClick={()=>onAssign(exam)} variant="solid" color={C.info+"22"} style={{flex:1}}><span style={{color:C.info}}>+ Assign</span></Btn>
         {(exam.status==="completed"||exam.status==="active")&&(
           <Btn small onClick={()=>onViewResults(exam)} variant="solid" color={C.success+"22"} style={{flex:1}}><span style={{color:C.success}}>📊</span></Btn>
         )}
@@ -831,7 +830,7 @@ function ExamsPage(){
         ))}
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"11px 16px",minWidth:80}}>
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.success}}>{exams.filter(e=>e.isOpen).length}</div>
-          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,marginTop:2}}>🟢 Open</div>
+          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,marginTop:2}}>Registration Open</div>
         </div>
       </div>
 
@@ -857,7 +856,6 @@ function ExamsPage(){
             <ExamCard key={exam.id} exam={exam} allStudents={students}
               onEdit={e=>{setEditing(e);setModal("edit");}}
               onDelete={id=>setDeleteId(id)}
-              onAssign={e=>setAssigning(e)}
               onViewResults={e=>setViewingResults(e)}
               onPreview={handlePreview}
               onToggleOpen={handleToggleOpen}
@@ -874,7 +872,7 @@ function ExamsPage(){
         </Modal>
       )}
 
-      {assigning&&<AssignModal exam={assigning} onClose={()=>setAssigning(null)} onSave={handleAssign} students={students}/>}
+
       {viewingResults&&<ResultsModal exam={viewingResults} onClose={()=>setViewingResults(null)} allStudents={students}/>}
 
       {deleteId&&(
