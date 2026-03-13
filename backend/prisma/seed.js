@@ -721,6 +721,41 @@ async function main() {
   // ── Demo results ──────────────────────────────────────────────────────────
   const [mariam, vazgen, narine, davit, ani, hayk, lusine, artur] = createdStudents;
 
+  // Helper: build fake answers for a fixed exam (auto-graded questions only)
+  async function buildFakeAnswers(exam, correctRate = 0.75) {
+    const subpools = Array.isArray(exam.subpools) ? exam.subpools : [];
+    const answers = {};
+    for (const sp of subpools) {
+      const qs = await prisma.question.findMany({
+        where: { level: sp.level || exam.level, section: { name: sp.section }, status: "published" },
+        take: sp.count,
+      });
+      for (const q of qs) {
+        const correct = Math.random() < correctRate;
+        if (q.type === "SINGLE_CHOICE") {
+          const opts = q.content?.options || [];
+          answers[q.id] = correct
+            ? String(q.content?.correct ?? 0)
+            : String((Number(q.content?.correct ?? 0) + 1) % Math.max(opts.length, 2));
+        } else if (q.type === "MULTIPLE_CHOICE") {
+          answers[q.id] = JSON.stringify(correct ? (q.content?.correct ?? [0]) : []);
+        } else if (q.type === "FILL_IN_THE_BLANKS") {
+          const slots = (q.content?.slots || []).filter(s => s.type === "blank");
+          const ans = {};
+          for (const s of slots) ans[s.id] = correct ? (s.answer || "test") : "wrong";
+          answers[q.id] = JSON.stringify(ans);
+        } else if (["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED"].includes(q.type)) {
+          answers[q.id] = "/voice/demo.webm";
+        } else if (["WRITING_INDEPENDENT","WRITING_INTEGRATED"].includes(q.type)) {
+          answers[q.id] = correct ? "This is a well-written sample answer." : "Short answer.";
+        } else {
+          answers[q.id] = correct ? "correct" : "";
+        }
+      }
+    }
+    return answers;
+  }
+
   // Mariam passed A1, A2, B1
   for (let i = 0; i < 3; i++) {
     const exam = fixedExams[i];
@@ -728,7 +763,8 @@ async function main() {
     const pin  = randPin(usedPins);
     const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: exam.id, studentId: mariam.id } } });
     if (!ea) await prisma.examAssignment.create({ data: { examId: exam.id, studentId: mariam.id, pin } });
-    await prisma.result.create({ data: { examId: exam.id, studentId: mariam.id, score: pct, totalPoints: 100, pct, passed: true, gradingStatus: "auto", submittedAt: new Date(`2025-0${2 + i * 2}-15`) } });
+    const answers = await buildFakeAnswers(exam, pct / 100);
+    await prisma.result.create({ data: { examId: exam.id, studentId: mariam.id, score: pct, totalPoints: 100, pct, passed: true, answers, gradingStatus: "auto", submittedAt: new Date(`2025-0${2 + i * 2}-15`) } });
   }
 
   // Vazgen failed A1
@@ -736,7 +772,8 @@ async function main() {
     const pin = randPin(usedPins);
     const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: fixedExams[0].id, studentId: vazgen.id } } });
     if (!ea) await prisma.examAssignment.create({ data: { examId: fixedExams[0].id, studentId: vazgen.id, pin } });
-    await prisma.result.create({ data: { examId: fixedExams[0].id, studentId: vazgen.id, score: 47, totalPoints: 100, pct: 47, passed: false, gradingStatus: "auto", submittedAt: new Date("2025-03-10") } });
+    const answers = await buildFakeAnswers(fixedExams[0], 0.40);
+    await prisma.result.create({ data: { examId: fixedExams[0].id, studentId: vazgen.id, score: 47, totalPoints: 100, pct: 47, passed: false, answers, gradingStatus: "auto", submittedAt: new Date("2025-03-10") } });
   }
 
   // Placement results
@@ -752,7 +789,8 @@ async function main() {
     const pct = Math.round((earnedPts / totalPts) * 100);
     const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: exam.id, studentId: rd.student.id } } });
     if (!ea) await prisma.examAssignment.create({ data: { examId: exam.id, studentId: rd.student.id, pin: randPin(usedPins) } });
-    await prisma.result.create({ data: { examId: exam.id, studentId: rd.student.id, score: earnedPts, totalPoints: totalPts, pct, passed: rd.passed, detectedLevel: rd.detectedLevel, levelStats: rd.levelStats, gradingStatus: "auto", submittedAt: new Date(rd.date) } });
+    const placementAnswers = await buildFakeAnswers(exam, earnedPts / totalPts);
+    await prisma.result.create({ data: { examId: exam.id, studentId: rd.student.id, score: earnedPts, totalPoints: totalPts, pct, passed: rd.passed, detectedLevel: rd.detectedLevel, levelStats: rd.levelStats, answers: placementAnswers, gradingStatus: "auto", submittedAt: new Date(rd.date) } });
     console.log(`  🎯 ${rd.student.name} → ${rd.detectedLevel ?? "below min"} | ${pct}%`);
   }
 
