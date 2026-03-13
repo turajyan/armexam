@@ -16,27 +16,32 @@ function randPin(used) {
   return p;
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// 4 SECTIONS ONLY
+// READING  — free navigation, text/image questions
+// LISTENING — linear navigation, audio/video with play limits
+// SPEAKING  — automated timers (prep + record), MediaRecorder
+// WRITING   — word counter, clipboard & spellcheck disabled
+// ═════════════════════════════════════════════════════════════════════════════
 const SECTIONS = [
-  { name: "READING (Ընթերցում)",       category: "READING"   },
-  { name: "LISTENING (Լսում)",         category: "LISTENING" },
-  { name: "SPEAKING (Խոսում)",         category: "SPEAKING"  },
-  { name: "WRITING (Գրում)",           category: "WRITING"   },
-  { name: "GRAMMAR (Քերականություն)",  category: "READING"   },
-  { name: "VOCABULARY (Բառապաշար)",    category: "READING"   },
+  { name: "READING",   category: "READING"   },
+  { name: "LISTENING", category: "LISTENING" },
+  { name: "SPEAKING",  category: "SPEAKING"  },
+  { name: "WRITING",   category: "WRITING"   },
 ];
 
 const PTS = { A1:1, A2:1, B1:2, B2:3, C1:4, C2:5 };
 
-const R  = "READING (Ընթերցում)";
-const L  = "LISTENING (Լսում)";
-const SP = "SPEAKING (Խոսում)";
-const W  = "WRITING (Գրում)";
-const GR = "GRAMMAR (Քերականություն)";
-const VO = "VOCABULARY (Բառապաշար)";
+const R  = "READING";
+const L  = "LISTENING";
+const SP = "SPEAKING";
+const W  = "WRITING";
 
 const QUESTIONS = [
 
-  // ── READING › SINGLE_CHOICE ──────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // READING — SINGLE_CHOICE
+  // ══════════════════════════════════════════════════════════════════════════
   {
     sectionName: R, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
     contextText: "Tom is eight years old. He lives with his mother and father. He has one sister. Her name is Lucy. She is six years old. Tom likes football. Lucy likes cats.",
@@ -46,7 +51,7 @@ const QUESTIONS = [
   {
     sectionName: R, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
     contextText: "The library opens at nine o'clock every morning. It closes at six o'clock in the evening. On Sundays it is closed.",
-    prompt: "When does the library close?",
+    prompt: "When does the library close on weekdays?",
     content: { options: ["At five o'clock", "At nine o'clock", "At six o'clock", "At noon"], correct: 2 },
   },
   {
@@ -68,14 +73,31 @@ const QUESTIONS = [
     content: { options: ["Social media always causes depression", "Social media always improves wellbeing", "The effect of social media on wellbeing is not straightforward", "People should stop using social media"], correct: 2 },
   },
   {
+    sectionName: R, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
+    contextText: "Scientists have found that regular physical activity reduces the risk of heart disease, stroke, and certain cancers. Even moderate exercise, such as a 30-minute walk five days a week, can significantly improve long-term health outcomes. Despite this evidence, many adults in developed countries remain sedentary.",
+    prompt: "According to the text, how much exercise is described as beneficial?",
+    content: { options: ["One hour of intense exercise daily", "30 minutes of walking five days a week", "Light stretching for 10 minutes each morning", "Swimming for one hour three times a week"], correct: 1 },
+  },
+  {
     sectionName: R, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
     contextText: "The concept of 'nudge theory', developed by Thaler and Sunstein, suggests that positive reinforcement and indirect suggestions can influence people's behaviour without restricting their freedom of choice. Governments have increasingly adopted nudge strategies in public health campaigns, for instance by making healthy food options more prominent in cafeterias.",
-    prompt: "According to the passage, what is the key principle behind nudge theory?",
+    prompt: "What is the key principle behind nudge theory?",
     content: { options: [
       "Forcing people to make healthy choices through legislation",
       "Using financial penalties to change behaviour",
       "Influencing decisions without removing individual freedom",
       "Restricting access to unhealthy options",
+    ], correct: 2 },
+  },
+  {
+    sectionName: R, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
+    contextText: "Urban heat islands occur when cities experience significantly higher temperatures than surrounding rural areas. Dark surfaces such as asphalt and rooftops absorb solar radiation, while the absence of vegetation reduces evaporative cooling. This phenomenon increases energy consumption as residents rely more heavily on air conditioning.",
+    prompt: "Which factor does NOT contribute to urban heat islands according to the text?",
+    content: { options: [
+      "Dark road surfaces absorbing heat",
+      "Lack of vegetation",
+      "High rainfall in urban centres",
+      "Increased use of air conditioning",
     ], correct: 2 },
   },
   {
@@ -91,7 +113,7 @@ const QUESTIONS = [
   },
   {
     sectionName: R, type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
-    contextText: "The Sapir-Whorf hypothesis, in its strong form, holds that language does not merely reflect thought but determines it — that speakers of different languages inhabit fundamentally different conceptual universes. While the strong version has largely been discredited, the weaker relativity hypothesis, which posits that language influences but does not wholly constrain cognition, retains empirical support.",
+    contextText: "The Sapir-Whorf hypothesis, in its strong form, holds that language does not merely reflect thought but determines it — that speakers of different languages inhabit fundamentally different conceptual universes. While the strong version has largely been discredited, the weaker relativity hypothesis, which posits that language influences but does not wholly constrain cognition, retains empirical support, particularly in domains such as colour perception and spatial reasoning.",
     prompt: "What distinction does the passage draw between the strong and weak forms of the Sapir-Whorf hypothesis?",
     content: { options: [
       "The strong form has empirical support; the weak form does not",
@@ -101,11 +123,11 @@ const QUESTIONS = [
     ], correct: 2 },
   },
 
-  // ── READING › MULTIPLE_CHOICE ─────────────────────────────────────────────
+  // ── READING — MULTIPLE_CHOICE ─────────────────────────────────────────────
   {
     sectionName: R, type: "MULTIPLE_CHOICE", level: "B1", points: PTS.B1,
     contextText: "Regular physical exercise has many well-documented benefits. It strengthens the cardiovascular system and helps maintain a healthy weight. Exercise also releases endorphins, which can reduce stress and improve mood. Additionally, it can lower the risk of type 2 diabetes and some forms of cancer.",
-    prompt: "According to the passage, which TWO of the following are benefits of exercise? (Choose 2)",
+    prompt: "Which TWO benefits of exercise are mentioned in the passage? (Choose 2)",
     content: { options: ["Improves memory directly", "Reduces stress", "Eliminates the risk of all cancers", "Strengthens the heart"], correct: [1, 3], requiredCount: 2 },
   },
   {
@@ -115,7 +137,7 @@ const QUESTIONS = [
     content: { options: ["Reduced flexibility", "Difficulty maintaining team cohesion", "Higher commuting costs", "Isolation among workers", "Blurring of work-life boundaries"], correct: [1, 3, 4], requiredCount: 3 },
   },
 
-  // ── READING › FILL_IN_THE_BLANKS ──────────────────────────────────────────
+  // ── READING — FILL_IN_THE_BLANKS ──────────────────────────────────────────
   {
     sectionName: R, type: "FILL_IN_THE_BLANKS", level: "A2", points: PTS.A2,
     prompt: "Complete the text with the missing words.",
@@ -162,7 +184,7 @@ const QUESTIONS = [
     },
   },
 
-  // ── READING › DRAG_TO_TEXT ────────────────────────────────────────────────
+  // ── READING — DRAG_TO_TEXT ────────────────────────────────────────────────
   {
     sectionName: R, type: "DRAG_TO_TEXT", level: "A2", points: PTS.A2,
     prompt: "Drag the correct word into each gap.",
@@ -173,8 +195,8 @@ const QUESTIONS = [
     },
   },
   {
-    sectionName: GR, type: "DRAG_TO_TEXT", level: "B1", points: PTS.B1,
-    prompt: "Drag the correct form into each gap.",
+    sectionName: R, type: "DRAG_TO_TEXT", level: "B1", points: PTS.B1,
+    prompt: "Drag the correct form into each gap. (Grammar: Past Perfect)",
     content: {
       text: "By the time she arrived, he {slot_1} already {slot_2} the report.",
       wordBank: ["had", "has", "finished", "finishing", "finish"],
@@ -182,8 +204,8 @@ const QUESTIONS = [
     },
   },
   {
-    sectionName: GR, type: "DRAG_TO_TEXT", level: "B2", points: PTS.B2,
-    prompt: "Drag the correct words to complete the sentence.",
+    sectionName: R, type: "DRAG_TO_TEXT", level: "B2", points: PTS.B2,
+    prompt: "Drag the correct words to complete the sentence. (Grammar: Inversion)",
     content: {
       text: "Not only {slot_1} she pass the exam, but she {slot_2} the highest score in the class.",
       wordBank: ["did", "had", "also achieved", "was achieving", "achieve"],
@@ -191,7 +213,7 @@ const QUESTIONS = [
     },
   },
 
-  // ── READING › TEXT_INSERTION ──────────────────────────────────────────────
+  // ── READING — TEXT_INSERTION ──────────────────────────────────────────────
   {
     sectionName: R, type: "TEXT_INSERTION", level: "B2", points: PTS.B2,
     contextText: "The internet has revolutionised how we access information. [1] Libraries still play an important role in communities. [2] Digital literacy has become an essential skill for all age groups. [3]",
@@ -206,7 +228,7 @@ const QUESTIONS = [
     },
   },
 
-  // ── READING › DRAG_AND_DROP_TABLE ────────────────────────────────────────
+  // ── READING — DRAG_AND_DROP_TABLE ─────────────────────────────────────────
   {
     sectionName: R, type: "DRAG_AND_DROP_TABLE", level: "B1", points: PTS.B1,
     prompt: "Sort the items into the correct columns.",
@@ -243,35 +265,35 @@ const QUESTIONS = [
     },
   },
 
-  // ── GRAMMAR › SINGLE_CHOICE ───────────────────────────────────────────────
+  // ── READING — Grammar questions (now in READING section) ──────────────────
   {
-    sectionName: GR, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
-    prompt: "Choose the correct form: 'There ___ a cat in the garden.'",
+    sectionName: R, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
+    prompt: "Grammar: Choose the correct form: 'There ___ a cat in the garden.'",
     content: { options: ["are", "is", "am", "be"], correct: 1 },
   },
   {
-    sectionName: GR, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
-    prompt: "Choose the correct form: 'She ___ to school every day.'",
+    sectionName: R, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
+    prompt: "Grammar: Choose the correct form: 'She ___ to school every day.'",
     content: { options: ["go", "goes", "going", "gone"], correct: 1 },
   },
   {
-    sectionName: GR, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
-    prompt: "Choose the correct form: 'If I ___ you, I would apologise immediately.'",
+    sectionName: R, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
+    prompt: "Grammar: Choose the correct form: 'If I ___ you, I would apologise immediately.'",
     content: { options: ["am", "was", "were", "will be"], correct: 2 },
   },
   {
-    sectionName: GR, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
-    prompt: "Choose the correct form: 'The report ___ by the committee before the deadline.'",
+    sectionName: R, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
+    prompt: "Grammar: Choose the correct form: 'The report ___ by the committee before the deadline.'",
     content: { options: ["was submitted", "submitted", "had submitted", "has been submitting"], correct: 0 },
   },
   {
-    sectionName: GR, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
-    prompt: "Choose the correct form: '___ he to resign, the board would face a serious crisis.'",
+    sectionName: R, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
+    prompt: "Grammar: Choose the correct form: '___ he to resign, the board would face a serious crisis.'",
     content: { options: ["If", "Were", "Should", "Had"], correct: 1 },
   },
   {
-    sectionName: GR, type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
-    prompt: "Which sentence is stylistically correct for formal academic writing?",
+    sectionName: R, type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
+    prompt: "Grammar: Which sentence is correct for formal academic writing?",
     content: { options: [
       "The data shows that there is a big difference.",
       "The data indicate a statistically significant divergence.",
@@ -280,75 +302,45 @@ const QUESTIONS = [
     ], correct: 1 },
   },
 
-  // ── VOCABULARY › SINGLE_CHOICE ────────────────────────────────────────────
+  // ── READING — Vocabulary questions (now in READING section) ───────────────
   {
-    sectionName: VO, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
-    prompt: "What does the word 'big' mean?",
+    sectionName: R, type: "SINGLE_CHOICE", level: "A1", points: PTS.A1,
+    prompt: "Vocabulary: What does the word 'big' mean?",
     content: { options: ["Small", "Fast", "Large", "Slow"], correct: 2 },
   },
   {
-    sectionName: VO, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
-    prompt: "Which word is a synonym of 'happy'?",
+    sectionName: R, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
+    prompt: "Vocabulary: Which word is a synonym of 'happy'?",
     content: { options: ["Sad", "Angry", "Joyful", "Tired"], correct: 2 },
   },
   {
-    sectionName: VO, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
-    prompt: "Choose the correct collocation: 'The medicine had several unexpected ___.'",
+    sectionName: R, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
+    prompt: "Vocabulary: Choose the correct collocation: 'The medicine had several unexpected ___.'",
     content: { options: ["side effects", "side causes", "after effects", "by-products"], correct: 0 },
   },
   {
-    sectionName: VO, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
-    prompt: "Which word is closest in meaning to 'ameliorate'?",
+    sectionName: R, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
+    prompt: "Vocabulary: Which word is closest in meaning to 'ameliorate'?",
     content: { options: ["Worsen", "Improve", "Ignore", "Measure"], correct: 1 },
   },
   {
-    sectionName: VO, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
-    prompt: "Choose the most precise word: 'The politician's speech was deliberately ___, designed to mean different things to different audiences.'",
+    sectionName: R, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
+    prompt: "Vocabulary: Choose the most precise word: 'The politician's speech was deliberately ___, designed to mean different things to different audiences.'",
     content: { options: ["verbose", "ambiguous", "concise", "inflammatory"], correct: 1 },
   },
   {
-    sectionName: VO, type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
-    prompt: "Choose the best word: 'The critic's ___ review dismantled the author's central thesis with surgical precision.'",
+    sectionName: R, type: "SINGLE_CHOICE", level: "C2", points: PTS.C2,
+    prompt: "Vocabulary: Choose the best word: 'The critic's ___ review dismantled the author's central thesis with surgical precision.'",
     content: { options: ["perfunctory", "trenchant", "sycophantic", "laconic"], correct: 1 },
   },
 
-  // ── LISTENING › SINGLE_CHOICE ────────────────────────────────────────────
+  // ── READING — IMAGE_CLICK ─────────────────────────────────────────────────
   {
-    sectionName: L, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
-    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-M%C3%A8re-%C3%89glise_p1020648.ogg", maxPlays: 2 }],
-    prompt: "Listen to the recording. What is the main sound you can hear?",
-    content: { options: ["Traffic noise", "Nature sounds", "A conversation", "Music"], correct: 1 },
-  },
-  {
-    sectionName: L, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
-    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/1/19/MiniSunflower.ogg", maxPlays: 2 }],
-    prompt: "Listen and choose the best description of the audio.",
-    content: { options: ["A news report", "A piece of music", "A weather forecast", "A sports commentary"], correct: 1 },
-  },
-  {
-    sectionName: L, type: "MULTIPLE_CHOICE", level: "B2", points: PTS.B2,
-    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Vespers_of_Holy_Saturday_%28sample%29.ogg", maxPlays: 1 }],
-    prompt: "Listen and select the TWO correct statements. (Choose 2)",
-    content: {
-      options: ["It is performed in a religious context", "It is a solo instrument piece", "It involves vocal performance", "It uses electronic sound effects"],
-      correct: [0, 2], requiredCount: 2,
-    },
-  },
-  {
-    sectionName: L, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
-    media: [{ type: "video", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e6/Bison_at_Yellowstone.ogv/Bison_at_Yellowstone.ogv.360p.ogv", maxPlays: 1 }],
-    prompt: "Watch the video. What is the primary subject?",
-    content: { options: ["Wildlife in a natural habitat", "Industrial activity", "Urban environment", "Marine research"], correct: 0 },
-  },
-
-  // ── LISTENING › IMAGE_CLICK ───────────────────────────────────────────────
-  {
-    sectionName: L, type: "IMAGE_CLICK", level: "B1", points: PTS.B1,
+    sectionName: R, type: "IMAGE_CLICK", level: "B1", points: PTS.B1,
     media: [
-      { type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-M%C3%A8re-%C3%89glise_p1020648.ogg", maxPlays: 2 },
       { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/800px-Good_Food_Display_-_NCI_Visuals_Online.jpg" },
     ],
-    prompt: "Listen and click on the area of the image that is described.",
+    prompt: "Look at the image. Click on the area that shows vegetables.",
     content: {
       hotspots: [
         { id: "hs1", x: 20.0, y: 30.0, width: 20.0, height: 20.0, correct: true  },
@@ -357,8 +349,80 @@ const QUESTIONS = [
       ],
     },
   },
+  {
+    sectionName: R, type: "DRAG_AND_DROP_IMAGE", level: "C1", points: PTS.C1,
+    media: [{ type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Aras_river_basin_map.png/640px-Aras_river_basin_map.png" }],
+    prompt: "Drag the country labels to the correct locations on the map.",
+    content: {
+      labels: [
+        { id: "lbl1", text: "Armenia" },
+        { id: "lbl2", text: "Turkey" },
+        { id: "lbl3", text: "Azerbaijan" },
+      ],
+      hotspots: [
+        { id: "hs1", x: 55.0, y: 40.0, correct: "lbl1" },
+        { id: "hs2", x: 25.0, y: 35.0, correct: "lbl2" },
+        { id: "hs3", x: 75.0, y: 45.0, correct: "lbl3" },
+      ],
+    },
+  },
 
-  // ── LISTENING › DRAG_AND_DROP_IMAGE ──────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // LISTENING — linear navigation, audio/video with play limits
+  // ══════════════════════════════════════════════════════════════════════════
+  {
+    sectionName: L, type: "SINGLE_CHOICE", level: "A2", points: PTS.A2,
+    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-M%C3%A8re-%C3%89glise_p1020648.ogg", maxPlays: 2 }],
+    prompt: "Listen to the recording (max 2 plays). What is the main sound you can hear?",
+    content: { options: ["Traffic noise", "Nature sounds", "A conversation", "Music"], correct: 1 },
+  },
+  {
+    sectionName: L, type: "SINGLE_CHOICE", level: "B1", points: PTS.B1,
+    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/1/19/MiniSunflower.ogg", maxPlays: 2 }],
+    prompt: "Listen and choose the best description of the audio. (max 2 plays)",
+    content: { options: ["A news report", "A piece of music", "A weather forecast", "A sports commentary"], correct: 1 },
+  },
+  {
+    sectionName: L, type: "MULTIPLE_CHOICE", level: "B2", points: PTS.B2,
+    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Vespers_of_Holy_Saturday_%28sample%29.ogg", maxPlays: 1 }],
+    prompt: "Listen ONCE and select the TWO correct statements. (Choose 2)",
+    content: {
+      options: ["It is performed in a religious context", "It is a solo instrument piece", "It involves vocal performance", "It uses electronic sound effects"],
+      correct: [0, 2], requiredCount: 2,
+    },
+  },
+  {
+    sectionName: L, type: "SINGLE_CHOICE", level: "B2", points: PTS.B2,
+    media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/1/19/MiniSunflower.ogg", maxPlays: 1 }],
+    prompt: "Listen ONCE. The speaker's main point is that healthy eating…",
+    content: { options: [
+      "requires expensive ingredients",
+      "can be achieved on a budget",
+      "is only possible in cities",
+      "needs professional guidance",
+    ], correct: 1 },
+  },
+  {
+    sectionName: L, type: "SINGLE_CHOICE", level: "C1", points: PTS.C1,
+    media: [{ type: "video", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e6/Bison_at_Yellowstone.ogv/Bison_at_Yellowstone.ogv.360p.ogv", maxPlays: 1 }],
+    prompt: "Watch the video ONCE. What is the primary subject?",
+    content: { options: ["Wildlife in a natural habitat", "Industrial activity", "Urban environment", "Marine research"], correct: 0 },
+  },
+  {
+    sectionName: L, type: "IMAGE_CLICK", level: "B1", points: PTS.B1,
+    media: [
+      { type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Sainte-M%C3%A8re-%C3%89glise_p1020648.ogg", maxPlays: 2 },
+      { type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/800px-Good_Food_Display_-_NCI_Visuals_Online.jpg" },
+    ],
+    prompt: "Listen and click on the area of the image that is described. (max 2 plays)",
+    content: {
+      hotspots: [
+        { id: "hs1", x: 20.0, y: 30.0, width: 20.0, height: 20.0, correct: true  },
+        { id: "hs2", x: 60.0, y: 50.0, width: 20.0, height: 20.0, correct: false },
+        { id: "hs3", x: 70.0, y: 10.0, width: 15.0, height: 15.0, correct: false },
+      ],
+    },
+  },
   {
     sectionName: L, type: "DRAG_AND_DROP_IMAGE", level: "C1", points: PTS.C1,
     media: [{ type: "image", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Aras_river_basin_map.png/640px-Aras_river_basin_map.png" }],
@@ -377,10 +441,12 @@ const QUESTIONS = [
     },
   },
 
-  // ── SPEAKING ──────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // SPEAKING — automated timers, MediaRecorder, no manual control
+  // ══════════════════════════════════════════════════════════════════════════
   {
     sectionName: SP, type: "SPEAKING_INDEPENDENT", level: "A1", points: PTS.A1,
-    prompt: "Introduce yourself. Say your name, your age, and where you live. (45 seconds)",
+    prompt: "Introduce yourself. Say your name, your age, and where you live.",
     content: {
       prepSeconds: 15, recordSeconds: 45, maxAttempts: 2,
       rubrics: [
@@ -393,7 +459,7 @@ const QUESTIONS = [
   },
   {
     sectionName: SP, type: "SPEAKING_INDEPENDENT", level: "B1", points: PTS.B1,
-    prompt: "Describe your hometown. What do you like and dislike about it? (90 seconds)",
+    prompt: "Describe your hometown. What do you like and dislike about it?",
     content: {
       prepSeconds: 30, recordSeconds: 90, maxAttempts: 1,
       rubrics: [
@@ -406,7 +472,7 @@ const QUESTIONS = [
   },
   {
     sectionName: SP, type: "SPEAKING_INDEPENDENT", level: "B2", points: PTS.B2,
-    prompt: "Do you think social media has a positive or negative effect on society? Give reasons and examples. (2 minutes)",
+    prompt: "Do you think social media has a positive or negative effect on society? Give reasons and examples to support your view.",
     content: {
       prepSeconds: 45, recordSeconds: 120, maxAttempts: 1,
       rubrics: [
@@ -419,9 +485,9 @@ const QUESTIONS = [
   },
   {
     sectionName: SP, type: "SPEAKING_INTEGRATED", level: "C1", points: PTS.C1,
-    contextText: "Read the following passage, then listen to the audio. In your response, compare the viewpoints presented in both sources.",
+    contextText: "Read the following passage:\n\nThe rapid adoption of artificial intelligence in the workplace is transforming employment patterns. Some economists predict that automation will displace millions of routine jobs, while others argue that new technologies historically create more jobs than they destroy.",
     media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Vespers_of_Holy_Saturday_%28sample%29.ogg", maxPlays: 1 }],
-    prompt: "Using both the text and the audio, explain how modern technology influences cultural traditions.",
+    prompt: "Using both the text and the audio, explain how technological change affects employment and society.",
     content: {
       prepSeconds: 45, recordSeconds: 120, maxAttempts: 1,
       rubrics: [
@@ -432,8 +498,23 @@ const QUESTIONS = [
       ],
     },
   },
+  {
+    sectionName: SP, type: "SPEAKING_INDEPENDENT", level: "C2", points: PTS.C2,
+    prompt: "To what extent is democracy compatible with technocratic governance? Develop a reasoned argument drawing on specific examples.",
+    content: {
+      prepSeconds: 60, recordSeconds: 180, maxAttempts: 1,
+      rubrics: [
+        { id: "fluency",       label: "Fluency & Coherence",  maxScore: 5 },
+        { id: "lexical",       label: "Lexical Resource",     maxScore: 5 },
+        { id: "grammar",       label: "Grammatical Range",    maxScore: 5 },
+        { id: "pronunciation", label: "Pronunciation",        maxScore: 5 },
+      ],
+    },
+  },
 
-  // ── WRITING ───────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // WRITING — word counter, clipboard & spellcheck disabled
+  // ══════════════════════════════════════════════════════════════════════════
   {
     sectionName: W, type: "WRITING_INDEPENDENT", level: "B1", points: PTS.B1,
     prompt: "Write about a person who has influenced your life. Who are they and why are they important to you? (100–150 words)",
@@ -462,9 +543,9 @@ const QUESTIONS = [
   },
   {
     sectionName: W, type: "WRITING_INTEGRATED", level: "C1", points: PTS.C1,
-    contextText: "Read the following passage about artificial intelligence in education:\n\nThe integration of AI into education offers opportunities for personalised learning pathways. Adaptive systems can identify gaps in student knowledge and adjust content accordingly. Critics, however, argue that reducing the role of human teachers risks undermining the social and emotional dimensions of education.",
+    contextText: "Read the following passage:\n\nThe integration of AI into education offers opportunities for personalised learning pathways. Adaptive systems can identify gaps in student knowledge and adjust content accordingly. Critics, however, argue that reducing the role of human teachers risks undermining the social and emotional dimensions of education.",
     media: [{ type: "audio", url: "https://upload.wikimedia.org/wikipedia/commons/1/19/MiniSunflower.ogg", maxPlays: 2 }],
-    prompt: "Drawing on both the text and the audio, write an essay discussing the role and limitations of artificial intelligence in education. (200–250 words)",
+    prompt: "Drawing on both the text and the audio, write an essay discussing the role and limitations of AI in education. (200–250 words)",
     content: {
       minWords: 200, maxWords: 250,
       rubrics: [
@@ -490,16 +571,22 @@ const QUESTIONS = [
   },
 ];
 
+// ═════════════════════════════════════════════════════════════════════════════
+// PLACEMENT TEMPLATE — 4 sections only
+// ═════════════════════════════════════════════════════════════════════════════
 const PLACEMENT_TEMPLATE = [
-  { level: "A1", pointsEach: 1, subpools: [{ section: R, count: 3 }, { section: GR, count: 2 }] },
-  { level: "A2", pointsEach: 1, subpools: [{ section: R, count: 3 }, { section: VO, count: 2 }] },
-  { level: "B1", pointsEach: 2, subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: GR, count: 1 }] },
+  { level: "A1", pointsEach: 1, subpools: [{ section: R, count: 4 }, { section: L, count: 1 }] },
+  { level: "A2", pointsEach: 1, subpools: [{ section: R, count: 3 }, { section: L, count: 2 }] },
+  { level: "B1", pointsEach: 2, subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: W, count: 1 }] },
   { level: "B2", pointsEach: 2, subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: W, count: 1 }] },
   { level: "C1", pointsEach: 3, subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: SP, count: 1 }] },
-  { level: "C2", pointsEach: 3, subpools: [{ section: R, count: 2 }, { section: GR, count: 2 }, { section: W, count: 1 }] },
+  { level: "C2", pointsEach: 3, subpools: [{ section: R, count: 2 }, { section: SP, count: 1 }, { section: W, count: 1 }] },
 ];
 const PLACEMENT_THRESHOLDS = { A1: 60, A2: 60, B1: 65, B2: 65, C1: 70, C2: 70 };
 
+// ═════════════════════════════════════════════════════════════════════════════
+// STUDENTS
+// ═════════════════════════════════════════════════════════════════════════════
 const STUDENTS_DATA = [
   { name: "Mariam Karapetyan",  email: "mariam@example.am",  gender: "female", country: "Armenia", documentType: "passport", documentNumber: "AA123456", level: "B1" },
   { name: "Vazgen Sargsyan",    email: "vazgen@example.am",  gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID789012", level: "A2" },
@@ -513,6 +600,9 @@ const STUDENTS_DATA = [
   { name: "Karen Galstyan",     email: "karen@example.am",   gender: "male",   country: "Armenia", documentType: "id_card",  documentNumber: "ID223344", level: "A2" },
 ];
 
+// ═════════════════════════════════════════════════════════════════════════════
+// MAIN
+// ═════════════════════════════════════════════════════════════════════════════
 async function main() {
   console.log("🌱 Seeding...\n");
 
@@ -526,19 +616,22 @@ async function main() {
   await prisma.question.deleteMany();
   await prisma.section.deleteMany();
 
+  // ── Sections ─────────────────────────────────────────────────────────────
   const sectionMap = {};
   for (const s of SECTIONS) {
     const sec = await prisma.section.create({ data: { name: s.name, category: s.category } });
     sectionMap[s.name] = sec.id;
   }
-  console.log(`✅ ${SECTIONS.length} sections`);
+  console.log(`✅ ${SECTIONS.length} sections: ${SECTIONS.map(s=>s.name).join(", ")}`);
 
+  // ── Questions ─────────────────────────────────────────────────────────────
   for (const q of QUESTIONS) {
     const { sectionName, ...rest } = q;
     await prisma.question.create({ data: { ...rest, sectionId: sectionMap[sectionName] } });
   }
   console.log(`✅ ${QUESTIONS.length} questions`);
 
+  // ── Cities & Centers ──────────────────────────────────────────────────────
   const cityData = [
     { name: "Yerevan",  center: { name: "ArmExam Center Yerevan",  address: "Baghramyan 24", phone: "+374 10 123456", email: "yerevan@armexam.am"  } },
     { name: "Gyumri",   center: { name: "ArmExam Center Gyumri",   address: "Arevmtyan 1",   phone: "+374 312 12345", email: "gyumri@armexam.am"   } },
@@ -551,6 +644,7 @@ async function main() {
   }
   console.log(`✅ ${centers.length} centers`);
 
+  // ── Placement exams ───────────────────────────────────────────────────────
   const placementExams = [];
   for (let i = 0; i < centers.length; i++) {
     const ex = await prisma.exam.create({
@@ -570,13 +664,14 @@ async function main() {
   }
   console.log(`✅ ${placementExams.length} placement exams`);
 
+  // ── Fixed exams ───────────────────────────────────────────────────────────
   const fixedDefs = [
     { title: "Armenian Language Certificate A1", level: "A1", passingScore: 60,
-      subpools: [{ section: R, count: 3 }, { section: GR, count: 2 }, { section: VO, count: 2 }] },
+      subpools: [{ section: R, count: 4 }, { section: L, count: 2 }, { section: W, count: 1 }] },
     { title: "Armenian Language Certificate A2", level: "A2", passingScore: 60,
-      subpools: [{ section: R, count: 3 }, { section: L, count: 2 }, { section: GR, count: 2 }] },
+      subpools: [{ section: R, count: 4 }, { section: L, count: 2 }, { section: W, count: 1 }] },
     { title: "Armenian Language Certificate B1", level: "B1", passingScore: 65,
-      subpools: [{ section: R, count: 2 }, { section: L, count: 2 }, { section: W, count: 1 }, { section: GR, count: 2 }] },
+      subpools: [{ section: R, count: 3 }, { section: L, count: 2 }, { section: W, count: 1 }, { section: SP, count: 1 }] },
   ];
   const fixedExams = [];
   for (const fd of fixedDefs) {
@@ -595,6 +690,7 @@ async function main() {
   }
   console.log(`✅ ${fixedExams.length} fixed exams`);
 
+  // ── Students ──────────────────────────────────────────────────────────────
   const usedPins = new Set();
   const createdStudents = [];
   for (let i = 0; i < STUDENTS_DATA.length; i++) {
@@ -605,12 +701,14 @@ async function main() {
       data: { ...s, passwordHash: hashPassword("demo1234", s.email), exams: { create: [{ examId: exam.id, pin }] } },
     });
     createdStudents.push(student);
-    console.log(`  👤 ${s.name.padEnd(22)} → PIN: ${pin}`);
+    console.log(`  👤 ${s.name.padEnd(24)} → PIN: ${pin}`);
   }
   console.log(`✅ ${createdStudents.length} students`);
 
+  // ── Demo results ──────────────────────────────────────────────────────────
   const [mariam, vazgen, narine, davit, ani, hayk, lusine, artur] = createdStudents;
 
+  // Mariam passed A1, A2, B1
   for (let i = 0; i < 3; i++) {
     const exam = fixedExams[i];
     const pct  = [82, 76, 65][i];
@@ -620,6 +718,7 @@ async function main() {
     await prisma.result.create({ data: { examId: exam.id, studentId: mariam.id, score: pct, totalPoints: 100, pct, passed: true, gradingStatus: "auto", submittedAt: new Date(`2025-0${2 + i * 2}-15`) } });
   }
 
+  // Vazgen failed A1
   {
     const pin = randPin(usedPins);
     const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: fixedExams[0].id, studentId: vazgen.id } } });
@@ -627,6 +726,7 @@ async function main() {
     await prisma.result.create({ data: { examId: fixedExams[0].id, studentId: vazgen.id, score: 47, totalPoints: 100, pct: 47, passed: false, gradingStatus: "auto", submittedAt: new Date("2025-03-10") } });
   }
 
+  // Placement results
   const placementResultDefs = [
     { student: davit, levelStats: { A1:{earnedPts:5,maxPts:5,pct:100,passed:true}, A2:{earnedPts:5,maxPts:5,pct:100,passed:true}, B1:{earnedPts:8,maxPts:10,pct:80,passed:true}, B2:{earnedPts:7,maxPts:10,pct:70,passed:true}, C1:{earnedPts:6,maxPts:15,pct:40,passed:false}, C2:{earnedPts:4,maxPts:15,pct:27,passed:false} }, detectedLevel:"B2", passed:true,  date:"2025-02-01" },
     { student: hayk,  levelStats: { A1:{earnedPts:5,maxPts:5,pct:100,passed:true}, A2:{earnedPts:5,maxPts:5,pct:100,passed:true}, B1:{earnedPts:9,maxPts:10,pct:90,passed:true}, B2:{earnedPts:8,maxPts:10,pct:80,passed:true}, C1:{earnedPts:11,maxPts:15,pct:73,passed:true}, C2:{earnedPts:6,maxPts:15,pct:40,passed:false} }, detectedLevel:"C1", passed:true,  date:"2025-02-14" },
@@ -643,18 +743,20 @@ async function main() {
     console.log(`  🎯 ${rd.student.name} → ${rd.detectedLevel ?? "below min"} | ${pct}%`);
   }
 
+  // Narine → pending manual grading
   {
     const exam = fixedExams[1];
     const pin  = randPin(usedPins);
     const ea = await prisma.examAssignment.findUnique({ where: { examId_studentId: { examId: exam.id, studentId: narine.id } } });
     if (!ea) await prisma.examAssignment.create({ data: { examId: exam.id, studentId: narine.id, pin } });
-    const speakingQs = await prisma.question.findMany({ where: { type: { in: ["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"] } }, take: 2 });
+    const manualQs = await prisma.question.findMany({ where: { type: { in: ["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"] } }, take: 2 });
     const pendingAnswers = {};
-    for (const q of speakingQs) { pendingAnswers[q.id] = q.type.startsWith("SPEAKING") ? "/voice/demo-narine.webm" : "I believe that..."; }
-    await prisma.result.create({ data: { examId: exam.id, studentId: narine.id, score: 0, totalPoints: speakingQs.reduce((s,q)=>s+q.points,0), pct: 0, passed: null, answers: pendingAnswers, gradingStatus: "pending", submittedAt: new Date("2025-03-01") } });
+    for (const q of manualQs) { pendingAnswers[q.id] = q.type.startsWith("SPEAKING") ? "/voice/demo-narine.webm" : "I believe that..."; }
+    await prisma.result.create({ data: { examId: exam.id, studentId: narine.id, score: 0, totalPoints: manualQs.reduce((s,q)=>s+q.points,0), pct: 0, passed: null, answers: pendingAnswers, gradingStatus: "pending", submittedAt: new Date("2025-03-01") } });
     console.log(`  ⏳ Narine → pending manual grading`);
   }
 
+  // Davit & Hayk → graded
   {
     const exam = fixedExams[1];
     const manualQs = await prisma.question.findMany({ where: { type: { in: ["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"] } }, take: 3 });
@@ -685,6 +787,7 @@ async function main() {
   }
   console.log("✅ Demo results");
 
+  // ── Admins ────────────────────────────────────────────────────────────────
   const adminDefs = [
     { name: "Super Admin",  email: "admin@armexam.am",    password: "admin1234", role: "super_admin",  centerId: null         },
     { name: "Center Admin", email: "center@armexam.am",   password: "demo1234",  role: "center_admin", centerId: centers[0].id },
