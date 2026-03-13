@@ -506,8 +506,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
                       left: `calc(${hs.x}% - ${HOTSPOT_W/2}px)`,
                       top:  `calc(${hs.y}% - ${HOTSPOT_H/2}px)`,
                       width: HOTSPOT_W, height: HOTSPOT_H,
-                      background: isDraggingThis ? labelColor(placed)+"18" : placed ? labelColor(placed)+"33" : ddiDrag ? "#ffffff1a" : "#ffffff12",
-                      border: `2px dashed ${isDraggingThis ? labelColor(placed)+"44" : placed ? labelColor(placed)+"aa" : ddiDrag ? "#ffffff66" : "#ffffff44"}`,
+                      background: placed ? "transparent" : ddiDrag ? "#00000022" : "#00000015",
+                      border: `2px dashed ${isDraggingThis ? labelColor(placed)+"88" : placed ? labelColor(placed) : ddiDrag ? "#ffffffaa" : "#ffffff66"}`,
                       borderRadius: 8,
                       cursor: placed ? "grab" : ddiDrag ? "copy" : "default",
                       display:"flex", alignItems:"center", justifyContent:"center",
@@ -516,9 +516,13 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
                     }}>
                     {placed
                       ? <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12,
-                          color: labelColor(placed), fontWeight:600, pointerEvents:"none" }}>{labelText(placed)}</span>
+                          color:"#fff", fontWeight:700, pointerEvents:"none",
+                          background: labelColor(placed)+"dd",
+                          padding:"2px 8px", borderRadius:5,
+                          textShadow:"0 1px 2px #00000088" }}>{labelText(placed)}</span>
                       : <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11,
-                          color: ddiDrag ? "#ffffff55" : "#ffffff33", pointerEvents:"none" }}>drop here</span>
+                          color:"#ffffffaa", pointerEvents:"none",
+                          background:"#00000055", padding:"2px 8px", borderRadius:5 }}>drop here</span>
                     }
                   </div>
                 );
@@ -537,9 +541,10 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
                 onDragEnd={endDrag}
                 style={{
                   padding:"6px 14px", borderRadius:8, cursor:"grab",
-                  background: ddiDrag===id ? labelColor(id)+"33" : labelColor(id)+"12",
-                  border:`1.5px solid ${ddiDrag===id ? labelColor(id) : labelColor(id)+"55"}`,
-                  fontFamily:"'DM Sans',sans-serif", fontSize:13, color:labelColor(id),
+                  background: ddiDrag===id ? labelColor(id) : labelColor(id)+"cc",
+                  border:`1.5px solid ${labelColor(id)}`,
+                  fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#fff",
+                  textShadow:"0 1px 2px #00000066",
                   userSelect:"none", transition:"all .15s",
                 }}>
                 {labelText(id)}
