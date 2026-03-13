@@ -575,17 +575,42 @@ function DragImageEditor({ content, onChange, media = [] }) {
 
   // Which hotspot is selected for editing
   const [selHs, setSelHs] = useState(null);
+  const draggingHs = useRef(null); // { id, startX, startY } during mouse drag
 
-  // Click on image → add hotspot at that position
   const imgRef = useRef(null);
+
+  // Click on blank image area → add new hotspot
   const handleImgClick = (e) => {
+    if (draggingHs.current) return; // was a drag, not a click
     const rect = imgRef.current.getBoundingClientRect();
     const x = Math.round(((e.clientX - rect.left) / rect.width)  * 100);
     const y = Math.round(((e.clientY - rect.top)  / rect.height) * 100);
     const id = uid();
-    const newHs = { id, x, y, correct: labels[0]?.id || "" };
-    upd({ hotspots: [...hotspots, newHs] });
+    upd({ hotspots: [...hotspots, { id, x, y, correct: labels[0]?.id || "" }] });
     setSelHs(id);
+  };
+
+  // Drag existing hotspot to reposition it
+  const startHsDrag = (e, hsId) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = imgRef.current.getBoundingClientRect();
+    draggingHs.current = { id: hsId, rect };
+
+    const onMove = (mv) => {
+      const r = draggingHs.current?.rect;
+      if (!r) return;
+      const x = Math.min(100, Math.max(0, Math.round(((mv.clientX - r.left) / r.width)  * 100)));
+      const y = Math.min(100, Math.max(0, Math.round(((mv.clientY - r.top)  / r.height) * 100)));
+      upd({ hotspots: hotspots.map(h => h.id === hsId ? { ...h, x, y } : h) });
+    };
+    const onUp = () => {
+      setTimeout(() => { draggingHs.current = null; }, 50);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup",   onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup",   onUp);
   };
 
   const updateHs = (id, patch) => upd({ hotspots: hotspots.map(h => h.id === id ? { ...h, ...patch } : h) });
@@ -632,7 +657,7 @@ function DragImageEditor({ content, onChange, media = [] }) {
       <div>
         <span style={S.label}>
           Image hotspots
-          {imgUrl && <span style={{ color:C.muted, fontWeight:400, textTransform:"none", marginLeft:8 }}>— click image to place a hotspot</span>}
+          {imgUrl && <span style={{ color:C.muted, fontWeight:400, textTransform:"none", marginLeft:8 }}>— click to add · drag dot to reposition</span>}
         </span>
 
         {!imgUrl ? (
@@ -650,7 +675,9 @@ function DragImageEditor({ content, onChange, media = [] }) {
               const isSel = selHs === hs.id;
               return (
                 <div key={hs.id}
-                  onClick={e => { e.stopPropagation(); setSelHs(isSel ? null : hs.id); }}
+                  onMouseDown={e => startHsDrag(e, hs.id)}
+                  onClick={e => { e.stopPropagation(); if (!draggingHs.current) setSelHs(isSel ? null : hs.id); }}
+                  title="Drag to reposition · Click to select"
                   style={{
                     position:"absolute",
                     left: `calc(${hs.x}% - 14px)`,
@@ -658,11 +685,12 @@ function DragImageEditor({ content, onChange, media = [] }) {
                     width:28, height:28, borderRadius:"50%",
                     background: col + "cc",
                     border: `2px solid ${isSel ? "white" : col}`,
-                    cursor:"pointer",
+                    cursor:"grab",
                     display:"flex", alignItems:"center", justifyContent:"center",
                     fontSize:11, fontWeight:700, color:"white",
-                    boxShadow: isSel ? `0 0 0 3px ${col}66` : "none",
-                    transition:"all .15s", zIndex:2,
+                    boxShadow: isSel ? `0 0 0 3px ${col}66` : "0 2px 6px #00000055",
+                    transition:"box-shadow .15s, border .15s", zIndex:2,
+                    userSelect:"none",
                   }}>
                   {idx + 1}
                 </div>
