@@ -40,8 +40,7 @@ export default function StatsTab({ theme: T, user }) {
   const hasFeedback   = stats.feedbackList?.length > 0;
 
   return (
-    <div style={{ padding:"32px 40px", paddingBottom:80,
-      fontFamily:"'DM Sans',sans-serif", maxWidth:1200, margin:"0 auto" }}>
+    <div style={{ fontFamily:"'DM Sans',sans-serif" }}>
 
       {/* ── Hero row ───────────────────────────────────────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)",
