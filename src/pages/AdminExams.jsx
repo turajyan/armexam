@@ -667,11 +667,11 @@ function NavDots({questions, idx, setIdx, isp}){
                 const sc=SECTION_COLORS[sec]||C.muted;
                 const sq=lqs.filter(({q})=>q.section===sec);
                 return(
-                  <div key={sec} style={{display:"flex",alignItems:"center",gap:5}}>
+                  <div key={`${lv}-${sec}`} style={{display:"flex",alignItems:"center",gap:5}}>
                     <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:9,color:sc,
                       textTransform:"uppercase",letterSpacing:.5,flexShrink:0}}>{sec}</span>
                     {sq.map(({i})=>(
-                      <button key={i} onClick={()=>setIdx(i)} title={`Q${i+1}`}
+                      <button key={`${lv}-${sec}-${i}`} onClick={()=>setIdx(i)} title={`Q${i+1}`}
                         style={{width:DOT,height:DOT,borderRadius:"50%",padding:0,cursor:"pointer",flexShrink:0,
                           background:i===idx?C.gold:sc+"55",
                           border:`2px solid ${i===idx?C.gold:sc}`,
