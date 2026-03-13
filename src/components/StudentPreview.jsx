@@ -181,11 +181,12 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
                   onChange={e => setBlank(s.id, e.target.value)}
                   placeholder="…"
                   style={{ display:"inline-block", width: Math.max(80, ((ans[s.id]||"").length + 3) * 9) + "px",
-                    background:"transparent", borderBottom:`2px solid ${ans[s.id] ? T.gold+"aa" : "#ffffff44"}`,
-                    border:"none", borderBottom:`2px solid ${ans[s.id] ? T.gold : "#ffffff44"}`,
+                    background:"transparent",
+                    borderTop:"none", borderLeft:"none", borderRight:"none",
+                    borderBottom:`2px solid ${ans[s.id] ? T.gold : "#ffffff44"}`,
                     color:T.gold, fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:600,
                     outline:"none", textAlign:"center", padding:"0 4px", margin:"0 3px",
-                    transition:"border .15s" }} />
+                    transition:"border-bottom-color .15s" }} />
           )}
         </div>
       );
