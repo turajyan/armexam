@@ -410,15 +410,53 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
     </div>
   );
 
+  // Registration summary block shown in edit mode instead of Students step
+  const assignments=initial?.assignments||[];
+  const s2edit=(
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{display:"flex",alignItems:"center",gap:14,padding:"16px 20px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12}}>
+        <div style={{width:48,height:48,borderRadius:"50%",background:C.gold+"22",border:`2px solid ${C.gold}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>👥</div>
+        <div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,color:C.gold,fontWeight:700,lineHeight:1}}>{assignments.length}</div>
+          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,marginTop:3}}>student{assignments.length!==1?"s":""} registered for this exam</div>
+        </div>
+      </div>
+      {assignments.length>0&&(
+        <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:280,overflowY:"auto"}}>
+          {assignments.map(a=>{
+            const st=students.find(s=>s.id===a.studentId);
+            const lc=LEVEL_COLORS[st?.level]||"#94a3b8";
+            return(
+              <div key={a.studentId} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:C.panel,border:`1px solid ${C.border}`,borderRadius:9}}>
+                <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${C.border2},${C.dim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,flexShrink:0,fontFamily:"'DM Sans',sans-serif"}}>{st?st.name[0]:"?"}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{st?.name||`Student #${a.studentId}`}</div>
+                  <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted}}>{st?.email||""}</div>
+                </div>
+                {st?.level&&<Badge color={lc} small>{st.level}</Badge>}
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,color:C.gold,background:C.gold+"18",border:`1px solid ${C.gold}33`,borderRadius:4,padding:"1px 7px",letterSpacing:.8,flexShrink:0}}>{a.pin}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,padding:"8px 12px",background:C.panel,borderRadius:8,border:`1px solid ${C.border}`}}>
+        💡 To assign students to this exam, use the <strong style={{color:C.text}}>Assign</strong> button on the exam card.
+      </div>
+    </div>
+  );
+
+  const EDIT_CONTENT=[s0,s1,s2edit,s3];
+  const EDIT_LABELS=["General","Structure","Registrations","Schedule"];
   const SCONTENT=[s0,s1,s2,s3];
   const SLABELS=WIZARD_STEPS;
   const canNext=[form.title.trim().length>0,isp?pT.q>0:fT.q>0,true,true];
 
   if(isEdit) return(
     <div style={{display:"flex",flexDirection:"column",gap:0}}>
-      {SCONTENT.map((c,i)=>(
+      {EDIT_CONTENT.map((c,i)=>(
         <div key={i} style={{marginBottom:28}}>
-          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:14,paddingBottom:7,borderBottom:`1px solid ${C.border}`}}>{SLABELS[i]}</div>
+          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.8,textTransform:"uppercase",marginBottom:14,paddingBottom:7,borderBottom:`1px solid ${C.border}`}}>{EDIT_LABELS[i]}</div>
           {c}
         </div>
       ))}
