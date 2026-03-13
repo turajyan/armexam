@@ -442,6 +442,301 @@ function WritingEditor({ content, onChange }) {
   );
 }
 
+
+// ── DragTableEditor ───────────────────────────────────────────────────────────
+// content: { columns:[{id,title}], items:[{id,text}], correct:{itemId:colId} }
+function DragTableEditor({ content, onChange }) {
+  const c = content || {};
+  const columns = c.columns || [];
+  const items   = c.items   || [];
+  const correct = c.correct || {};
+
+  const uid = () => "id_" + Math.random().toString(36).slice(2,7);
+
+  const upd = (patch) => onChange({ ...c, columns, items, correct, ...patch });
+
+  // ── Columns ──
+  const addCol = () => {
+    const id = uid();
+    upd({ columns: [...columns, { id, title: "Group " + String.fromCharCode(65 + columns.length) }] });
+  };
+  const renameCol = (id, title) => upd({ columns: columns.map(col => col.id === id ? { ...col, title } : col) });
+  const deleteCol = (id) => {
+    const newCorrect = Object.fromEntries(Object.entries(correct).filter(([,v]) => v !== id));
+    upd({ columns: columns.filter(c => c.id !== id), correct: newCorrect });
+  };
+
+  // ── Items ──
+  const addItem = () => upd({ items: [...items, { id: uid(), text: "" }] });
+  const updateItem = (id, text) => upd({ items: items.map(it => it.id === id ? { ...it, text } : it) });
+  const deleteItem = (id) => {
+    const { [id]: _, ...newCorrect } = correct;
+    upd({ items: items.filter(it => it.id !== id), correct: newCorrect });
+  };
+
+  // ── Assign ──
+  const assign = (itemId, colId) => {
+    upd({ correct: colId ? { ...correct, [itemId]: colId } : Object.fromEntries(Object.entries(correct).filter(([k]) => k !== itemId)) });
+  };
+
+  const S = {
+    label: { fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", marginBottom:6, display:"block" },
+    row:   { display:"flex", alignItems:"center", gap:8, marginBottom:6 },
+    inp:   { flex:1, background:C.bg, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" },
+    btn:   { background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:8, padding:"6px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" },
+    del:   { background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:15, padding:"0 4px", flexShrink:0 },
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      {/* Columns */}
+      <div>
+        <span style={S.label}>Columns (groups)</span>
+        {columns.map(col => (
+          <div key={col.id} style={S.row}>
+            <div style={{ width:12, height:12, borderRadius:3, background:C.gold+"66", flexShrink:0 }} />
+            <input value={col.title} onChange={e => renameCol(col.id, e.target.value)}
+              placeholder="Column title…"
+              style={S.inp} />
+            <button onClick={() => deleteCol(col.id)} style={S.del}>✕</button>
+          </div>
+        ))}
+        <button onClick={addCol} style={S.btn}>+ Add column</button>
+      </div>
+
+      {/* Items + assignment */}
+      <div>
+        <span style={S.label}>Items — drag targets</span>
+        {columns.length === 0 && (
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted, marginBottom:8 }}>
+            ⚠ Add at least one column first
+          </div>
+        )}
+        {items.map((it, idx) => (
+          <div key={it.id} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:8, marginBottom:6, alignItems:"center",
+            background:C.panel, border:`1px solid ${C.border}`, borderRadius:9, padding:"10px 12px" }}>
+            <input value={it.text} onChange={e => updateItem(it.id, e.target.value)}
+              placeholder={`Item ${idx + 1} text…`} style={{ ...S.inp, flex:"unset" }} />
+            <select value={correct[it.id] || ""}
+              onChange={e => assign(it.id, e.target.value)}
+              style={{ background:C.bg, border:`1.5px solid ${correct[it.id] ? C.gold+"88" : C.border2}`,
+                borderRadius:7, padding:"6px 10px", color: correct[it.id] ? C.gold : C.muted,
+                fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none" }}>
+              <option value="">— assign to column —</option>
+              {columns.map(col => <option key={col.id} value={col.id}>{col.title}</option>)}
+            </select>
+            <button onClick={() => deleteItem(it.id)} style={S.del}>✕</button>
+          </div>
+        ))}
+        <button onClick={addItem} style={S.btn}>+ Add item</button>
+      </div>
+
+      {/* Preview matrix */}
+      {columns.length > 0 && items.length > 0 && (
+        <div>
+          <span style={S.label}>Answer key preview</span>
+          <div style={{ display:"grid", gridTemplateColumns:`repeat(${columns.length}, 1fr)`, gap:8 }}>
+            {columns.map(col => (
+              <div key={col.id} style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:9, padding:"10px 12px" }}>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.gold, fontWeight:600, marginBottom:8 }}>{col.title}</div>
+                {items.filter(it => correct[it.id] === col.id).map(it => (
+                  <div key={it.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.text,
+                    background:C.bg, borderRadius:6, padding:"5px 9px", marginBottom:4 }}>{it.text || "(empty)"}</div>
+                ))}
+                {items.filter(it => correct[it.id] === col.id).length === 0 && (
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, fontStyle:"italic" }}>no items</div>
+                )}
+              </div>
+            ))}
+          </div>
+          {items.filter(it => !correct[it.id]).length > 0 && (
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#f59e0b", marginTop:6 }}>
+              ⚠ Unassigned: {items.filter(it => !correct[it.id]).map(it => it.text || "(empty)").join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── DragImageEditor ────────────────────────────────────────────────────────────
+// content: { labels:[{id,text}], hotspots:[{id,x,y,correct:labelId}] }
+// image comes from q.media (handled by MediaEditor above)
+function DragImageEditor({ content, onChange, media = [] }) {
+  const c = content || {};
+  const labels   = c.labels   || [];
+  const hotspots = c.hotspots || [];
+
+  const uid = () => "id_" + Math.random().toString(36).slice(2,7);
+  const upd = (patch) => onChange({ ...c, labels, hotspots, ...patch });
+
+  const imgUrl = (media || []).find(m => m.type === "image")?.url;
+
+  // Which hotspot is selected for editing
+  const [selHs, setSelHs] = useState(null);
+
+  // Click on image → add hotspot at that position
+  const imgRef = useRef(null);
+  const handleImgClick = (e) => {
+    const rect = imgRef.current.getBoundingClientRect();
+    const x = Math.round(((e.clientX - rect.left) / rect.width)  * 100);
+    const y = Math.round(((e.clientY - rect.top)  / rect.height) * 100);
+    const id = uid();
+    const newHs = { id, x, y, correct: labels[0]?.id || "" };
+    upd({ hotspots: [...hotspots, newHs] });
+    setSelHs(id);
+  };
+
+  const updateHs = (id, patch) => upd({ hotspots: hotspots.map(h => h.id === id ? { ...h, ...patch } : h) });
+  const deleteHs = (id) => { upd({ hotspots: hotspots.filter(h => h.id !== id) }); if (selHs === id) setSelHs(null); };
+
+  const addLabel = () => upd({ labels: [...labels, { id: uid(), text: "" }] });
+  const updateLabel = (id, text) => upd({ labels: labels.map(l => l.id === id ? { ...l, text } : l) });
+  const deleteLabel = (id) => {
+    upd({
+      labels: labels.filter(l => l.id !== id),
+      hotspots: hotspots.map(h => h.correct === id ? { ...h, correct: "" } : h),
+    });
+  };
+
+  const S = {
+    label: { fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", marginBottom:6, display:"block" },
+    row:   { display:"flex", alignItems:"center", gap:8, marginBottom:6 },
+    inp:   { flex:1, background:C.bg, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" },
+    btn:   { background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:8, padding:"6px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" },
+    del:   { background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:15, padding:"0 4px", flexShrink:0 },
+  };
+
+  // Hotspot colors by index
+  const HS_COLORS = ["#f59e0b","#60a5fa","#4ade80","#f87171","#a78bfa","#34d399","#fb923c","#e879f9"];
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+
+      {/* Labels bank */}
+      <div>
+        <span style={S.label}>Labels (drag targets student will see)</span>
+        {labels.map((lbl, idx) => (
+          <div key={lbl.id} style={S.row}>
+            <div style={{ width:12, height:12, borderRadius:3, background:HS_COLORS[idx % HS_COLORS.length], flexShrink:0 }} />
+            <input value={lbl.text} onChange={e => updateLabel(lbl.id, e.target.value)}
+              placeholder={`Label ${idx + 1}…`} style={S.inp} />
+            <button onClick={() => deleteLabel(lbl.id)} style={S.del}>✕</button>
+          </div>
+        ))}
+        <button onClick={addLabel} style={S.btn}>+ Add label</button>
+      </div>
+
+      {/* Image + hotspot placement */}
+      <div>
+        <span style={S.label}>
+          Image hotspots
+          {imgUrl && <span style={{ color:C.muted, fontWeight:400, textTransform:"none", marginLeft:8 }}>— click image to place a hotspot</span>}
+        </span>
+
+        {!imgUrl ? (
+          <div style={{ background:C.panel, border:`1px dashed ${C.border2}`, borderRadius:12, padding:"32px", textAlign:"center",
+            fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>
+            📎 Add an image in the <strong style={{ color:C.text }}>Media</strong> section above, then click here to place hotspots
+          </div>
+        ) : (
+          <div style={{ position:"relative", display:"inline-block", width:"100%", cursor:"crosshair" }}>
+            <img ref={imgRef} src={imgUrl} alt="" onClick={handleImgClick}
+              style={{ width:"100%", display:"block", borderRadius:10, userSelect:"none" }} />
+            {hotspots.map((hs, idx) => {
+              const lbl = labels.find(l => l.id === hs.correct);
+              const col = HS_COLORS[labels.findIndex(l => l.id === hs.correct) % HS_COLORS.length] || C.gold;
+              const isSel = selHs === hs.id;
+              return (
+                <div key={hs.id}
+                  onClick={e => { e.stopPropagation(); setSelHs(isSel ? null : hs.id); }}
+                  style={{
+                    position:"absolute",
+                    left: `calc(${hs.x}% - 14px)`,
+                    top:  `calc(${hs.y}% - 14px)`,
+                    width:28, height:28, borderRadius:"50%",
+                    background: col + "cc",
+                    border: `2px solid ${isSel ? "white" : col}`,
+                    cursor:"pointer",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:11, fontWeight:700, color:"white",
+                    boxShadow: isSel ? `0 0 0 3px ${col}66` : "none",
+                    transition:"all .15s", zIndex:2,
+                  }}>
+                  {idx + 1}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Hotspot assignment list */}
+      {hotspots.length > 0 && (
+        <div>
+          <span style={S.label}>Hotspot → label assignment</span>
+          {hotspots.map((hs, idx) => {
+            const col = HS_COLORS[labels.findIndex(l => l.id === hs.correct) % HS_COLORS.length] || C.muted;
+            return (
+              <div key={hs.id}
+                onClick={() => setSelHs(selHs === hs.id ? null : hs.id)}
+                style={{ display:"grid", gridTemplateColumns:"28px 80px 1fr auto", gap:8, alignItems:"center",
+                  marginBottom:6, padding:"9px 12px",
+                  background: selHs === hs.id ? C.card : C.panel,
+                  border:`1px solid ${selHs === hs.id ? C.gold+"66" : C.border}`,
+                  borderRadius:9, cursor:"pointer" }}>
+                {/* circle badge */}
+                <div style={{ width:22, height:22, borderRadius:"50%", background:col+"cc",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:11, fontWeight:700, color:"white" }}>{idx + 1}</div>
+                {/* position */}
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>
+                  x:{hs.x}% y:{hs.y}%
+                </span>
+                {/* label select */}
+                <select value={hs.correct || ""} onChange={e => { e.stopPropagation(); updateHs(hs.id, { correct: e.target.value }); }}
+                  onClick={e => e.stopPropagation()}
+                  style={{ background:C.bg, border:`1.5px solid ${hs.correct ? col+"88" : C.border2}`,
+                    borderRadius:7, padding:"5px 10px", color: hs.correct ? col : C.muted,
+                    fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none" }}>
+                  <option value="">— assign label —</option>
+                  {labels.map(l => <option key={l.id} value={l.id}>{l.text || "(empty)"}</option>)}
+                </select>
+                <button onClick={e => { e.stopPropagation(); deleteHs(hs.id); }} style={S.del}>✕</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Validation hint */}
+      {labels.length > 0 && hotspots.length > 0 && (
+        (() => {
+          const unassigned = hotspots.filter(h => !h.correct).length;
+          const unusedLabels = labels.filter(l => !hotspots.some(h => h.correct === l.id));
+          return (unassigned > 0 || unusedLabels.length > 0) ? (
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#f59e0b" }}>
+              {unassigned > 0 && <div>⚠ {unassigned} hotspot(s) not assigned to a label</div>}
+              {unusedLabels.length > 0 && <div>⚠ Unused label(s): {unusedLabels.map(l => l.text || "(empty)").join(", ")}</div>}
+            </div>
+          ) : (
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.success }}>
+              ✓ All hotspots assigned — {hotspots.length} hotspot(s), {labels.length} label(s)
+            </div>
+          );
+        })()
+      )}
+
+      {imgUrl && (
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>
+          💡 Click the image to add hotspot · Click a numbered dot to select · Use the list to assign labels · ✕ to delete
+        </div>
+      )}
+    </div>
+  );
+}
+
 function JsonEditor({ label, value, onChange }) {
   const [raw, setRaw] = useState(() => JSON.stringify(value, null, 2));
   const [err, setErr] = useState("");
@@ -478,6 +773,10 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
       case "SPEAKING_INTEGRATED": return <SpeakingEditor content={q.content} onChange={v => setF("content", v)} />;
       case "WRITING_INDEPENDENT":
       case "WRITING_INTEGRATED":  return <WritingEditor content={q.content} onChange={v => setF("content", v)} />;
+      case "DRAG_AND_DROP_TABLE":
+        return <DragTableEditor content={q.content} onChange={v => setF("content", v)} />;
+      case "DRAG_AND_DROP_IMAGE":
+        return <DragImageEditor content={q.content} onChange={v => setF("content", v)} media={q.media} />;
       default:
         return <JsonEditor label="content (JSON)" value={q.content} onChange={v => setF("content", v)} />;
     }
