@@ -53,7 +53,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
   useEffect(() => { initBank(); setChoiceAns(null); setMultiAns([]); setFillAns(""); setWritingAns("");
     setTPlaced({}); setTBank(null); setTDrag(null);
     setImgClick(null);
-    setDdiPlaced({}); setDdiBank(null); setDdiDrag(null);
+    setDdiPlaced({}); setDdiBank(null); setDdiDrag(null); setDdiDragFrom(null);
   }, [q.id]);
   // DRAG_AND_DROP_TABLE state
   const [tPlaced, setTPlaced] = useState({});
@@ -62,9 +62,10 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
   // IMAGE_CLICK state
   const [imgClick, setImgClick] = useState(null); // { x, y } in percent
   // DRAG_AND_DROP_IMAGE state
-  const [ddiPlaced, setDdiPlaced] = useState({});   // { hotspotId: labelId }
-  const [ddiBank,   setDdiBank]   = useState(null); // null = all labels in bank
-  const [ddiDrag,   setDdiDrag]   = useState(null); // labelId being dragged
+  const [ddiPlaced,   setDdiPlaced]   = useState({});   // { hotspotId: labelId }
+  const [ddiBank,     setDdiBank]     = useState(null); // null = all labels in bank
+  const [ddiDrag,     setDdiDrag]     = useState(null); // labelId being dragged
+  const [ddiDragFrom, setDdiDragFrom] = useState(null); // "bank" | hotspotId
 
   const bank = bankWords || [...(c.wordBank || [])];
 
@@ -442,15 +443,29 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
       const bank = ddiBank ?? allLabelIds;
       const labelText = id => labels.find(l => l.id === id)?.text ?? id;
 
+      const startDragLabel = (labelId, fromHsId = null) => {
+        setDdiDrag(labelId);
+        setDdiDragFrom(fromHsId ?? "bank");
+      };
+      const endDrag = () => { setDdiDrag(null); setDdiDragFrom(null); };
+
       const dropOnHotspot = (hsId) => {
         if (!ddiDrag) return;
-        const prev = ddiPlaced[hsId]; // label previously in this hotspot
-        setDdiPlaced(p => ({ ...p, [hsId]: ddiDrag }));
-        setDdiBank(b => {
-          const next = (b ?? allLabelIds).filter(id => id !== ddiDrag);
-          return prev ? [...next, prev] : next; // return displaced label to bank
+        const prev = ddiPlaced[hsId]; // label currently on target hotspot
+        const srcHs = ddiDragFrom && ddiDragFrom !== "bank" ? ddiDragFrom : null;
+        // Place dragged label onto target hotspot
+        setDdiPlaced(p => {
+          const next = { ...p, [hsId]: ddiDrag };
+          if (srcHs) delete next[srcHs]; // vacate source hotspot
+          return next;
         });
-        setDdiDrag(null);
+        setDdiBank(b => {
+          let next = (b ?? allLabelIds).filter(id => id !== ddiDrag);
+          if (prev && prev !== ddiDrag) next = [...next, prev]; // displaced label → bank (unless swapping same)
+          if (!srcHs) next = next.filter(id => id !== ddiDrag); // from bank: ensure removed
+          return next;
+        });
+        setDdiDrag(null); setDdiDragFrom(null);
       };
       const returnHotspot = (hsId) => {
         const lbl = ddiPlaced[hsId];
@@ -459,7 +474,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
         setDdiBank(b => [...(b ?? allLabelIds), lbl]);
       };
 
-      const HOTSPOT_W = 90; const HOTSPOT_H = 28;
+      const HOTSPOT_W = 96; const HOTSPOT_H = 30;
+      const isHsDragActive = (hsId) => ddiDragFrom === hsId;
 
       return (
         <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -470,27 +486,34 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
               <img src={imgUrl} alt="" style={{ width:"100%", display:"block", borderRadius:12 }}/>
               {hotspots.map(hs => {
                 const placed = ddiPlaced[hs.id];
+                const isDraggingThis = isHsDragActive(hs.id);
                 return (
                   <div key={hs.id}
+                    draggable={!!placed}
+                    onDragStart={placed ? (e) => { e.stopPropagation(); startDragLabel(placed, hs.id); } : undefined}
+                    onDragEnd={endDrag}
                     onDragOver={e => e.preventDefault()}
                     onDrop={e => { e.preventDefault(); dropOnHotspot(hs.id); }}
-                    onClick={() => placed && returnHotspot(hs.id)}
+                    onClick={() => !ddiDrag && placed && returnHotspot(hs.id)}
+                    title={placed ? "Drag to move · Click to return to bank" : "Drop a label here"}
                     style={{
                       position:"absolute",
                       left: `calc(${hs.x}% - ${HOTSPOT_W/2}px)`,
                       top:  `calc(${hs.y}% - ${HOTSPOT_H/2}px)`,
                       width: HOTSPOT_W, height: HOTSPOT_H,
-                      background: placed ? T.gold+"33" : "#ffffff12",
-                      border: `2px dashed ${placed ? T.gold+"aa" : "#ffffff44"}`,
-                      borderRadius: 8, cursor: placed ? "pointer" : "default",
+                      background: isDraggingThis ? T.gold+"18" : placed ? T.gold+"33" : ddiDrag ? "#ffffff1a" : "#ffffff12",
+                      border: `2px dashed ${isDraggingThis ? T.gold+"44" : placed ? T.gold+"aa" : ddiDrag ? "#ffffff66" : "#ffffff44"}`,
+                      borderRadius: 8,
+                      cursor: placed ? "grab" : ddiDrag ? "copy" : "default",
                       display:"flex", alignItems:"center", justifyContent:"center",
                       transition:"all .15s",
+                      opacity: isDraggingThis ? 0.4 : 1,
                     }}>
                     {placed
                       ? <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12,
-                          color: T.gold, fontWeight:600 }}>{labelText(placed)}</span>
+                          color: T.gold, fontWeight:600, pointerEvents:"none" }}>{labelText(placed)}</span>
                       : <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11,
-                          color:"#ffffff33" }}>drop here</span>
+                          color: ddiDrag ? "#ffffff55" : "#ffffff33", pointerEvents:"none" }}>drop here</span>
                     }
                   </div>
                 );
@@ -505,8 +528,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
           <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
             {bank.map(id => (
               <div key={id} draggable
-                onDragStart={() => setDdiDrag(id)}
-                onDragEnd={() => setDdiDrag(null)}
+                onDragStart={() => startDragLabel(id, null)}
+                onDragEnd={endDrag}
                 style={{
                   padding:"6px 14px", borderRadius:8, cursor:"grab",
                   background: ddiDrag===id ? T.gold+"44" : "#ffffff0e",
