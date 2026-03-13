@@ -8,6 +8,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': 'http://localhost:3001',
+      '/voice': 'http://localhost:4000',
     },
   },
 })

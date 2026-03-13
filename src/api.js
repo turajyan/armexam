@@ -39,7 +39,7 @@ export const api = {
   studentStats: () => req('/student/stats'),
   downloadCertificate: (resultId) => {
     const token = localStorage.getItem('armexam_token');
-    const url   = `http://localhost:3001/api/certificate/${resultId}`;
+    const url   = `/api/certificate/${resultId}`;
     // Open in new tab — browser will trigger PDF download
     const a = document.createElement('a');
     a.href = url;

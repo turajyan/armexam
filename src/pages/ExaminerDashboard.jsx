@@ -386,7 +386,7 @@ function QuestionPanel({ q, answer, existingGrade, rubrics, feedback,
         {isVoice ? (
           answer
             ? <audio controls
-                src={answer.startsWith("/voice/") ? `http://localhost:4000${answer}` : answer}
+                src={answer.startsWith("/voice/") ? answer : answer}
                 style={{ width:"100%", borderRadius:8 }} />
             : <div style={{ color:T.muted, fontSize:13 }}>No recording submitted</div>
         ) : (
@@ -624,7 +624,7 @@ function initRubrics(defs) {
 async function apiFetch(path, method="GET", body=undefined) {
   const token = localStorage.getItem("armexam_admin_token");
   const hasBody = body !== undefined;
-  const res = await fetch(`http://localhost:3001${path}`, {
+  const res = await fetch(path, {
     method,
     headers: {
       ...(hasBody ? { "Content-Type": "application/json" } : {}),
