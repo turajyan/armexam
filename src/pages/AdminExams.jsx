@@ -157,6 +157,7 @@ function makeBlankPlacement(){
 function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}){
   const isEdit=!!initial;
   const [step,setStep]=useState(0);
+  const [submitted,setSubmitted]=useState(false);
   const [form,setForm]=useState(()=>{
     if(initial){const base=initial.examType==="placement"?makeBlankPlacement():makeBlankFixed();return{...base,...initial};}
     return makeBlankFixed();
@@ -168,6 +169,21 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
   const isp=form.examType==="placement";
   const fT=fixedTotals(form.subpools);
   const pT=placementTotals(form.placementTemplate);
+
+  const wizardErrors=(f)=>{
+    const e={};
+    if(!f.title?.trim())             e.title="Exam title is required";
+    if(!isp&&!(fT.q>0))              e.subpools="Add at least one question pool";
+    if(isp&&!(pT.q>0))               e.subpools="Add at least one placement subpool";
+    if(!f.startDate)                 e.startDate="Start date is required";
+    if(!f.endDate)                   e.endDate="End date is required";
+    if(f.startDate&&f.endDate&&new Date(f.startDate)>new Date(f.endDate)) e.endDate="End date must be after start date";
+    if(!f.duration||f.duration<1)    e.duration="Duration must be at least 1 minute";
+    if(!isp&&(f.passingScore==null||f.passingScore<0||f.passingScore>100)) e.passingScore="Passing score must be 0–100";
+    return e;
+  };
+  const wErr=submitted?wizardErrors(form):{};
+  const isWizardValid=Object.keys(wizardErrors(form)).length===0;
 
   const poolCnt=(level,section)=>allQ.filter(q=>q.level===level&&q.section===section).length;
 
