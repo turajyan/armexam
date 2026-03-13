@@ -667,11 +667,24 @@ async function main() {
   // ── Fixed exams ───────────────────────────────────────────────────────────
   const fixedDefs = [
     { title: "Armenian Language Certificate A1", level: "A1", passingScore: 60,
-      subpools: [{ section: R, count: 4 }, { section: L, count: 2 }, { section: W, count: 1 }] },
+      subpools: [
+        { section: R, level: "A1", count: 4, pointsEach: 1 },
+        { section: L, level: "A1", count: 2, pointsEach: 1 },
+        { section: W, level: "A1", count: 1, pointsEach: 1 },
+      ] },
     { title: "Armenian Language Certificate A2", level: "A2", passingScore: 60,
-      subpools: [{ section: R, count: 4 }, { section: L, count: 2 }, { section: W, count: 1 }] },
+      subpools: [
+        { section: R, level: "A2", count: 4, pointsEach: 1 },
+        { section: L, level: "A2", count: 2, pointsEach: 1 },
+        { section: W, level: "A2", count: 1, pointsEach: 1 },
+      ] },
     { title: "Armenian Language Certificate B1", level: "B1", passingScore: 65,
-      subpools: [{ section: R, count: 3 }, { section: L, count: 2 }, { section: W, count: 1 }, { section: SP, count: 1 }] },
+      subpools: [
+        { section: R, level: "B1", count: 3, pointsEach: 2 },
+        { section: L, level: "B1", count: 2, pointsEach: 2 },
+        { section: W, level: "B1", count: 1, pointsEach: 2 },
+        { section: SP, level: "B1", count: 1, pointsEach: 2 },
+      ] },
   ];
   const fixedExams = [];
   for (const fd of fixedDefs) {

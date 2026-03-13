@@ -180,8 +180,8 @@ model Exam {
   showQuestionLevel     Boolean @default(true)
   showQuestionPoints    Boolean @default(true)
 
-  // Fixed exam — question pool per section:
-  // [{ section: "Reading", count: 5 }, { section: "Grammar", count: 3 }]
+  // Fixed exam — question pool per section x level:
+  // [{ section: "READING", level: "B1", count: 5, pointsEach: 2 }, ...]
   subpools Json?
 
   // Placement exam — level-by-level pools:

@@ -44,7 +44,7 @@ function placementTotals(t=[]) {
   for(const r of t){const rq=(r.subpools||[]).reduce((s,sp)=>s+sp.count,0);q+=rq;pts+=rq*(r.pointsEach||1);}
   return{q,pts};
 }
-function fixedTotals(s=[]){return{q:s.reduce((a,sp)=>a+sp.count,0),pts:0};}
+function fixedTotals(s=[]){return{q:s.reduce((a,sp)=>a+sp.count,0),pts:s.reduce((a,sp)=>a+sp.count*(sp.pointsEach||1),0)};}
 
 // ── Atoms ─────────────────────────────────────────────────────────────────────
 function Badge({children,color,small}){
@@ -134,18 +134,18 @@ const WIZARD_STEPS = ["General","Structure","Students","Schedule"];
 
 function makeBlankFixed(){
   return{examType:"fixed",title:"",level:"B1",duration:60,passingScore:70,shuffle:true,showResults:true,showQuestionLevel:true,showQuestionPoints:true,
-    subpools:[{section:"Reading",count:3},{section:"Grammar",count:2}],
+    subpools:[{section:"READING",level:"B1",count:3,pointsEach:2},{section:"LISTENING",level:"B1",count:2,pointsEach:2}],
     assignedTo:[],startDate:"",endDate:"",startTime:"09:00",isOpen:false,examCenterId:"",status:"draft"};
 }
 function makeBlankPlacement(){
   return{examType:"placement",title:"",level:null,duration:90,passingScore:null,shuffle:true,showResults:true,showQuestionLevel:true,showQuestionPoints:true,showPlacementThreshold:true,
     placementTemplate:[
-      {level:"A1",pointsEach:1,subpools:[{section:"Reading",count:3},{section:"Grammar",count:2}]},
-      {level:"A2",pointsEach:1,subpools:[{section:"Reading",count:3},{section:"Vocabulary",count:2}]},
-      {level:"B1",pointsEach:2,subpools:[{section:"Reading",count:2},{section:"Listening",count:2},{section:"Grammar",count:1}]},
-      {level:"B2",pointsEach:2,subpools:[{section:"Reading",count:2},{section:"Listening",count:2},{section:"Writing",count:1}]},
-      {level:"C1",pointsEach:3,subpools:[{section:"Reading",count:2},{section:"Listening",count:2},{section:"Writing",count:1}]},
-      {level:"C2",pointsEach:3,subpools:[{section:"Reading",count:2},{section:"Grammar",count:2},{section:"Writing",count:1}]},
+      {level:"A1",pointsEach:1,subpools:[{section:"READING",count:3},{section:"LISTENING",count:2}]},
+      {level:"A2",pointsEach:1,subpools:[{section:"READING",count:3},{section:"LISTENING",count:2}]},
+      {level:"B1",pointsEach:2,subpools:[{section:"READING",count:2},{section:"LISTENING",count:2},{section:"WRITING",count:1}]},
+      {level:"B2",pointsEach:2,subpools:[{section:"READING",count:2},{section:"LISTENING",count:2},{section:"WRITING",count:1}]},
+      {level:"C1",pointsEach:3,subpools:[{section:"READING",count:2},{section:"LISTENING",count:2},{section:"SPEAKING",count:1}]},
+      {level:"C2",pointsEach:3,subpools:[{section:"READING",count:2},{section:"SPEAKING",count:1},{section:"WRITING",count:1}]},
     ],
     placementThresholds:{A1:60,A2:60,B1:65,B2:65,C1:70,C2:70},
     assignedTo:[],startDate:"",endDate:"",startTime:"09:00",isOpen:false,examCenterId:"",status:"draft"};
@@ -169,9 +169,9 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
   const poolCnt=(level,section)=>allQ.filter(q=>q.level===level&&q.section===section).length;
 
   // Fixed subpool ops
-  const addFSP=()=>set("subpools",[...(form.subpools||[]),{section:sections[0]||"Reading",count:2}]);
+  const addFSP=()=>set("subpools",[...(form.subpools||[]),{section:sections[0]||"READING",level:form.level||"B1",count:3,pointsEach:2}]);
   const remFSP=(i)=>set("subpools",(form.subpools||[]).filter((_,j)=>j!==i));
-  const updFSP=(i,f,v)=>set("subpools",(form.subpools||[]).map((sp,j)=>j===i?{...sp,[f]:f==="count"?+v:v}:sp));
+  const updFSP=(i,f,v)=>set("subpools",(form.subpools||[]).map((sp,j)=>j===i?{...sp,[f]:(f==="count"||f==="pointsEach")?+v:v}:sp));
 
   // Placement subpool ops
   const updPts=(lv,v)=>set("placementTemplate",(form.placementTemplate||[]).map(r=>r.level===lv?{...r,pointsEach:Math.max(1,+v)}:r));
@@ -291,28 +291,42 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
       <Toggle label="Shuffle Questions" hint="Randomize order within each level group" value={form.shuffle} onChange={v=>set("shuffle",v)}/>
     </div>
   ):(
-    // Fixed structure
+    // Fixed structure — subpools with section × level × count × pointsEach
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
       <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,lineHeight:1.6}}>
-        Questions picked <strong style={{color:C.text}}>randomly at exam time</strong> from the <strong style={{color:LEVEL_COLORS[form.level||"B1"]||C.gold}}>{form.level||"B1"}</strong> pool by section.
+        🎯 <strong style={{color:C.text}}>Fixed exam:</strong> define question pools per <strong style={{color:C.gold}}>Section × Level</strong>. Questions are drawn randomly at exam time. Multiple rules per section are allowed.
       </div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>Section Subpools · <span style={{color:C.gold}}>{fT.q} q total</span></span>
-        <button onClick={addFSP} style={{background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 12px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600}}>+ Add section</button>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>Question Rules · <span style={{color:C.gold}}>{fT.q} q total</span></span>
+        <button onClick={addFSP} style={{background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 12px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600}}>+ Add rule</button>
       </div>
-      {(form.subpools||[]).length===0&&<div style={{padding:"14px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic",background:C.panel,borderRadius:10,textAlign:"center"}}>No sections added</div>}
+      {/* Column headers */}
+      {(form.subpools||[]).length>0&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 100px 60px 60px 36px",gap:8,padding:"0 4px"}}>
+          {["Section","Level","Count","Pts/q",""].map(h=><span key={h} style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>{h}</span>)}
+        </div>
+      )}
+      {(form.subpools||[]).length===0&&<div style={{padding:"14px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,fontStyle:"italic",background:C.panel,borderRadius:10,textAlign:"center"}}>No rules added yet. Click "+ Add rule" to define a question pool.</div>}
       {(form.subpools||[]).map((sp,idx)=>{
-        const pc=poolCnt(form.level,sp.section);const ok=pc>=sp.count;
+        const lv=sp.level||form.level||"B1";
+        const pc=poolCnt(lv,sp.section);const ok=pc>=sp.count;
         return(
-          <div key={idx} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.panel,border:`1.5px solid ${ok?C.border2:C.danger+"55"}`,borderRadius:10}}>
+          <div key={idx} style={{display:"grid",gridTemplateColumns:"1fr 100px 60px 60px 36px",gap:8,alignItems:"center",padding:"8px 10px",background:C.panel,border:`1.5px solid ${ok?C.border2:C.danger+"55"}`,borderRadius:10}}>
             <select value={sp.section} onChange={e=>updFSP(idx,"section",e.target.value)}
-              style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",flex:"0 0 160px"}}>
+              style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 8px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",width:"100%"}}>
               {sections.map(s=><option key={s} value={s}>{s}</option>)}
             </select>
-            <input type="number" min={1} max={50} value={sp.count} onChange={e=>updFSP(idx,"count",e.target.value)}
-              style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 10px",color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:13,outline:"none",width:58,textAlign:"center"}}/>
-            <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:ok?C.success:C.danger,flex:1}}>{ok?`✓ ${pc} available`:`✗ only ${pc} (need ${sp.count})`}</span>
-            <button onClick={()=>remFSP(idx)} style={{background:"transparent",border:"none",color:C.danger,cursor:"pointer",fontSize:13,padding:"0 4px"}}>✕</button>
+            <select value={lv} onChange={e=>updFSP(idx,"level",e.target.value)}
+              style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 8px",color:LEVEL_COLORS[lv]||C.text,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",width:"100%",fontWeight:700}}>
+              {LEVELS.map(l=><option key={l} value={l}>{l}</option>)}
+            </select>
+            <div style={{display:"flex",flexDirection:"column",gap:2}}>
+              <input type="number" min={1} max={50} value={sp.count} onChange={e=>updFSP(idx,"count",e.target.value)}
+                style={{background:C.card,border:`1.5px solid ${ok?C.border2:C.danger}`,borderRadius:6,padding:"6px 6px",color:ok?C.text:C.danger,fontFamily:"'DM Sans',sans-serif",fontSize:12,outline:"none",width:"100%",textAlign:"center"}}/>
+              <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:9,color:ok?C.muted:C.danger,textAlign:"center"}}>{ok?`${pc} avail`:pc===0?"none":pc+" only"}</span>
+            </div>
+            <input type="number" min={1} max={10} value={sp.pointsEach||1} onChange={e=>updFSP(idx,"pointsEach",e.target.value)}
+              style={{background:C.card,border:`1.5px solid ${C.border2}`,borderRadius:6,padding:"6px 6px",color:C.gold,fontFamily:"'DM Mono',monospace",fontSize:12,outline:"none",width:"100%",textAlign:"center",fontWeight:700}}/>
+            <button onClick={()=>remFSP(idx)} style={{background:"transparent",border:"none",color:C.danger,cursor:"pointer",fontSize:13,padding:"0 4px",justifySelf:"center"}}>✕</button>
           </div>
         );
       })}
@@ -472,9 +486,9 @@ function ExamCard({exam,onEdit,onDelete,onAssign,onViewResults,onPreview,onToggl
           {icon:"🎯",val:(()=>{const v=Object.values(exam.placementThresholds||{});return v.length?Math.min(...v)+"%/lv":"—";})(),tip:"Threshold"},
         ]:[
           {icon:"📋",val:totals.q+" q",             tip:"Questions"},
+          {icon:"💎",val:totals.pts+" pts",          tip:"Points"},
           {icon:"⏱", val:exam.duration+" min",      tip:"Duration"},
           {icon:"🎯",val:(exam.passingScore??0)+"%", tip:"Pass score"},
-          {icon:"👥",val:assignments.length+" reg",  tip:"Registered"},
         ]).map(x=>(
           <div key={x.tip} title={x.tip} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:9,padding:"7px 4px",textAlign:"center"}}>
             <div style={{fontSize:11,marginBottom:2}}>{x.icon}</div>
