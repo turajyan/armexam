@@ -201,11 +201,14 @@ async function buildExamQuestions(prisma, exam, preview = false) {
       for (const sp of row.subpools || []) {
         const pool = await prisma.question.findMany({
           where: { level: row.level, section: { name: sp.section }, status: "published" },
+          include: { section: { select: { name: true } } },
         });
         if (!preview && pool.length < sp.count) {
           throw new Error(`Not enough questions for ${row.level}/${sp.section}`);
         }
-        const picked = pick(pool, Math.min(sp.count, pool.length)).map((q) => ({ ...q, points: row.pointsEach }));
+        const picked = pick(pool, Math.min(sp.count, pool.length)).map((q) => ({
+          ...q, points: row.pointsEach, section: q.section?.name || sp.section,
+        }));
         result.push(...picked);
       }
     }
@@ -218,12 +221,15 @@ async function buildExamQuestions(prisma, exam, preview = false) {
     const lvl = sp.level || exam.level;  // fallback to exam.level for legacy format
     const pool = await prisma.question.findMany({
       where: { level: lvl, section: { name: sp.section }, status: "published" },
+      include: { section: { select: { name: true } } },
     });
     if (!preview && pool.length < sp.count) {
       throw new Error(`Not enough questions for ${lvl}/${sp.section}`);
     }
     const pts = sp.pointsEach || 1;
-    result.push(...pick(pool, Math.min(sp.count, pool.length)).map(q => ({ ...q, points: pts })));
+    result.push(...pick(pool, Math.min(sp.count, pool.length)).map(q => ({
+      ...q, points: pts, section: q.section?.name || sp.section,
+    })));
   }
   return exam.shuffle ? pick(result, result.length) : result;
 }

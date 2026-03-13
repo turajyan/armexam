@@ -430,17 +430,14 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
     return <div style={{ color:T.muted, fontSize:13, padding:"20px 0" }}>[Preview not available for {q.type}]</div>;
   };
 
-  // embedded = used inside another modal (ExamPreview), no fixed overlay
-  const embedded = !!navDots;
-
   const inner = (
-    <div style={{ background:T.bg, border: embedded ? "none" : "1px solid #1a2540", borderRadius: embedded ? 0 : 20,
-      width:"100%", maxWidth: embedded ? "none" : 700, maxHeight: embedded ? "none" : "90vh",
-      display:"flex", flexDirection:"column", boxShadow: embedded ? "none" : "0 32px 100px #000d" }}>
+    <div style={{ background:T.bg, border:"1px solid #1a2540", borderRadius:20,
+      width:"100%", maxWidth:700, maxHeight:"90vh",
+      display:"flex", flexDirection:"column", boxShadow:"0 32px 100px #000d" }}>
 
         {/* Nav dots (exam preview mode) */}
         {navDots && (
-          <div style={{ padding:"10px 24px 0", flexShrink:0 }}>{navDots}</div>
+          <div style={{ padding:"10px 16px 0", flexShrink:0 }}>{navDots}</div>
         )}
 
         {/* Header */}
@@ -488,8 +485,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
           <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
             {q.points} pt{embedded ? " · read-only" : " · Read-only preview"}
           </span>
-          {/* Prev/Next in embedded mode; Close button in standalone mode */}
-          {embedded ? (
+          {navDots ? (
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={navPrev} disabled={!navPrev} style={{ background:"transparent",
                 border:"1px solid #243050", borderRadius:9, padding:"7px 16px", color: navPrev ? "#e2e8f0" : "#475569",
@@ -513,12 +509,10 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
       </div>
   );
 
-  if (embedded) return inner;
-
   return (
     <div style={{ position:"fixed", inset:0, background:"#000000cc", backdropFilter:"blur(12px)",
       display:"flex", alignItems:"center", justifyContent:"center", zIndex:1100, padding:20 }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onClick={e => { if (e.target === e.currentTarget && onClose) onClose(); }}>
       {inner}
     </div>
   );
