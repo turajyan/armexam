@@ -119,7 +119,7 @@ export default async function examsRoutes(fastify) {
   });
 
   // GET /api/exams/:id/questions  — build question list for taking the exam
-  fastify.get("/api/exams/:id/questions", async (req, reply) => {
+  fastify.get("/api/exams/:id/questions", { preHandler: adminHook }, async (req, reply) => {
     const exam = await prisma.exam.findUnique({ where: { id: Number(req.params.id) } });
     if (!exam) return reply.code(404).send({ error: "Not found" });
 
@@ -212,16 +212,18 @@ async function buildExamQuestions(prisma, exam, preview = false) {
     return result;
   }
 
-  // Fixed
+  // Fixed — new subpool format: { section, level, count, pointsEach }
   const result = [];
   for (const sp of exam.subpools || []) {
+    const lvl = sp.level || exam.level;  // fallback to exam.level for legacy format
     const pool = await prisma.question.findMany({
-      where: { level: exam.level, section: { name: sp.section }, status: "published" },
+      where: { level: lvl, section: { name: sp.section }, status: "published" },
     });
     if (!preview && pool.length < sp.count) {
-      throw new Error(`Not enough questions for ${exam.level}/${sp.section}`);
+      throw new Error(`Not enough questions for ${lvl}/${sp.section}`);
     }
-    result.push(...pick(pool, Math.min(sp.count, pool.length)));
+    const pts = sp.pointsEach || 1;
+    result.push(...pick(pool, Math.min(sp.count, pool.length)).map(q => ({ ...q, points: pts })));
   }
   return exam.shuffle ? pick(result, result.length) : result;
 }

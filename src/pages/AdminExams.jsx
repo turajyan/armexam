@@ -821,8 +821,8 @@ function ExamsPage(){
 
   const handlePreview=async(exam)=>{
     setPreviewLoading(true);
-    try{const q=await api.getExamQuestions(exam.id,true);setPreviewing({exam,questions:q});}
-    catch(err){alert("Error: "+err.message);}
+    try{const q=await api.getExamQuestions(exam.id,true);console.log("preview q:",q);setPreviewing({exam,questions:Array.isArray(q)?q:[]});}
+    catch(err){console.error("preview error:",err);alert("Preview error: "+err.message);}
     finally{setPreviewLoading(false);}
   };
 
