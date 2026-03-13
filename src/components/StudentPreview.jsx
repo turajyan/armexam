@@ -18,7 +18,7 @@ const NEW_TYPES = [
 ];
 const ntypeInfo = (id) => NEW_TYPES.find(t => t.id === id) || NEW_TYPES[0];
 
-function StudentPreview({ q, onClose }) {
+function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
   const T = {
     bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
     text:"#e2e8f0", muted:"#475569", gold:"#c8a96e",
@@ -430,17 +430,22 @@ function StudentPreview({ q, onClose }) {
     return <div style={{ color:T.muted, fontSize:13, padding:"20px 0" }}>[Preview not available for {q.type}]</div>;
   };
 
-  return (
-    <div style={{ position:"fixed", inset:0, background:"#000000cc", backdropFilter:"blur(12px)",
-      display:"flex", alignItems:"center", justifyContent:"center", zIndex:1100, padding:20 }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background:T.bg, border:"1px solid #1a2540", borderRadius:20,
-        width:"100%", maxWidth:700, maxHeight:"90vh", display:"flex", flexDirection:"column",
-        boxShadow:"0 32px 100px #000d" }}>
+  // embedded = used inside another modal (ExamPreview), no fixed overlay
+  const embedded = !!navDots;
+
+  const inner = (
+    <div style={{ background:T.bg, border: embedded ? "none" : "1px solid #1a2540", borderRadius: embedded ? 0 : 20,
+      width:"100%", maxWidth: embedded ? "none" : 700, maxHeight: embedded ? "none" : "90vh",
+      display:"flex", flexDirection:"column", boxShadow: embedded ? "none" : "0 32px 100px #000d" }}>
+
+        {/* Nav dots (exam preview mode) */}
+        {navDots && (
+          <div style={{ padding:"10px 24px 0", flexShrink:0 }}>{navDots}</div>
+        )}
 
         {/* Header */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:"16px 24px", borderBottom:"1px solid #1a2540", flexShrink:0 }}>
+          padding:"12px 24px", borderBottom:"1px solid #1a2540", flexShrink:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#475569" }}>Student Preview</span>
             <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`,
@@ -448,9 +453,9 @@ function StudentPreview({ q, onClose }) {
             <span style={{ background:ti.color+"18", color:ti.color, border:`1px solid ${ti.color}33`,
               borderRadius:5, padding:"2px 8px", fontSize:10, fontWeight:600 }}>{ti.icon} {ti.label}</span>
           </div>
-          <button onClick={onClose} style={{ background:"transparent", border:"1px solid #1a2540",
+          {onClose && <button onClick={onClose} style={{ background:"transparent", border:"1px solid #1a2540",
             borderRadius:8, width:32, height:32, color:"#475569", fontSize:16, cursor:"pointer",
-            display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+            display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>}
         </div>
 
         {/* Body */}
@@ -481,13 +486,40 @@ function StudentPreview({ q, onClose }) {
         <div style={{ padding:"14px 24px", borderTop:"1px solid #1a2540", flexShrink:0,
           display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
-            {q.points} pt · Read-only preview
+            {q.points} pt{embedded ? " · read-only" : " · Read-only preview"}
           </span>
-          <button onClick={onClose} style={{ background:"transparent", border:"1px solid #243050",
-            borderRadius:9, padding:"8px 20px", color:"#475569",
-            fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer" }}>Close</button>
+          {/* Prev/Next in embedded mode; Close button in standalone mode */}
+          {embedded ? (
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={navPrev} disabled={!navPrev} style={{ background:"transparent",
+                border:"1px solid #243050", borderRadius:9, padding:"7px 16px", color: navPrev ? "#e2e8f0" : "#475569",
+                fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor: navPrev ? "pointer" : "not-allowed",
+                opacity: navPrev ? 1 : 0.4 }}>← Prev</button>
+              {navNext
+                ? <button onClick={navNext} style={{ background:"linear-gradient(135deg,#c8a96e,#7c5830)",
+                    border:"none", borderRadius:9, padding:"7px 16px", color:"white",
+                    fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:600 }}>Next →</button>
+                : <button onClick={onClose} style={{ background:"linear-gradient(135deg,#22c55e,#16a34a)",
+                    border:"none", borderRadius:9, padding:"7px 16px", color:"white",
+                    fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer", fontWeight:600 }}>✓ Done</button>
+              }
+            </div>
+          ) : (
+            <button onClick={onClose} style={{ background:"transparent", border:"1px solid #243050",
+              borderRadius:9, padding:"8px 20px", color:"#475569",
+              fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer" }}>Close</button>
+          )}
         </div>
       </div>
+  );
+
+  if (embedded) return inner;
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"#000000cc", backdropFilter:"blur(12px)",
+      display:"flex", alignItems:"center", justifyContent:"center", zIndex:1100, padding:20 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      {inner}
     </div>
   );
 }

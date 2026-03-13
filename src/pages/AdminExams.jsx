@@ -642,11 +642,91 @@ function ResultsModal({exam,onClose,allStudents=[]}){
 }
 
 // ── Exam Preview ──────────────────────────────────────────────────────────────
-function ExamPreview({questions, onClose}){
+// Dot size constants
+const DOT = 14; // px — dot diameter
+
+function NavDots({questions, idx, setIdx, isp}){
+  const SECTION_COLORS = {READING:"#60a5fa",LISTENING:"#34d399",SPEAKING:"#fb923c",WRITING:"#94a3b8"};
+
+  if(isp){
+    // Placement: group by Level → Section
+    const levels=[...new Set(questions.map(q=>q.level))];
+    return(
+      <div style={{display:"flex",flexDirection:"column",gap:8,padding:"10px 14px",
+        background:C.panel,border:`1px solid ${C.border}`,borderRadius:10}}>
+        {levels.map(lv=>{
+          const lc=LEVEL_COLORS[lv]||"#94a3b8";
+          const lqs=questions.map((q,i)=>({q,i})).filter(({q})=>q.level===lv);
+          // sub-group by section within level
+          const secs=[...new Set(lqs.map(({q})=>q.section))];
+          return(
+            <div key={lv} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,
+                color:lc,minWidth:22,flexShrink:0}}>{lv}</span>
+              {secs.map(sec=>{
+                const sc=SECTION_COLORS[sec]||C.muted;
+                const sq=lqs.filter(({q})=>q.section===sec);
+                return(
+                  <div key={sec} style={{display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:9,color:sc,
+                      textTransform:"uppercase",letterSpacing:.5,flexShrink:0}}>{sec}</span>
+                    {sq.map(({i})=>(
+                      <button key={i} onClick={()=>setIdx(i)} title={`Q${i+1}`}
+                        style={{width:DOT,height:DOT,borderRadius:"50%",padding:0,cursor:"pointer",flexShrink:0,
+                          background:i===idx?C.gold:sc+"55",
+                          border:`2px solid ${i===idx?C.gold:sc}`,
+                          boxShadow:i===idx?`0 0 6px ${C.gold}88`:"none",
+                          transition:"all .15s"}}/>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Fixed: group by Section only
+  const secs=[...new Set(questions.map(q=>q.section).filter(Boolean))];
+  const hasSecs=secs.length>0;
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",padding:"10px 14px",
+      background:C.panel,border:`1px solid ${C.border}`,borderRadius:10}}>
+      {hasSecs ? secs.map(sec=>{
+        const sc=SECTION_COLORS[sec]||C.muted;
+        const sq=questions.map((q,i)=>({q,i})).filter(({q})=>q.section===sec);
+        return(
+          <div key={sec} style={{display:"flex",alignItems:"center",gap:5}}>
+            <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:9,color:sc,
+              textTransform:"uppercase",letterSpacing:.5,flexShrink:0}}>{sec}</span>
+            {sq.map(({i})=>(
+              <button key={i} onClick={()=>setIdx(i)} title={`Q${i+1}`}
+                style={{width:DOT,height:DOT,borderRadius:"50%",padding:0,cursor:"pointer",flexShrink:0,
+                  background:i===idx?C.gold:sc+"55",
+                  border:`2px solid ${i===idx?C.gold:sc}`,
+                  boxShadow:i===idx?`0 0 6px ${C.gold}88`:"none",
+                  transition:"all .15s"}}/>
+            ))}
+          </div>
+        );
+      }) : questions.map((_,i)=>(
+        <button key={i} onClick={()=>setIdx(i)} title={`Q${i+1}`}
+          style={{width:DOT,height:DOT,borderRadius:"50%",padding:0,cursor:"pointer",flexShrink:0,
+            background:i===idx?C.gold:C.border2,
+            border:`2px solid ${i===idx?C.gold:C.muted}`,
+            boxShadow:i===idx?`0 0 6px ${C.gold}88`:"none",
+            transition:"all .15s"}}/>
+      ))}
+    </div>
+  );
+}
+
+function ExamPreview({exam, questions, onClose}){
   const [idx, setIdx] = useState(0);
   const q = questions[idx];
-  const isp = questions.some(qq => qq.level);
-  const levels = isp ? [...new Set(questions.map(qq=>qq.level))] : [];
+  const isp = exam?.examType==="placement";
 
   if(!q) return(
     <div style={{color:C.muted,fontFamily:"'DM Sans',sans-serif",padding:"40px",textAlign:"center"}}>
@@ -654,47 +734,19 @@ function ExamPreview({questions, onClose}){
     </div>
   );
 
+  const navDots = (
+    <NavDots questions={questions} idx={idx} setIdx={setIdx} isp={isp}/>
+  );
+
   return(
-    <div style={{display:"flex",flexDirection:"column",gap:0}}>
-      {/* Progress bar + nav dots */}
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,flexShrink:0}}>{idx+1}/{questions.length}</span>
-        <div style={{flex:1,height:3,background:C.border,borderRadius:2}}>
-          <div style={{width:`${((idx+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s"}}/>
-        </div>
-      </div>
-      {/* Dot navigation */}
-      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14,padding:"7px 12px",background:C.panel,borderRadius:9,border:`1px solid ${C.border}`}}>
-        {isp ? levels.map(lv=>{
-          const lqs=questions.map((qq,i)=>({qq,i})).filter(({qq})=>qq.level===lv);
-          return(
-            <div key={lv} style={{display:"flex",alignItems:"center",gap:3}}>
-              <span style={{fontSize:9,fontWeight:700,color:LEVEL_COLORS[lv]||C.muted,minWidth:18}}>{lv}</span>
-              {lqs.map(({i})=>(
-                <button key={i} onClick={()=>setIdx(i)} style={{width:11,height:11,borderRadius:"50%",padding:0,cursor:"pointer",
-                  background:i===idx?C.gold:C.border2,border:`2px solid ${i===idx?C.gold:C.border2}`,transition:"all .12s"}}/>
-              ))}
-            </div>
-          );
-        }) : questions.map((_,i)=>(
-          <button key={i} onClick={()=>setIdx(i)} style={{width:11,height:11,borderRadius:"50%",padding:0,cursor:"pointer",
-            background:i===idx?C.gold:C.border2,border:`2px solid ${i===idx?C.gold:C.border2}`,transition:"all .12s"}}/>
-        ))}
-      </div>
-
-      {/* StudentPreview for current question — full interactive view */}
-      <StudentPreview key={q.id} q={q} onClose={null}/>
-
-      {/* Prev / Next */}
-      <div style={{display:"flex",justifyContent:"space-between",gap:10,marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-        <Btn disabled={idx===0} onClick={()=>setIdx(i=>i-1)}>← Prev</Btn>
-        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,alignSelf:"center"}}>⚠ Preview — not saved</span>
-        {idx < questions.length-1
-          ? <Btn variant="primary" onClick={()=>setIdx(i=>i+1)}>Next →</Btn>
-          : <Btn variant="primary" onClick={onClose}>✓ Done</Btn>
-        }
-      </div>
-    </div>
+    <StudentPreview
+      key={q.id}
+      q={q}
+      onClose={onClose}
+      navDots={navDots}
+      navPrev={idx>0 ? ()=>setIdx(i=>i-1) : null}
+      navNext={idx<questions.length-1 ? ()=>setIdx(i=>i+1) : null}
+    />
   );
 }
 
@@ -855,9 +907,7 @@ function ExamsPage(){
 
       {previewLoading&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}><div style={{color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:15}}>Loading preview…</div></div>}
       {previewing&&(
-        <Modal title={`Preview: ${previewing.exam.title}`} subtitle={`${previewing.questions.length} questions — read-only, not saved`} onClose={()=>setPreviewing(null)} wide>
-          <ExamPreview questions={previewing.questions} onClose={()=>setPreviewing(null)}/>
-        </Modal>
+        <ExamPreview exam={previewing.exam} questions={previewing.questions} onClose={()=>setPreviewing(null)}/>
       )}
     </div>
   );
