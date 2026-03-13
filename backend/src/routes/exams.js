@@ -135,6 +135,9 @@ export default async function examsRoutes(fastify) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+// Receptive → Productive order (cognitive load principle)
+const SECTION_ORDER = ["READING", "LISTENING", "WRITING", "SPEAKING"];
+
 function flattenExam(exam) {
   const { assignedStudents, ...rest } = exam;
   return {
@@ -216,9 +219,10 @@ async function buildExamQuestions(prisma, exam, preview = false) {
   }
 
   // Fixed — new subpool format: { section, level, count, pointsEach }
-  const result = [];
+  // Group subpools by section, then sort sections by SECTION_ORDER (Receptive → Productive)
+  const bySection = {};
   for (const sp of exam.subpools || []) {
-    const lvl = sp.level || exam.level;  // fallback to exam.level for legacy format
+    const lvl = sp.level || exam.level;
     const pool = await prisma.question.findMany({
       where: { level: lvl, section: { name: sp.section }, status: "published" },
       include: { section: { select: { name: true } } },
@@ -227,9 +231,23 @@ async function buildExamQuestions(prisma, exam, preview = false) {
       throw new Error(`Not enough questions for ${lvl}/${sp.section}`);
     }
     const pts = sp.pointsEach || 1;
-    result.push(...pick(pool, Math.min(sp.count, pool.length)).map(q => ({
+    const picked = pick(pool, Math.min(sp.count, pool.length)).map(q => ({
       ...q, points: pts, section: q.section?.name || sp.section,
-    })));
+    }));
+    const secName = sp.section;
+    if (!bySection[secName]) bySection[secName] = [];
+    // shuffle within section if exam.shuffle, else keep pick order
+    bySection[secName].push(...(exam.shuffle ? pick(picked, picked.length) : picked));
   }
-  return exam.shuffle ? pick(result, result.length) : result;
+
+  // Emit sections in canonical order: READING → LISTENING → WRITING → SPEAKING
+  const result = [];
+  for (const sec of SECTION_ORDER) {
+    if (bySection[sec]) result.push(...bySection[sec]);
+  }
+  // Any section not in SECTION_ORDER appended last
+  for (const sec of Object.keys(bySection)) {
+    if (!SECTION_ORDER.includes(sec)) result.push(...bySection[sec]);
+  }
+  return result;
 }

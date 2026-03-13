@@ -13,6 +13,8 @@ let C = {
 };
 
 const LEVELS       = ["A1","A2","B1","B2","C1","C2"];
+// Receptive → Productive (cognitive load order)
+const SECTION_ORDER = ["READING","LISTENING","WRITING","SPEAKING"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
 
 const QTYPE_META = {
@@ -295,7 +297,12 @@ function ExamWizard({initial,onSave,onCancel,students=[],sections=[],centers=[]}
     // Fixed structure — subpools with section × level × count × pointsEach
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
       <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"11px 14px",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,lineHeight:1.6}}>
-        🎯 <strong style={{color:C.text}}>Fixed exam:</strong> define question pools per <strong style={{color:C.gold}}>Section × Level</strong>. Questions are drawn randomly at exam time. Multiple rules per section are allowed.
+        🎯 <strong style={{color:C.text}}>Fixed exam:</strong> define question pools per <strong style={{color:C.gold}}>Section × Level</strong>. Questions are grouped and delivered in canonical order:
+        {" "}<span style={{color:"#60a5fa",fontWeight:600}}>Reading</span>{" → "}
+        <span style={{color:"#34d399",fontWeight:600}}>Listening</span>{" → "}
+        <span style={{color:"#94a3b8",fontWeight:600}}>Writing</span>{" → "}
+        <span style={{color:"#fb923c",fontWeight:600}}>Speaking</span>
+        {" "}(Receptive → Productive). Shuffle applies within each section.
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,letterSpacing:.5,textTransform:"uppercase"}}>Question Rules · <span style={{color:C.gold}}>{fT.q} q total</span></span>
         <button onClick={addFSP} style={{background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:6,padding:"4px 12px",color:C.gold,fontFamily:"'DM Sans',sans-serif",fontSize:11,cursor:"pointer",fontWeight:600}}>+ Add rule</button>
