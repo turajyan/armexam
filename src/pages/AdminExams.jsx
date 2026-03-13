@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import StudentPreview from "../components/StudentPreview.jsx";
 import { api } from "../api.js";
 import { formatDate } from "../dateUtils.js";
 
@@ -641,90 +642,57 @@ function ResultsModal({exam,onClose,allStudents=[]}){
 }
 
 // ── Exam Preview ──────────────────────────────────────────────────────────────
-function ExamPreview({exam,questions,onClose}){
-  const [answers,setAnswers]=useState({});
-  const [current,setCurrent]=useState(0);
-  const [finished,setFinished]=useState(false);
-  const [score,setScore]=useState(null);
-  const q=questions[current];
-  const setAns=(id,v)=>setAnswers(a=>({...a,[id]:v}));
-  const MANUAL=new Set(["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"]);
+function ExamPreview({questions, onClose}){
+  const [idx, setIdx] = useState(0);
+  const q = questions[idx];
+  const isp = questions.some(qq => qq.level);
+  const levels = isp ? [...new Set(questions.map(qq=>qq.level))] : [];
 
-  const calcScore=()=>{
-    let earned=0,total=0;
-    for(const qq of questions){
-      total+=qq.points||1;if(MANUAL.has(qq.type))continue;
-      const ans=answers[qq.id];const ct=qq.content||{};
-      if(qq.type==="SINGLE_CHOICE"&&Number(ans)===ct.correct)earned+=qq.points||1;
-      else if(qq.type==="MULTIPLE_CHOICE"){const c=Array.isArray(ct.correct)?ct.correct:[];const g=Array.isArray(ans)?ans:[];if(c.length===g.length&&c.every(x=>g.includes(x)))earned+=qq.points||1;}
-      else if(qq.type==="FILL_IN_THE_BLANKS"){const exp=ct.answers||[];const g=Array.isArray(ans)?ans:[ans];if(exp.every((e,i)=>(g[i]||"").trim().toLowerCase()===(e||"").trim().toLowerCase()))earned+=qq.points||1;}
-    }
-    setScore({earned,total,pct:total>0?Math.round(earned/total*100):0});setFinished(true);
-  };
-
-  const isDone=(qq)=>{const a=answers[qq.id];if(a===undefined||a===null||a==="")return false;return Array.isArray(a)?a.length>0:true;};
-  const isp=exam.examType==="placement";const levels=isp?[...new Set(questions.map(qq=>qq.level))]:[];
-
-  if(finished&&score) return(
-    <div style={{fontFamily:"'DM Sans',sans-serif",textAlign:"center",padding:"20px 0"}}>
-      <div style={{fontSize:46,marginBottom:12}}>{score.pct>=60?"🎉":"📝"}</div>
-      <div style={{fontSize:26,fontWeight:700,color:C.gold,marginBottom:8,fontFamily:"'Cormorant Garamond',serif"}}>{score.pct}%</div>
-      <div style={{color:C.muted,fontSize:13,marginBottom:4}}>Earned: {score.earned} / {score.total} pts</div>
-      <div style={{color:C.warning,fontSize:11,marginBottom:22}}>⚠ Preview mode — NOT saved to database</div>
-      <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-        <Btn onClick={()=>{setFinished(false);setAnswers({});setCurrent(0);setScore(null);}}>↩ Retry</Btn>
-        <Btn variant="primary" onClick={onClose}>Close</Btn>
-      </div>
+  if(!q) return(
+    <div style={{color:C.muted,fontFamily:"'DM Sans',sans-serif",padding:"40px",textAlign:"center"}}>
+      No questions in this exam
     </div>
   );
 
-  if(!q) return <div style={{color:C.muted,fontFamily:"'DM Sans',sans-serif",padding:"24px",textAlign:"center"}}>No questions in this exam</div>;
-
-  const ct=q.content||{};const isMulti=q.type==="MULTIPLE_CHOICE";
-  const selected=answers[q.id]??(isMulti?[]:"");
-  const togOpt=(idx)=>{if(!isMulti){setAns(q.id,idx);return;}const a=Array.isArray(selected)?selected:[];setAns(q.id,a.includes(idx)?a.filter(x=>x!==idx):[...a,idx]);};
-  const qm=QTYPE_META[q.type]||{label:q.type,icon:"?",color:C.muted};
-
   return(
-    <div style={{fontFamily:"'DM Sans',sans-serif"}}>
-      {/* Progress */}
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-        <span style={{color:C.muted,fontSize:12}}>{current+1}/{questions.length}</span>
-        <div style={{flex:1,height:3,background:C.border,borderRadius:2}}><div style={{width:`${((current+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s"}}/></div>
-        <Badge color={qm.color} small>{qm.icon} {q.type}</Badge>
-        {q.level&&<Badge color={LEVEL_COLORS[q.level]||C.muted} small>{q.level}</Badge>}
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.gold}}>{q.points||1} pts</span>
-      </div>
-
-      {/* Dot nav */}
-      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:12,padding:"7px 12px",background:C.panel,borderRadius:9,border:`1px solid ${C.border}`}}>
-        {isp?levels.map(lv=>{
-          const lqs=questions.map((qq,i)=>({qq,i})).filter(({qq})=>qq.level===lv);
-          return(<div key={lv} style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:9,fontWeight:700,color:LEVEL_COLORS[lv]||C.muted,minWidth:16}}>{lv}</span>{lqs.map(({qq,i})=>(<button key={i} onClick={()=>setCurrent(i)} style={{width:10,height:10,borderRadius:"50%",padding:0,cursor:"pointer",background:i===current?C.gold:isDone(qq)?C.gold+"88":C.border2,border:`2px solid ${i===current?C.gold:C.border2}`,transition:"all .12s"}}/>))}</div>);
-        }):questions.map((qq,i)=>(<button key={i} onClick={()=>setCurrent(i)} style={{width:10,height:10,borderRadius:"50%",padding:0,cursor:"pointer",background:i===current?C.gold:isDone(qq)?C.gold+"88":C.border2,border:`2px solid ${i===current?C.gold:C.border2}`,transition:"all .12s"}}/>))}
-      </div>
-
-      {/* Context */}
-      {q.contextText&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:9,padding:"10px 14px",marginBottom:10,fontSize:12,color:C.muted,lineHeight:1.7,fontStyle:"italic"}}>{q.contextText}</div>}
-
-      {/* Prompt */}
-      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 16px",marginBottom:12,fontSize:14,color:C.text,lineHeight:1.7}}>{q.prompt||q.text||"(no prompt)"}</div>
-
-      {/* Answer input */}
-      {(q.type==="SINGLE_CHOICE"||q.type==="MULTIPLE_CHOICE")&&(
-        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
-          {(ct.options||[]).map((opt,i)=>{const sel=isMulti?(Array.isArray(selected)&&selected.includes(i)):selected===i;return(<button key={i} onClick={()=>togOpt(i)} style={{padding:"8px 13px",borderRadius:9,textAlign:"left",background:sel?C.gold+"22":"transparent",border:`1.5px solid ${sel?C.gold:C.border}`,color:sel?C.gold:C.text,fontSize:13,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all .1s"}}>{opt}</button>);})}
+    <div style={{display:"flex",flexDirection:"column",gap:0}}>
+      {/* Progress bar + nav dots */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,flexShrink:0}}>{idx+1}/{questions.length}</span>
+        <div style={{flex:1,height:3,background:C.border,borderRadius:2}}>
+          <div style={{width:`${((idx+1)/questions.length)*100}%`,height:"100%",background:C.gold,borderRadius:2,transition:"width .3s"}}/>
         </div>
-      )}
-      {q.type==="FILL_IN_THE_BLANKS"&&<input value={answers[q.id]||""} onChange={e=>setAns(q.id,e.target.value)} placeholder="Type your answer…" style={{width:"100%",...IS,marginBottom:16}}/>}
-      {(q.type==="WRITING_INDEPENDENT"||q.type==="WRITING_INTEGRATED")&&<textarea rows={5} value={answers[q.id]||""} onChange={e=>setAns(q.id,e.target.value)} placeholder="Write your answer…" style={{width:"100%",...IS,marginBottom:16,resize:"vertical"}}/>}
-      {(q.type==="SPEAKING_INDEPENDENT"||q.type==="SPEAKING_INTEGRATED")&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:9,padding:12,marginBottom:16,color:C.muted,fontSize:12}}>🎤 Voice recording — not available in preview mode</div>}
-      {!["SINGLE_CHOICE","MULTIPLE_CHOICE","FILL_IN_THE_BLANKS","WRITING_INDEPENDENT","WRITING_INTEGRATED","SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED"].includes(q.type)&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:9,padding:12,marginBottom:16,color:C.muted,fontSize:12}}>{qm.icon} {qm.label} — interactive preview not available in admin mode</div>}
+      </div>
+      {/* Dot navigation */}
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14,padding:"7px 12px",background:C.panel,borderRadius:9,border:`1px solid ${C.border}`}}>
+        {isp ? levels.map(lv=>{
+          const lqs=questions.map((qq,i)=>({qq,i})).filter(({qq})=>qq.level===lv);
+          return(
+            <div key={lv} style={{display:"flex",alignItems:"center",gap:3}}>
+              <span style={{fontSize:9,fontWeight:700,color:LEVEL_COLORS[lv]||C.muted,minWidth:18}}>{lv}</span>
+              {lqs.map(({i})=>(
+                <button key={i} onClick={()=>setIdx(i)} style={{width:11,height:11,borderRadius:"50%",padding:0,cursor:"pointer",
+                  background:i===idx?C.gold:C.border2,border:`2px solid ${i===idx?C.gold:C.border2}`,transition:"all .12s"}}/>
+              ))}
+            </div>
+          );
+        }) : questions.map((_,i)=>(
+          <button key={i} onClick={()=>setIdx(i)} style={{width:11,height:11,borderRadius:"50%",padding:0,cursor:"pointer",
+            background:i===idx?C.gold:C.border2,border:`2px solid ${i===idx?C.gold:C.border2}`,transition:"all .12s"}}/>
+        ))}
+      </div>
 
-      {/* Nav */}
-      <div style={{display:"flex",justifyContent:"space-between",gap:10}}>
-        <Btn disabled={current===0} onClick={()=>setCurrent(c=>c-1)}>← Back</Btn>
-        {current<questions.length-1?<Btn variant="primary" onClick={()=>setCurrent(c=>c+1)}>Next →</Btn>:<Btn variant="primary" onClick={calcScore} style={{background:`linear-gradient(135deg,${C.success},#16a34a)`}}>✓ Finish</Btn>}
+      {/* StudentPreview for current question — full interactive view */}
+      <StudentPreview key={q.id} q={q} onClose={null}/>
+
+      {/* Prev / Next */}
+      <div style={{display:"flex",justifyContent:"space-between",gap:10,marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+        <Btn disabled={idx===0} onClick={()=>setIdx(i=>i-1)}>← Prev</Btn>
+        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted,alignSelf:"center"}}>⚠ Preview — not saved</span>
+        {idx < questions.length-1
+          ? <Btn variant="primary" onClick={()=>setIdx(i=>i+1)}>Next →</Btn>
+          : <Btn variant="primary" onClick={onClose}>✓ Done</Btn>
+        }
       </div>
     </div>
   );
@@ -888,7 +856,7 @@ function ExamsPage(){
       {previewLoading&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}><div style={{color:C.text,fontFamily:"'DM Sans',sans-serif",fontSize:15}}>Loading preview…</div></div>}
       {previewing&&(
         <Modal title={`Preview: ${previewing.exam.title}`} subtitle={`${previewing.questions.length} questions — read-only, not saved`} onClose={()=>setPreviewing(null)} wide>
-          <ExamPreview exam={previewing.exam} questions={previewing.questions} onClose={()=>setPreviewing(null)}/>
+          <ExamPreview questions={previewing.questions} onClose={()=>setPreviewing(null)}/>
         </Modal>
       )}
     </div>
