@@ -15,6 +15,7 @@ import adminAuthRoutes from "./routes/adminAuth.js";
 import adminsRoutes    from "./routes/admins.js";
 import gradingRoutes   from "./routes/grading.js";
 import studentStatsRoutes from "./routes/studentStats.js";
+import mediaRoutes        from "./routes/media.js";
 
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -25,7 +26,7 @@ const fastify = Fastify({ logger: true });
 fastify.decorate("prisma", prisma);
 
 await fastify.register(cors, {
-  origin: ["http://localhost:5173", "http://localhost:4173"],
+  origin: true, // allow all — Vite proxy is the entry point
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 });
 
@@ -41,6 +42,7 @@ await fastify.register(adminAuthRoutes);
 await fastify.register(adminsRoutes);
 await fastify.register(gradingRoutes);
 await fastify.register(studentStatsRoutes);
+await fastify.register(mediaRoutes);
 
 // Root route
 fastify.get("/", async () => ({ message: "ARM Exam API" }));

@@ -159,6 +159,27 @@ function MediaEditor({ media = [], onChange }) {
   const add = (type) => onChange([...media, { type, url: "", maxPlays: type === "audio" ? 2 : 1 }]);
   const upd = (i, patch) => onChange(media.map((m, j) => j === i ? { ...m, ...patch } : m));
   const del = (i) => onChange(media.filter((_, j) => j !== i));
+  const [uploading, setUploading] = React.useState({}); // { index: true }
+
+  const uploadFile = async (file, i) => {
+    setUploading(u => ({ ...u, [i]: true }));
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("armexam_token")}` },
+        body: form,
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
+      const { url, type } = await res.json();
+      upd(i, { url, type });
+    } catch (e) {
+      alert("Upload error: " + e.message);
+    } finally {
+      setUploading(u => { const n = { ...u }; delete n[i]; return n; });
+    }
+  };
 
   return (
     <div>
@@ -175,13 +196,26 @@ function MediaEditor({ media = [], onChange }) {
               <option value="video">video</option>
             </select>
             <div style={{ display:"flex", gap:4, alignItems:"center", position:"relative" }}>
-              <input value={m.url} onChange={e => upd(i, { url: e.target.value })}
-                onKeyDown={e => e.key === "Enter" && upd(i, { url: e.target.value })}
-                placeholder="https://… or drag & drop a file here"
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f){ const url = URL.createObjectURL(f); upd(i, { url, _file: f }); }}}
-                style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:8, padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none", flex:1 }} />
-              {m.url && (
+              {uploading[i] ? (
+                <div style={{ flex:1, padding:"7px 10px", background:C.bg, border:`1px solid ${C.border2}`, borderRadius:8,
+                  fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>
+                  ⏳ Uploading…
+                </div>
+              ) : (
+                <input value={m.url} onChange={e => upd(i, { url: e.target.value })}
+                  onKeyDown={e => e.key === "Enter" && upd(i, { url: e.target.value })}
+                  placeholder="https://… or drag & drop / click 📎 to upload"
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) uploadFile(f, i); }}
+                  style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:8, padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none", flex:1 }} />
+              )}
+              {/* File picker button */}
+              <label title="Upload file" style={{ background:"#6366f122", border:"1px solid #6366f155", borderRadius:7, width:28, height:28, color:"#818cf8", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>
+                📎
+                <input type="file" accept="image/*,audio/*,video/*" style={{ display:"none" }}
+                  onChange={e => { const f = e.target.files[0]; if (f) uploadFile(f, i); e.target.value = ""; }} />
+              </label>
+              {m.url && !uploading[i] && (
                 <button onClick={() => upd(i, { url: m.url })} title="Confirm URL"
                   style={{ background:"#22c55e22", border:"1px solid #22c55e55", borderRadius:7, width:28, height:28, color:"#22c55e", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>✓</button>
               )}
