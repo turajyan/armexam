@@ -163,20 +163,29 @@ function MediaEditor({ media = [], onChange }) {
   return (
     <div>
       <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", marginBottom:8 }}>
-        Media  <span style={{ color:C.muted, fontWeight:400, textTransform:"none" }}>(audio / video / image)</span>
+        Media  <span style={{ color:C.muted, fontWeight:400, textTransform:"none" }}>(image / audio / video)</span>
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:8 }}>
         {media.map((m, i) => (
           <div key={i} style={{ display:"grid", gridTemplateColumns:"70px 1fr auto auto", gap:8, alignItems:"center", background:C.panel, border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 12px" }}>
             <select value={m.type} onChange={e => upd(i, { type: e.target.value })}
               style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:6, padding:"5px 8px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>
+              <option value="image">image</option>
               <option value="audio">audio</option>
               <option value="video">video</option>
-              <option value="image">image</option>
             </select>
-            <input value={m.url} onChange={e => upd(i, { url: e.target.value })}
-              placeholder="https://… or /uploads/file.mp3"
-              style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:8, padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none" }} />
+            <div style={{ display:"flex", gap:4, alignItems:"center", position:"relative" }}>
+              <input value={m.url} onChange={e => upd(i, { url: e.target.value })}
+                onKeyDown={e => e.key === "Enter" && upd(i, { url: e.target.value })}
+                placeholder="https://… or drag & drop a file here"
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f){ const url = URL.createObjectURL(f); upd(i, { url, _file: f }); }}}
+                style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:8, padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none", flex:1 }} />
+              {m.url && (
+                <button onClick={() => upd(i, { url: m.url })} title="Confirm URL"
+                  style={{ background:"#22c55e22", border:"1px solid #22c55e55", borderRadius:7, width:28, height:28, color:"#22c55e", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>✓</button>
+              )}
+            </div>
             {m.type !== "image" && (
               <select value={m.maxPlays ?? 2} onChange={e => upd(i, { maxPlays: Number(e.target.value) })}
                 style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:6, padding:"5px 8px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>
@@ -188,7 +197,7 @@ function MediaEditor({ media = [], onChange }) {
         ))}
       </div>
       <div style={{ display:"flex", gap:6 }}>
-        {["audio","video","image"].map(t => (
+        {["image","audio","video"].map(t => (
           <button key={t} onClick={() => add(t)} style={{ background:C.panel, border:`1px dashed ${C.border2}`, borderRadius:8, padding:"6px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" }}>
             + {t}
           </button>
@@ -492,7 +501,7 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
       {/* Level / Section / Points / Status */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 110px", gap:14 }}>
         <Select label="Level"   value={q.level}   onChange={v=>setF("level",v)}   options={LEVELS} />
-        <Select label="Section" value={q.section} onChange={v=>setF("section",v)} options={sections} />
+        <Select label="Section" value={q.section} onChange={v=>setF("section",v)} options={["READING","LISTENING","WRITING","SPEAKING"].filter(s=>sections.includes(s)).concat(sections.filter(s=>!["READING","LISTENING","WRITING","SPEAKING"].includes(s)))} />
         <Input  label="Points"  value={q.points}  onChange={v=>setF("points",+v)} type="number" />
         <Select label="Status"  value={q.status}  onChange={v=>setF("status",v)}
           options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
