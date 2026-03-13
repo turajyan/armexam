@@ -53,6 +53,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
   useEffect(() => { initBank(); setChoiceAns(null); setMultiAns([]); setFillAns(""); setWritingAns("");
     setTPlaced({}); setTBank(null); setTDrag(null);
     setImgClick(null);
+    setDdiPlaced({}); setDdiBank(null); setDdiDrag(null);
   }, [q.id]);
   // DRAG_AND_DROP_TABLE state
   const [tPlaced, setTPlaced] = useState({});
@@ -60,6 +61,10 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
   const [tDrag,   setTDrag]   = useState(null);
   // IMAGE_CLICK state
   const [imgClick, setImgClick] = useState(null); // { x, y } in percent
+  // DRAG_AND_DROP_IMAGE state
+  const [ddiPlaced, setDdiPlaced] = useState({});   // { hotspotId: labelId }
+  const [ddiBank,   setDdiBank]   = useState(null); // null = all labels in bank
+  const [ddiDrag,   setDdiDrag]   = useState(null); // labelId being dragged
 
   const bank = bankWords || [...(c.wordBank || [])];
 
@@ -423,6 +428,107 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
               Click on the image to mark your answer
             </div>
           )}
+        </div>
+      );
+    }
+
+    if (type === "DRAG_AND_DROP_IMAGE") {
+      const labels  = c.labels   || [];   // [{ id, text }]
+      const hotspots = c.hotspots || [];  // [{ id, x, y, correct }]  x/y in %
+      const imgUrl  = media.find(m => m.type === "image")?.url;
+
+      const allLabelIds = labels.map(l => l.id);
+      const bank = ddiBank ?? allLabelIds;
+      const labelText = id => labels.find(l => l.id === id)?.text ?? id;
+
+      const dropOnHotspot = (hsId) => {
+        if (!ddiDrag) return;
+        const prev = ddiPlaced[hsId]; // label previously in this hotspot
+        setDdiPlaced(p => ({ ...p, [hsId]: ddiDrag }));
+        setDdiBank(b => {
+          const next = (b ?? allLabelIds).filter(id => id !== ddiDrag);
+          return prev ? [...next, prev] : next; // return displaced label to bank
+        });
+        setDdiDrag(null);
+      };
+      const returnHotspot = (hsId) => {
+        const lbl = ddiPlaced[hsId];
+        if (!lbl) return;
+        setDdiPlaced(p => { const n = {...p}; delete n[hsId]; return n; });
+        setDdiBank(b => [...(b ?? allLabelIds), lbl]);
+      };
+
+      const HOTSPOT_W = 90; const HOTSPOT_H = 28;
+
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          {/* Image with hotspots */}
+          {imgUrl ? (
+            <div style={{ position:"relative", width:"100%", userSelect:"none" }}
+              onDragOver={e => e.preventDefault()}>
+              <img src={imgUrl} alt="" style={{ width:"100%", display:"block", borderRadius:12 }}/>
+              {hotspots.map(hs => {
+                const placed = ddiPlaced[hs.id];
+                return (
+                  <div key={hs.id}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); dropOnHotspot(hs.id); }}
+                    onClick={() => placed && returnHotspot(hs.id)}
+                    style={{
+                      position:"absolute",
+                      left: `calc(${hs.x}% - ${HOTSPOT_W/2}px)`,
+                      top:  `calc(${hs.y}% - ${HOTSPOT_H/2}px)`,
+                      width: HOTSPOT_W, height: HOTSPOT_H,
+                      background: placed ? T.gold+"33" : "#ffffff12",
+                      border: `2px dashed ${placed ? T.gold+"aa" : "#ffffff44"}`,
+                      borderRadius: 8, cursor: placed ? "pointer" : "default",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      transition:"all .15s",
+                    }}>
+                    {placed
+                      ? <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12,
+                          color: T.gold, fontWeight:600 }}>{labelText(placed)}</span>
+                      : <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11,
+                          color:"#ffffff33" }}>drop here</span>
+                    }
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ padding:"20px", textAlign:"center", color:T.muted,
+              background:"#ffffff06", borderRadius:12, fontSize:13 }}>No image attached</div>
+          )}
+
+          {/* Label bank */}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+            {bank.map(id => (
+              <div key={id} draggable
+                onDragStart={() => setDdiDrag(id)}
+                onDragEnd={() => setDdiDrag(null)}
+                style={{
+                  padding:"6px 14px", borderRadius:8, cursor:"grab",
+                  background: ddiDrag===id ? T.gold+"44" : "#ffffff0e",
+                  border:`1.5px solid ${ddiDrag===id ? T.gold : "#ffffff22"}`,
+                  fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.text,
+                  userSelect:"none", transition:"all .15s",
+                }}>
+                {labelText(id)}
+              </div>
+            ))}
+            {bank.length === 0 && (
+              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted }}>
+                All labels placed — click a label on the map to return it
+              </span>
+            )}
+          </div>
+
+          {/* Reset */}
+          <button onClick={() => { setDdiPlaced({}); setDdiBank(allLabelIds); }}
+            style={{ alignSelf:"flex-start", background:"transparent", border:"1px solid #ffffff22",
+              borderRadius:7, padding:"5px 14px", color:T.muted, fontSize:12, cursor:"pointer" }}>
+            ↺ Reset
+          </button>
         </div>
       );
     }
