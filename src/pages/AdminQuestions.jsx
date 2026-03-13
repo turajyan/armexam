@@ -501,7 +501,7 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
       {/* Level / Section / Points / Status */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 110px", gap:14 }}>
         <Select label="Level"   value={q.level}   onChange={v=>setF("level",v)}   options={LEVELS} />
-        <Select label="Section" value={q.section} onChange={v=>setF("section",v)} options={["READING","LISTENING","WRITING","SPEAKING"].filter(s=>sections.includes(s)).concat(sections.filter(s=>!["READING","LISTENING","WRITING","SPEAKING"].includes(s)))} />
+        <Select label="Section" value={q.section} onChange={v=>setF("section",v)} options={sections} />
         <Input  label="Points"  value={q.points}  onChange={v=>setF("points",+v)} type="number" />
         <Select label="Status"  value={q.status}  onChange={v=>setF("status",v)}
           options={[{value:"draft",label:"Draft"},{value:"published",label:"Published"}]} />
@@ -782,7 +782,7 @@ function QuestionsPage() {
   useEffect(() => {
     Promise.all([api.getQuestions(), api.getSections()]).then(([qs, secs]) => {
       setQuestions(qs);
-      setSections(secs.map(s => s.name));
+      setSections(secs.map(s => s.name)); // order preserved from server sortOrder
       setLoading(false);
     });
   }, []);
@@ -929,7 +929,8 @@ function QuestionStatsPage() {
   const [filterSec,  setFilterSec]  = useState("all");
   const [search,     setSearch]     = useState("");
   const [detail,     setDetail]     = useState(null); // row | null
-  const sections = [...new Set(rows.map(r => r.section))].sort();
+  // Preserve sortOrder from server; fall back to appearance order in data
+  const sections = [...new Set(rows.map(r => r.section))];
 
   useEffect(() => {
     api.getQuestionStats().then(data => {

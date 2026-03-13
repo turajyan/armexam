@@ -14,7 +14,6 @@ let C = {
 
 const LEVELS       = ["A1","A2","B1","B2","C1","C2"];
 // Receptive → Productive (cognitive load order)
-const SECTION_ORDER = ["READING","LISTENING","WRITING","SPEAKING"];
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
 
 const QTYPE_META = {

@@ -12,6 +12,7 @@ datasource db {
 model Section {
   id        Int        @id @default(autoincrement())
   name      String     @unique
+  sortOrder Int        @default(0)
 
   // Drives terminal UI behaviour for every question in this section.
   // READING  – free navigation, can revisit & change answers until time runs out

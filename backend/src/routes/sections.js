@@ -7,7 +7,7 @@ export default async function sectionsRoutes(fastify) {
 
   // GET /api/sections
   fastify.get("/api/sections", { preHandler: adminHook }, async () => {
-    return prisma.section.findMany({ orderBy: { name: "asc" } });
+    return prisma.section.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
   });
 
   // POST /api/sections
@@ -15,7 +15,9 @@ export default async function sectionsRoutes(fastify) {
     const { name } = req.body ?? {};
     if (!name?.trim()) return reply.code(400).send({ error: "name is required" });
     try {
-      const section = await prisma.section.create({ data: { name: name.trim() } });
+      const agg = await prisma.section.aggregate({ _max: { sortOrder: true } });
+      const nextOrder = (agg._max.sortOrder ?? -1) + 1;
+      const section = await prisma.section.create({ data: { name: name.trim(), sortOrder: nextOrder } });
       return reply.code(201).send(section);
     } catch (e) {
       if (e.code === "P2002") return reply.code(409).send({ error: "Section already exists" });
@@ -35,7 +37,10 @@ export default async function sectionsRoutes(fastify) {
 
     const oldName = existing.name;
     try {
-      const section = await prisma.section.update({ where: { id }, data: { name: newName } });
+      const { sortOrder } = req.body ?? {};
+      const data = { name: newName };
+      if (Number.isInteger(sortOrder)) data.sortOrder = sortOrder;
+      const section = await prisma.section.update({ where: { id }, data });
 
       // Patch section name inside exam JSON blobs (subpools + placementTemplate)
       if (oldName !== newName) {
@@ -66,6 +71,20 @@ export default async function sectionsRoutes(fastify) {
       if (e.code === "P2002") return reply.code(409).send({ error: "Section name already exists" });
       throw e;
     }
+  });
+
+  // PATCH /api/sections/reorder — [{id, sortOrder}, ...]
+  fastify.patch("/api/sections/reorder", { preHandler: moderatorHook }, async (req, reply) => {
+    const items = req.body ?? [];
+    if (!Array.isArray(items) || items.some(i => !Number.isInteger(i.id))) {
+      return reply.code(400).send({ error: "Expected [{id, sortOrder}]" });
+    }
+    await prisma.$transaction(
+      items.map(({ id, sortOrder }) =>
+        prisma.section.update({ where: { id }, data: { sortOrder } })
+      )
+    );
+    return prisma.section.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
   });
 
   // DELETE /api/sections/:id

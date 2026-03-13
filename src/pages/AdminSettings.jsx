@@ -214,7 +214,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     if (!name || sections.some(s => s.name === name)) return;
     try {
       const created = await api.createSection({ name });
-      setSections(prev => [...prev, created].sort((a,b) => a.name.localeCompare(b.name)));
+      setSections(prev => [...prev, created]); // sortOrder assigned by backend (max+1)
       setNewSection("");
     } catch (e) { setToast({ type:"danger", msg: e.message }); }
   };
@@ -233,7 +233,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     if (!name) return;
     try {
       const updated = await api.updateSection(editingSection.id, { name });
-      setSections(prev => prev.map(s => s.id === updated.id ? updated : s).sort((a,b) => a.name.localeCompare(b.name)));
+      setSections(prev => prev.map(s => s.id === updated.id ? updated : s)); // keep existing order
       setEditingSection(null);
     } catch (e) { setToast({ type:"danger", msg: e.message }); }
   };
@@ -692,7 +692,8 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
 
       // ── SECTIONS ───────────────────────────────────────────────────────────
       case "sections": return (<>
-        <SettingSection title="Question Sections" icon="📂" description="Manage the section categories used in Question Management and Exams. Changes apply immediately.">
+        <SettingSection title="Question Sections" icon="📂"
+          description="Drag ☰ to reorder. Order applies site-wide: exam delivery, question filters, statistics.">
           {/* Add */}
           <div style={{ display:"flex", gap:8 }}>
             <input
@@ -704,18 +705,45 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
             />
             <Btn variant="primary" onClick={addSection} disabled={!newSection.trim()}>+ Add</Btn>
           </div>
-          {/* List */}
-          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            {sections.map((s)=>(
-              <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:C.panel, border:`1px solid ${C.border}`, borderRadius:10 }}>
-                <span style={{ fontSize:14 }}>📂</span>
+          {/* Drag-sortable list */}
+          <div style={{ display:"flex", flexDirection:"column", gap:6 }}
+            onDragOver={e=>e.preventDefault()}>
+            {sections.map((s, idx)=>(
+              <div key={s.id}
+                draggable
+                onDragStart={e=>{ e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("secIdx", String(idx)); }}
+                onDragOver={e=>{ e.preventDefault(); e.dataTransfer.dropEffect="move"; }}
+                onDrop={e=>{
+                  e.preventDefault();
+                  const from = Number(e.dataTransfer.getData("secIdx"));
+                  if (from === idx) return;
+                  const next = [...sections];
+                  const [moved] = next.splice(from, 1);
+                  next.splice(idx, 0, moved);
+                  const reordered = next.map((sec, i) => ({ ...sec, sortOrder: i }));
+                  setSections(reordered);
+                  api.reorderSections(reordered.map(sec => ({ id: sec.id, sortOrder: sec.sortOrder })))
+                    .catch(() => setToast({ type:"danger", msg:"Failed to save order" }));
+                }}
+                style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px",
+                  background:C.panel, border:`1px solid ${C.border}`, borderRadius:10,
+                  cursor:"default", userSelect:"none" }}>
+                {/* Drag handle */}
+                <span style={{ fontSize:16, color:C.muted, cursor:"grab", lineHeight:1, flexShrink:0 }}>☰</span>
+                {/* Order badge */}
+                <span style={{ fontSize:11, color:C.muted, fontFamily:"'DM Sans',sans-serif",
+                  background:C.bg, borderRadius:5, padding:"1px 7px", flexShrink:0 }}>
+                  {idx + 1}
+                </span>
+                <span style={{ fontSize:14, flexShrink:0 }}>📂</span>
                 {editingSection?.id===s.id ? (
                   <input
                     autoFocus
                     value={editingSection.value}
                     onChange={e=>setEditingSection(es=>({...es,value:e.target.value}))}
                     onKeyDown={e=>{ if(e.key==="Enter") confirmEdit(); if(e.key==="Escape") setEditingSection(null); }}
-                    style={{ flex:1, background:C.bg, border:`1.5px solid ${C.gold}`, borderRadius:8, padding:"5px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }}
+                    style={{ flex:1, background:C.bg, border:`1.5px solid ${C.gold}`, borderRadius:8,
+                      padding:"5px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none" }}
                   />
                 ) : (
                   <span style={{ flex:1, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.text }}>{s.name}</span>
@@ -735,6 +763,9 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
                 </div>
               </div>
             ))}
+          </div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:4 }}>
+            Order is saved immediately on drop. Used by: exam delivery, question filters, NavDots, statistics.
           </div>
         </SettingSection>
       </>);

@@ -24,10 +24,10 @@ function randPin(used) {
 // WRITING   — word counter, clipboard & spellcheck disabled
 // ═════════════════════════════════════════════════════════════════════════════
 const SECTIONS = [
-  { name: "READING",   category: "READING"   },
-  { name: "LISTENING", category: "LISTENING" },
-  { name: "SPEAKING",  category: "SPEAKING"  },
-  { name: "WRITING",   category: "WRITING"   },
+  { name: "READING",   category: "READING",   sortOrder: 0 },
+  { name: "LISTENING", category: "LISTENING", sortOrder: 1 },
+  { name: "WRITING",   category: "WRITING",   sortOrder: 2 },
+  { name: "SPEAKING",  category: "SPEAKING",  sortOrder: 3 },
 ];
 
 const PTS = { A1:1, A2:1, B1:2, B2:3, C1:4, C2:5 };
@@ -619,7 +619,7 @@ async function main() {
   // ── Sections ─────────────────────────────────────────────────────────────
   const sectionMap = {};
   for (const s of SECTIONS) {
-    const sec = await prisma.section.create({ data: { name: s.name, category: s.category } });
+    const sec = await prisma.section.create({ data: { name: s.name, category: s.category, sortOrder: s.sortOrder } });
     sectionMap[s.name] = sec.id;
   }
   console.log(`✅ ${SECTIONS.length} sections: ${SECTIONS.map(s=>s.name).join(", ")}`);

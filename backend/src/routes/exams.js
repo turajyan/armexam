@@ -135,8 +135,8 @@ export default async function examsRoutes(fastify) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-// Receptive → Productive order (cognitive load principle)
-const SECTION_ORDER = ["READING", "LISTENING", "WRITING", "SPEAKING"];
+// Fallback order used only if DB is unreachable
+const SECTION_ORDER_FALLBACK = ["READING", "LISTENING", "WRITING", "SPEAKING"];
 
 function flattenExam(exam) {
   const { assignedStudents, ...rest } = exam;
@@ -197,11 +197,21 @@ async function generateUniquePin(prisma) {
 }
 
 async function buildExamQuestions(prisma, exam, preview = false) {
+  // Fetch section order from DB (sortOrder asc), fall back to hardcoded list
+  const dbSections = await prisma.section.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
+  const sectionOrder = dbSections.length
+    ? dbSections.map(s => s.name)
+    : SECTION_ORDER_FALLBACK;
+
   if (exam.examType === "placement") {
     const template = exam.placementTemplate || [];
     const result = [];
     for (const row of template) {
-      for (const sp of row.subpools || []) {
+      // Sort subpools within each level row by section order
+      const sortedSubpools = [...(row.subpools || [])].sort(
+        (a, b) => sectionOrder.indexOf(a.section) - sectionOrder.indexOf(b.section)
+      );
+      for (const sp of sortedSubpools) {
         const pool = await prisma.question.findMany({
           where: { level: row.level, section: { name: sp.section }, status: "published" },
           include: { section: { select: { name: true } } },
@@ -219,7 +229,7 @@ async function buildExamQuestions(prisma, exam, preview = false) {
   }
 
   // Fixed — new subpool format: { section, level, count, pointsEach }
-  // Group subpools by section, then sort sections by SECTION_ORDER (Receptive → Productive)
+  // Group subpools by section, emit in DB-defined sortOrder
   const bySection = {};
   for (const sp of exam.subpools || []) {
     const lvl = sp.level || exam.level;
@@ -236,18 +246,17 @@ async function buildExamQuestions(prisma, exam, preview = false) {
     }));
     const secName = sp.section;
     if (!bySection[secName]) bySection[secName] = [];
-    // shuffle within section if exam.shuffle, else keep pick order
     bySection[secName].push(...(exam.shuffle ? pick(picked, picked.length) : picked));
   }
 
-  // Emit sections in canonical order: READING → LISTENING → WRITING → SPEAKING
+  // Emit in DB sortOrder
   const result = [];
-  for (const sec of SECTION_ORDER) {
+  for (const sec of sectionOrder) {
     if (bySection[sec]) result.push(...bySection[sec]);
   }
-  // Any section not in SECTION_ORDER appended last
+  // Any section not yet emitted (not in DB list) appended last
   for (const sec of Object.keys(bySection)) {
-    if (!SECTION_ORDER.includes(sec)) result.push(...bySection[sec]);
+    if (!sectionOrder.includes(sec)) result.push(...bySection[sec]);
   }
   return result;
 }

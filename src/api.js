@@ -98,7 +98,8 @@ export const api = {
   registerForExam: (examId) => req('/user/register-exam', { method: 'POST', body: JSON.stringify({ examId }) }),
 
   // ── Sections ─────────────────────────────────────────────────────────────────
-  getSections:   ()           => adminReq('/sections'),
+  getSections:      ()       => adminReq('/sections'),
+  reorderSections:  (items)  => adminReq('/sections/reorder', { method:'PATCH', body: JSON.stringify(items) }),
   getQuestionStats: (params={}) => adminReq('/questions/stats?' + new URLSearchParams(params).toString()),
   createSection: (data)       => adminReq('/sections',       { method: 'POST',   body: JSON.stringify(data) }),
   updateSection: (id, data)   => adminReq(`/sections/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
