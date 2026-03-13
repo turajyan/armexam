@@ -483,7 +483,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
         <div style={{ padding:"14px 24px", borderTop:"1px solid #1a2540", flexShrink:0,
           display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
-            {q.points} pt{embedded ? " · read-only" : " · Read-only preview"}
+            {q.points} pt · read-only preview
           </span>
           {navDots ? (
             <div style={{ display:"flex", gap:8 }}>
