@@ -291,12 +291,7 @@ export default function App() {
           For the best experience, please open the admin panel on a computer
           with a screen width of at least 900px.
         </div>
-        <div style={{ background:T.gold+"18", border:`1px solid ${T.gold}44`,
-          borderRadius:12, padding:"12px 20px", fontSize:12, color:T.gold,
-          display:"flex", alignItems:"center", gap:10 }}>
-          <span>💡</span>
-          <span>Students can take exams on any device via the Exam Terminal</span>
-        </div>
+
       </div>
 
       <div key={lang} className="admin-layout" style={{ display:"flex", height:"100vh", overflow:"hidden", background:T.bg }}>
