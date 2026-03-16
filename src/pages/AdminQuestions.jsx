@@ -805,14 +805,16 @@ function ImageClickEditor({ content, onChange, media = [] }) {
   const hotspots = content.hotspots || [];
   const imgUrl   = media.find(m => m.type === "image")?.url;
   const imgRef   = useRef(null);
+  // Keep ref to latest content to avoid stale closures in event handlers
+  const contentRef = useRef(content);
+  useEffect(() => { contentRef.current = content; }, [content]);
 
-  // Drawing state
   const drawing  = useRef(null); // { startX, startY } in %
-  const [dragBox, setDragBox] = useState(null); // live preview rect
+  const [dragBox, setDragBox] = useState(null);
 
-  const upd = (patch) => onChange({ ...content, ...patch });
-  const updHs = (id, patch) => upd({ hotspots: hotspots.map(h => h.id === id ? { ...h, ...patch } : h) });
-  const delHs = (id) => upd({ hotspots: hotspots.filter(h => h.id !== id) });
+  const upd    = (patch) => onChange({ ...contentRef.current, ...patch });
+  const updHs  = (id, patch) => upd({ hotspots: (contentRef.current.hotspots||[]).map(h => h.id === id ? { ...h, ...patch } : h) });
+  const delHs  = (id)        => upd({ hotspots: (contentRef.current.hotspots||[]).filter(h => h.id !== id) });
 
   const toPercent = (e) => {
     const rect = imgRef.current.getBoundingClientRect();
@@ -824,6 +826,8 @@ function ImageClickEditor({ content, onChange, media = [] }) {
 
   const onMouseDown = (e) => {
     if (!imgRef.current) return;
+    // Ignore mousedown on hotspot zones (they handle their own click)
+    if (e.target.dataset.hs) return;
     e.preventDefault();
     const { x, y } = toPercent(e);
     drawing.current = { startX: x, startY: y };
@@ -845,13 +849,15 @@ function ImageClickEditor({ content, onChange, media = [] }) {
       const w = Math.abs(p.x - sx), h = Math.abs(p.y - sy);
       drawing.current = null;
       setDragBox(null);
-      if (w < 2 || h < 2) return; // ignore tiny clicks
-      const id = uid();
-      upd({ hotspots: [...hotspots, {
-        id, x: Math.min(sx, p.x), y: Math.min(sy, p.y), width: w, height: h, correct: true,
-      }]});
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup",   onUp);
+      if (w < 2 || h < 2) return; // ignore accidental tiny drags
+      const id = uid();
+      // Read latest hotspots from ref — not stale closure
+      const current = contentRef.current.hotspots || [];
+      onChange({ ...contentRef.current, hotspots: [...current, {
+        id, x: Math.min(sx, p.x), y: Math.min(sy, p.y), width: w, height: h, correct: true,
+      }]});
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup",   onUp);
@@ -873,14 +879,15 @@ function ImageClickEditor({ content, onChange, media = [] }) {
             🖱 <strong style={{ color:C.text }}>Drag</strong> on the image to draw a correct-answer zone · Click a zone to delete it
           </div>
 
-          <div style={{ position:"relative", display:"inline-block", width:"100%",
+          <div ref={imgRef} style={{ position:"relative", display:"inline-block", width:"100%",
             cursor:"crosshair", userSelect:"none" }}
             onMouseDown={onMouseDown}>
-            <img ref={imgRef} src={imgUrl} alt="" style={{ width:"100%", display:"block", borderRadius:10 }} />
+            <img src={imgUrl} alt="" style={{ width:"100%", display:"block", borderRadius:10, pointerEvents:"none" }} />
 
             {/* Existing hotspots */}
             {hotspots.map((hs, idx) => (
               <div key={hs.id}
+                data-hs="1"
                 onClick={e => { e.stopPropagation(); delHs(hs.id); }}
                 title="Click to delete"
                 style={{
