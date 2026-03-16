@@ -1,6 +1,6 @@
 import multer from "multer";
 import { uploadBuffer, deleteByUrl } from "../lib/s3.js";
-import { requireAdmin } from "../middleware/auth.js";
+import { requireAdmin } from "../middleware/adminAuth.js";
 
 const ALLOWED_MIME = /^(image|audio|video)\//;
 const MAX_SIZE_MB   = 50;
