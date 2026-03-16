@@ -407,5 +407,208 @@
       "passed": "Passed",
       "failed": "Failed"
     }
+  },
+  "landing": {
+    "nav": [
+      "About",
+      "Exams",
+      "Results",
+      "FAQ"
+    ],
+    "hero": [
+      "The Standard for",
+      "Armenian Language",
+      "Certification"
+    ],
+    "heroSub": "Internationally recognized proficiency exams for A1–C2. Trusted by universities, employers, and government institutions across Armenia.",
+    "cta": "Register Now",
+    "login": "Sign In",
+    "stats": [
+      [
+        "12,400+",
+        "Certified graduates"
+      ],
+      [
+        "94%",
+        "Pass rate 2024"
+      ],
+      [
+        "6",
+        "Proficiency levels"
+      ],
+      [
+        "48",
+        "Exam centers"
+      ]
+    ],
+    "aboutBadge": "About ArmExam",
+    "aboutTitle": "What is ArmExam?",
+    "aboutText": "ArmExam is Armenia's premier Armenian language proficiency testing platform. Our computer-based exams evaluate Reading, Listening, Writing, and Speaking across the full CEFR scale — from beginner A1 to advanced C2.",
+    "skills": [
+      "📖 Reading",
+      "🎧 Listening",
+      "✍ Writing",
+      "🎤 Speaking"
+    ],
+    "levelsBadge": "CEFR Scale",
+    "levelsTitle": "Proficiency Levels",
+    "levels": [
+      {
+        "code": "A1",
+        "name": "Beginner",
+        "desc": "Basic words and phrases"
+      },
+      {
+        "code": "A2",
+        "name": "Elementary",
+        "desc": "Simple everyday expressions"
+      },
+      {
+        "code": "B1",
+        "name": "Intermediate",
+        "desc": "Clear standard language"
+      },
+      {
+        "code": "B2",
+        "name": "Upper-Interm.",
+        "desc": "Complex texts and discussion"
+      },
+      {
+        "code": "C1",
+        "name": "Advanced",
+        "desc": "Fluent, spontaneous use"
+      },
+      {
+        "code": "C2",
+        "name": "Mastery",
+        "desc": "Full command of the language"
+      }
+    ],
+    "statsBadge": "Data",
+    "statsTitle": "2024 Statistics",
+    "statsMonths": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
+    "statsCards": [
+      {
+        "label": "Total Exams",
+        "val": "1,842"
+      },
+      {
+        "label": "Passed",
+        "val": "1,731"
+      },
+      {
+        "label": "Avg Score",
+        "val": "74%"
+      },
+      {
+        "label": "New Centers",
+        "val": "6"
+      }
+    ],
+    "statsSub": "Monthly exam sessions in 2024",
+    "materialsBadge": "Preparation",
+    "materialsTitle": "Study Materials",
+    "materials": [
+      {
+        "icon": "📖",
+        "title": "Sample Tests",
+        "desc": "Official practice exams for each level"
+      },
+      {
+        "icon": "🎧",
+        "title": "Listening Bank",
+        "desc": "Audio materials for Listening prep"
+      },
+      {
+        "icon": "✍",
+        "title": "Writing Guides",
+        "desc": "Essay templates and scoring rubrics"
+      },
+      {
+        "icon": "🎤",
+        "title": "Speaking Tips",
+        "desc": "Preparation strategies and sample tasks"
+      }
+    ],
+    "faqBadge": "FAQ",
+    "faqTitle": "Frequently Asked Questions",
+    "faqs": [
+      {
+        "q": "How long is the exam?",
+        "a": "Exams range from 60 to 120 minutes depending on the level. All sections — Reading, Listening, Writing, and Speaking — are completed in one session."
+      },
+      {
+        "q": "Where can I take the exam?",
+        "a": "Exams are held at certified ArmExam centers across Armenia. Check our centers page for locations and schedules."
+      },
+      {
+        "q": "How soon are results available?",
+        "a": "Automated sections (Reading, Listening) are graded instantly. Writing and Speaking results are available within 5 business days."
+      },
+      {
+        "q": "Is the certificate recognized?",
+        "a": "ArmExam certificates are recognized by universities, public institutions, and employers throughout Armenia and the Armenian diaspora."
+      },
+      {
+        "q": "Can I retake the exam?",
+        "a": "Yes. You may retake the exam after a 30-day waiting period. There is no limit on the number of attempts."
+      }
+    ],
+    "contactBadge": "Contact",
+    "contactTitle": "Contact Us",
+    "contactSub": "Have a question? Our team responds within 24 hours.",
+    "namePh": "Your full name",
+    "emailPh": "Email address",
+    "msgPh": "Your message…",
+    "send": "Send Message",
+    "sent": "Message sent!",
+    "sentSub": "We'll be in touch soon.",
+    "learnMore": "Learn more",
+    "footer": "© 2025 ArmExam. All rights reserved.",
+    "cefr": [
+      [
+        "A1",
+        "Beginner",
+        15
+      ],
+      [
+        "A2",
+        "Elementary",
+        28
+      ],
+      [
+        "B1",
+        "Intermediate",
+        48
+      ],
+      [
+        "B2",
+        "Upper-Interm.",
+        65
+      ],
+      [
+        "C1",
+        "Advanced",
+        82
+      ],
+      [
+        "C2",
+        "Mastery",
+        100
+      ]
+    ]
   }
 }

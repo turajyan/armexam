@@ -82,7 +82,8 @@
       "score": "Միավոր",
       "ranking": "Ձեր դասակարգումը",
       "certificates": "Ավանդագրեր"
-    },    "personal": "Անձնական տվյալներ",
+    },
+    "personal": "Անձնական տվյալներ",
     "name": "Անուն",
     "phone": "Հեռախոս",
     "country": "Երկիր",
@@ -406,5 +407,208 @@
       "passed": "ՀԱՆՁՆՎԵԼ Է",
       "failed": "ՉԻ ՍՏՈՒԳ�ՎԵԼ"
     }
+  },
+  "landing": {
+    "nav": [
+      "Մեր մասին",
+      "Քննություններ",
+      "Արդյունքներ",
+      "ՀՏՀ"
+    ],
+    "hero": [
+      "Հայերենի իմացության",
+      "գնահատման",
+      "ստանդարտ"
+    ],
+    "heroSub": "Միջազգայնորեն ճանաչված A1–C2 մակարդակի քննություններ։ Վստահում են Հայաստանի համալսարանները, գործատուները եւ պետական կառույցները։",
+    "cta": "Գրանցվել",
+    "login": "Մուտք",
+    "stats": [
+      [
+        "12 400+",
+        "Հավաստագրված"
+      ],
+      [
+        "94%",
+        "Հաջողություն 2024"
+      ],
+      [
+        "6",
+        "Մակարդակ"
+      ],
+      [
+        "48",
+        "Կենտրոն"
+      ]
+    ],
+    "aboutBadge": "ArmExam-ի մասին",
+    "aboutTitle": "Ի՞նչ է ArmExam-ը",
+    "aboutText": "ArmExam-ը Հայաստանի հայերենի իմացության գնահատման առաջատար հարթակն է։ Մեր քննություններն արժևորում են ընթերցումը, լսումը, գրելը եւ խոսելը CEFR-ի ամբողջ սանդղակով՝ A1-ից C2:",
+    "skills": [
+      "📖 Ընթերցում",
+      "🎧 Լսում",
+      "✍ Գրություն",
+      "🎤 Խոսք"
+    ],
+    "levelsBadge": "CEFR սանդղակ",
+    "levelsTitle": "Տիրապետման մակարդակները",
+    "levels": [
+      {
+        "code": "A1",
+        "name": "Սկսնակ",
+        "desc": "Հիմնական բառեր եւ արտահայտություններ"
+      },
+      {
+        "code": "A2",
+        "name": "Տարրական",
+        "desc": "Պարզ առօրյա արտահայտություններ"
+      },
+      {
+        "code": "B1",
+        "name": "Միջին",
+        "desc": "Հստակ ստանդarտ լեզու"
+      },
+      {
+        "code": "B2",
+        "name": "Բarձr-միջin",
+        "desc": "Բardzr տeksteр еւ kazmakerpumner"
+      },
+      {
+        "code": "C1",
+        "name": "Arajadhem",
+        "desc": "Azat inknabux hałordarkcutyun"
+      },
+      {
+        "code": "C2",
+        "name": "Tirapetum",
+        "desc": "Lezvi lriv tirapetum"
+      }
+    ],
+    "statsBadge": "Տvyalner",
+    "statsTitle": "2024 t. vichakagrutyun",
+    "statsMonths": [
+      "Hnv",
+      "Ptr",
+      "Mrt",
+      "Apr",
+      "Mys",
+      "Hns",
+      "Hls",
+      "Ogs",
+      "Sep",
+      "Hkt",
+      "Nvb",
+      "Dkt"
+    ],
+    "statsCards": [
+      {
+        "label": "Qnnutyunner",
+        "val": "1 842"
+      },
+      {
+        "label": "Hajoghutyun",
+        "val": "1 731"
+      },
+      {
+        "label": "Mijna gnahat",
+        "val": "74%"
+      },
+      {
+        "label": "Nor kentroner",
+        "val": "6"
+      }
+    ],
+    "statsSub": "Amsekan qnnutyan nsistner 2024-in",
+    "materialsBadge": "Nakhaprastum",
+    "materialsTitle": "Usumnakan nyuteр",
+    "materials": [
+      {
+        "icon": "📖",
+        "title": "Nmush testер",
+        "desc": "Pahanjnakum qnnutyunner"
+      },
+      {
+        "icon": "🎧",
+        "title": "Lusołakanutyun",
+        "desc": "Lusołakani nakhaprasтman nyuteр"
+      },
+      {
+        "icon": "✍",
+        "title": "Grelu uzhecuycter",
+        "desc": "Sharаdrutyun ev cнaпаnisnеr"
+      },
+      {
+        "icon": "🎤",
+        "title": "Khoseli khorhurdner",
+        "desc": "Nakhaprasтman kategutyunn еr"
+      }
+    ],
+    "faqBadge": "ՀՏՀ",
+    "faqTitle": "Hačakhs tvarkvoł harceр",
+    "faqs": [
+      {
+        "q": "Inqana tevel e qnnutyune?",
+        "a": "60-idan 120 rope katarelu kerp aman."
+      },
+      {
+        "q": "Vortegh es ktatum qnnutyune?",
+        "a": "Pahanjnakum ArmExam kentronnerum Hayastanum."
+      },
+      {
+        "q": "Erb en patarastum artjyunknere?",
+        "a": "Avtomatacvac bazhneruh anmijapes. Grelu ev khoseli 5 ashxatanqayin or."
+      },
+      {
+        "q": "Chapavoragire cheratsvu e?",
+        "a": "ArmExam chapavoragrere cheratsvoum en Hayastanum."
+      },
+      {
+        "q": "Kareli e kazmin qnnutyune?",
+        "a": "Aye, 30 or hetо. Qanakov skhmanvum chi."
+      }
+    ],
+    "contactBadge": "Kapkutyun",
+    "contactTitle": "Kapcveq menq",
+    "contactSub": "Mer hamararakutyune pataskhanume e 24 eresi intum.",
+    "namePh": "Anun Azganun",
+    "emailPh": "Elektronayin posta",
+    "msgPh": "Dzez hogabanutyun…",
+    "send": "Usharel",
+    "sent": "Hodvace uzharkvec!",
+    "sentSub": "Kkapcvenq dzezzi mot.",
+    "learnMore": "Avel",
+    "footer": "© 2025 ArmExam. Bardzaragra iravunknere pahpanvac en.",
+    "cefr": [
+      [
+        "A1",
+        "Sksnак",
+        15
+      ],
+      [
+        "A2",
+        "Tarrakan",
+        28
+      ],
+      [
+        "B1",
+        "Midyin",
+        48
+      ],
+      [
+        "B2",
+        "Barcr-midyin",
+        65
+      ],
+      [
+        "C1",
+        "Arajadhem",
+        82
+      ],
+      [
+        "C2",
+        "Tirapetum",
+        100
+      ]
+    ]
   }
 }
