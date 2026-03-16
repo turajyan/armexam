@@ -168,7 +168,7 @@ function MediaEditor({ media = [], onChange }) {
       form.append("file", file);
       const res = await fetch("/api/media/upload", {
         method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("armexam_token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("armexam_admin_token")}` },
         body: form,
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
