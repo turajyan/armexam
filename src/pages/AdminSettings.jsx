@@ -178,12 +178,6 @@ const TABS = [
   { id:"integrations", icon:"🔗", label:"Integrations" },
 ];
 
-const SEED_ADMINS = [
-  { id:1, name:"Ashot Turajyan", email:"ashot@armexam.am",  role:"superadmin", active:true  },
-  { id:2, name:"Անի Հակոբյան",  email:"ani@armexam.am",    role:"admin",      active:true  },
-  { id:3, name:"Դավիթ Սահ.",    email:"davit@armexam.am",  role:"examiner",   active:true  },
-  { id:4, name:"Մարինե Գ.",     email:"marine@armexam.am", role:"viewer",     active:false },
-];
 
 const SEED_BACKUPS = [
   { id:1, name:"backup_2025-03-01_auto.sql",   date:"2025-03-01 03:00", size:"14.2 MB", type:"auto",   status:"success" },
@@ -198,7 +192,6 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
   if (theme) C = theme;
   const [tab, setTab] = useState("general");
   const [saved, setSaved] = useState(true);
-  const [admins, setAdmins] = useState(SEED_ADMINS);
   const [toast, setToast] = useState(null);
   // sections: [{ id, name }]
   const [sections, setSections] = useState([]);
@@ -524,14 +517,18 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
       // ── ADMIN USERS ────────────────────────────────────────────────────────
       case "users": return (<>
         <SettingSection title="Administrator Accounts" icon="👥" description="Manage who has access to the admin panel and what they can do">
-          <div style={{ display:"flex", justifyContent:"flex-end" }}>
-            <Btn variant="primary" small onClick={()=>showToast("New admin form — coming in backend phase", C.info)}>+ Add Administrator</Btn>
+          <div style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 20px",
+            background:C.gold+"0e", border:`1px solid ${C.gold}33`, borderRadius:12 }}>
+            <span style={{ fontSize:24 }}>⊕</span>
+            <div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:C.text, fontWeight:600, marginBottom:2 }}>
+                Administrator management has its own tab
+              </div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>
+                Use the <strong style={{ color:C.gold }}>Admins</strong> tab in the left sidebar to add, edit, and delete admin accounts.
+              </div>
+            </div>
           </div>
-          {admins.map(a=>(
-            <AdminRow key={a.id} admin={a} isSelf={a.id===1}
-              onEdit={()=>showToast("Edit admin — coming in backend phase", C.info)}
-              onDelete={id=>setAdmins(as=>as.filter(x=>x.id!==id))} />
-          ))}
         </SettingSection>
 
         <SettingSection title="Roles & Permissions" icon="🔑" description="Each role has a fixed set of permissions. Assign roles to admins above.">
