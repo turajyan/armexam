@@ -1,6 +1,5 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 
 import en from './locales/en.json';
 import ru from './locales/ru.json';
@@ -12,28 +11,25 @@ const resources = {
   hy: { translation: hy },
 };
 
+// Read saved language from settings, default to 'en'
+function getSavedLang() {
+  try {
+    const s = JSON.parse(localStorage.getItem('armexam_general_settings') || '{}');
+    return s.language || 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
+    lng:         getSavedLang(),
     fallbackLng: 'en',
     supportedLngs: ['en', 'ru', 'hy'],
     interpolation: {
       escapeValue: false,
-    },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-      lookupLocalStorage: 'armexam_general_settings',
-      convertDetectedLanguage: (lng) => {
-        try {
-          const settings = JSON.parse(localStorage.getItem('armexam_general_settings') || '{}');
-          return settings.language || lng;
-        } catch {
-          return lng;
-        }
-      },
     },
   });
 
