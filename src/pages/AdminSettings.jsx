@@ -526,7 +526,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
               <input type="range" min="13" max="22" value={appearance.contextFontSize} onChange={e=>setA("contextFontSize",e.target.value)}
                 style={{ width:"100%", accentColor:C.gold }} />
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
-                {appearance.contextFontSize}px — <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:+appearance.contextFontSize, color:C.text }}>Context text preview</span>
+                {appearance.contextFontSize}px — <span style={{ fontFamily:`'${appearance.fontHeading}',serif`, fontSize:+appearance.contextFontSize, color:C.text }}>Context text preview</span>
               </div>
             </div>
             <div>
@@ -534,7 +534,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
               <input type="range" min="14" max="28" value={appearance.promptFontSize} onChange={e=>setA("promptFontSize",e.target.value)}
                 style={{ width:"100%", accentColor:C.gold }} />
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
-                {appearance.promptFontSize}px — <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:+appearance.promptFontSize, color:C.text }}>Prompt preview</span>
+                {appearance.promptFontSize}px — <span style={{ fontFamily:`'${appearance.fontHeading}',serif`, fontSize:+appearance.promptFontSize, color:C.text }}>Prompt preview</span>
               </div>
             </div>
             <div>
@@ -542,7 +542,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
               <input type="range" min="12" max="20" value={appearance.answerFontSize} onChange={e=>setA("answerFontSize",e.target.value)}
                 style={{ width:"100%", accentColor:C.gold }} />
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
-                {appearance.answerFontSize}px — <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:+appearance.answerFontSize, color:C.text }}>Answer option preview</span>
+                {appearance.answerFontSize}px — <span style={{ fontFamily:`'${appearance.fontBody}',sans-serif`, fontSize:+appearance.answerFontSize, color:C.text }}>Answer option preview</span>
               </div>
             </div>
           </div>
