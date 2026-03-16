@@ -254,7 +254,52 @@ export default function App() {
     <>
       <style>{FONTS}{globalStyle}</style>
 
-      <div key={lang} style={{ display:"flex", height:"100vh", overflow:"hidden", background:T.bg }}>
+      {/* ── Mobile warning overlay ─────────────────────────────────────────── */}
+      <div style={{
+        display:"none",
+        position:"fixed", inset:0, zIndex:99999,
+        background:T.bg, flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        padding:32, textAlign:"center",
+        fontFamily:"'DM Sans',sans-serif",
+        ["@media (max-width: 900px)"]: { display:"flex" },
+      }}
+        className="mobile-warning">
+      </div>
+      <style>{`
+        @media (max-width: 900px) {
+          .mobile-warning { display: flex !important; }
+          .admin-layout   { display: none  !important; }
+        }
+      `}</style>
+      <div className="mobile-warning" style={{
+        display:"none", position:"fixed", inset:0, zIndex:99999,
+        background:T.bg, flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        padding:32, textAlign:"center",
+        fontFamily:"'DM Sans',sans-serif",
+      }}>
+        <div style={{ fontSize:56, marginBottom:20 }}>🖥</div>
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28,
+          color:T.gold, fontWeight:700, marginBottom:12 }}>
+          ArmExam Admin
+        </div>
+        <div style={{ fontSize:15, color:T.text, fontWeight:600, marginBottom:10, maxWidth:320 }}>
+          This panel is designed for desktop use
+        </div>
+        <div style={{ fontSize:13, color:T.muted, lineHeight:1.7, maxWidth:340, marginBottom:28 }}>
+          For the best experience, please open the admin panel on a computer
+          with a screen width of at least 900px.
+        </div>
+        <div style={{ background:T.gold+"18", border:`1px solid ${T.gold}44`,
+          borderRadius:12, padding:"12px 20px", fontSize:12, color:T.gold,
+          display:"flex", alignItems:"center", gap:10 }}>
+          <span>💡</span>
+          <span>Students can take exams on any device via the Exam Terminal</span>
+        </div>
+      </div>
+
+      <div key={lang} className="admin-layout" style={{ display:"flex", height:"100vh", overflow:"hidden", background:T.bg }}>
 
         {/* Sidebar */}
         <aside style={{ width:72, background:T.sidebarBg, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column", alignItems:"center", paddingTop:14, gap:3, flexShrink:0 }}>
