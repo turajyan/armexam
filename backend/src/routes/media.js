@@ -16,8 +16,21 @@ export default async function mediaRoutes(fastify) {
    * Returns list of all files from MinIO bucket
    */
   fastify.get("/api/media", { preHandler: [adminHook] }, async (req, reply) => {
-    const files = await listObjects("media/");
-    return files;
+    const [files, questions] = await Promise.all([
+      listObjects("media/"),
+      fastify.prisma.question.findMany({ select: { id: true, media: true } }),
+    ]);
+
+    // Build a map: url → count of questions using it
+    const usageMap = {};
+    for (const q of questions) {
+      const mediaArr = Array.isArray(q.media) ? q.media : [];
+      for (const m of mediaArr) {
+        if (m?.url) usageMap[m.url] = (usageMap[m.url] || 0) + 1;
+      }
+    }
+
+    return files.map(f => ({ ...f, usedIn: usageMap[f.url] || 0 }));
   });
 
   /**

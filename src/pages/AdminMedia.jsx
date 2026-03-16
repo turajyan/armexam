@@ -151,7 +151,7 @@ function PreviewModal({ file, onClose, onDelete }) {
 function ListRow({ file, onPreview, onDelete, selected, onToggle }) {
   const t = TYPE_CFG[file.type] || { icon:"📄", color:C.muted };
   return (
-    <div style={{ display:"grid",gridTemplateColumns:"36px 36px 1fr 80px 130px 90px",
+    <div style={{ display:"grid",gridTemplateColumns:"36px 36px 1fr 72px 80px 130px 90px",
       gap:0,alignItems:"center",padding:"0 16px",
       background:selected?C.gold+"0a":"transparent",
       borderBottom:`1px solid ${C.border}`,
@@ -174,6 +174,14 @@ function ListRow({ file, onPreview, onDelete, selected, onToggle }) {
           overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{file.name}</div>
         <div style={{ fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,
           overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1 }}>{file.url}</div>
+      </div>
+      <div style={{ display:"flex",alignItems:"center",justifyContent:"center" }}>
+        {file.usedIn > 0
+          ? <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:600,
+              color:C.success,background:C.success+"15",border:`1px solid ${C.success}33`,
+              borderRadius:6,padding:"2px 8px",display:"inline-block" }}>{file.usedIn}q</span>
+          : <span style={{ fontFamily:"'DM Sans',sans-serif",fontSize:11,color:C.muted }}>—</span>
+        }
       </div>
       <div style={{ fontFamily:"'DM Sans',sans-serif",fontSize:12,color:C.muted,textAlign:"right",paddingRight:16 }}>
         {fmtSize(file.size)}
@@ -360,7 +368,7 @@ function MediaPage() {
 
       {/* List header */}
       <div style={{ background:C.card,border:`1px solid ${C.border}`,borderRadius:"12px 12px 0 0",
-        display:"grid",gridTemplateColumns:"36px 36px 1fr 80px 130px 90px",
+        display:"grid",gridTemplateColumns:"36px 36px 1fr 72px 80px 130px 90px",
         padding:"0 16px",borderBottom:`1px solid ${C.border}` }}>
         <div style={{ display:"flex",alignItems:"center",justifyContent:"center",height:36,cursor:"pointer" }}
           onClick={()=>allSelected?setSelected([]):setSelected(filtered.map(f=>f.key))}>
@@ -371,11 +379,11 @@ function MediaPage() {
             {allSelected&&<span style={{ color:"#000",fontSize:10,fontWeight:700 }}>✓</span>}
           </div>
         </div>
-        {["","File","Size","Uploaded",""].map((h,i) => (
+        {["","File","Used in","Size","Uploaded",""].map((h,i) => (
           <div key={i} style={{ fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted,
             letterSpacing:.5,textTransform:"uppercase",display:"flex",alignItems:"center",
-            height:36,paddingLeft:i===2?8:0,paddingRight:i===3?16:0,
-            justifyContent:i===3?"flex-end":i===4?"center":"flex-start" }}>
+            height:36,paddingLeft:i===2?8:0,paddingRight:i===4?16:0,
+            justifyContent:i===3||i===4?"center":i===5?"flex-start":"flex-start" }}>
             {h}
           </div>
         ))}
