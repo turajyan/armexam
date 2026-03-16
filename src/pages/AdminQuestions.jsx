@@ -159,7 +159,7 @@ function MediaEditor({ media = [], onChange }) {
   const add = (type) => onChange([...media, { type, url: "", maxPlays: type === "audio" ? 2 : 1 }]);
   const upd = (i, patch) => onChange(media.map((m, j) => j === i ? { ...m, ...patch } : m));
   const del = (i) => onChange(media.filter((_, j) => j !== i));
-  const [uploading, setUploading] = React.useState({}); // { index: true }
+  const [uploading, setUploading] = useState({}); // { index: true }
 
   const uploadFile = async (file, i) => {
     setUploading(u => ({ ...u, [i]: true }));
