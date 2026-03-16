@@ -1347,7 +1347,7 @@ function QRow({ q, onEdit, onDelete, onToggleStatus, onView }) {
 
   return (
     <>
-      {rowPreview && <StudentPreview q={q} onClose={() => setRowPreview(false)} adminMode={true} />}
+      {rowPreview && <StudentPreview q={q} onClose={() => setRowPreview(false)} adminMode={true} theme={theme||null} />}
       <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 90px 70px 90px 90px 160px", alignItems:"center", gap:14, padding:"13px 20px", borderBottom:`1px solid ${C.border}`, transition:"background .15s" }}
         onMouseEnter={e=>e.currentTarget.style.background=C.card}
         onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
@@ -1505,7 +1505,7 @@ function ViewQuestion({ q, onEdit, onClose }) {
         {renderContent()}
       </div>
 
-      {preview && <StudentPreview q={q} onClose={() => setPreview(false)} adminMode={true} />}
+      {preview && <StudentPreview q={q} onClose={() => setPreview(false)} adminMode={true} theme={theme||null} />}
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
         <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 22px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:14, cursor:"pointer" }}>Close</button>
         <button onClick={() => setPreview(true)} style={{ background:"#60a5fa18", border:"1px solid #60a5fa44", borderRadius:10, padding:"10px 22px", color:"#60a5fa", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, cursor:"pointer" }}>👁 Student View</button>

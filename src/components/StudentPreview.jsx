@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getExamTypography } from "../examTypography.js";
+import { THEMES, DEFAULT_THEME, THEME_KEY } from "../theme.js";
 
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
 
@@ -19,12 +20,29 @@ const NEW_TYPES = [
 ];
 const ntypeInfo = (id) => NEW_TYPES.find(t => t.id === id) || NEW_TYPES[0];
 
-function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = false }) {
+function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = false, theme = null }) {
+  const [themeId, setThemeId] = useState(() =>
+    localStorage.getItem(THEME_KEY) || DEFAULT_THEME
+  );
+  useEffect(() => {
+    // Sync when theme changes (Settings page fires storage event)
+    const onStorage = () => setThemeId(localStorage.getItem(THEME_KEY) || DEFAULT_THEME);
+    window.addEventListener("storage", onStorage);
+    // Also listen to our custom event
+    const onCustom = () => setThemeId(localStorage.getItem(THEME_KEY) || DEFAULT_THEME);
+    window.addEventListener("armexam:themechange", onCustom);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("armexam:themechange", onCustom);
+    };
+  }, []);
+  const baseTheme = theme || THEMES[themeId] || THEMES[DEFAULT_THEME];
   const T = {
-    bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
-    text:"#e2e8f0", muted:"#475569", gold:"#c8a96e",
-    optionBg:"#ffffff08", optionSelected:"#c8a96e18", optionBorder:"#c8a96e66",
-    success:"#22c55e", danger:"#f87171",
+    ...baseTheme,
+    // aliases used in StudentPreview
+    optionBg:       baseTheme.panel      || "#080f1a",
+    optionSelected: (baseTheme.gold || "#c8a96e") + "18",
+    optionBorder:   (baseTheme.gold || "#c8a96e") + "66",
   };
   const lc = LEVEL_COLORS[q.level] || "#94a3b8";
   const ti = ntypeInfo(q.type);

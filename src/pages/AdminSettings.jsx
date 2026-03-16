@@ -364,6 +364,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     try { localStorage.setItem("armexam_general_settings", JSON.stringify(general)); } catch {}
     try { localStorage.setItem("armexam_appearance", JSON.stringify(appearance)); } catch {}
     window.dispatchEvent(new CustomEvent("armexam:appearance", { detail: appearance }));
+    window.dispatchEvent(new CustomEvent("armexam:themechange"));
     window.dispatchEvent(new Event("armexam:langchange"));
     showToast("✓ Settings saved successfully!");
   };
@@ -492,7 +493,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
 
         <SettingSection title="Typography & Layout" icon="✍" description="Fonts, border radius, and display preferences">
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
-            <Select label="Theme" value={appearance.theme} onChange={v=>{setA("theme",v); if(onThemeChange) onThemeChange(v);}}
+            <Select label="Theme" value={appearance.theme} onChange={v=>{setA("theme",v); if(onThemeChange) onThemeChange(v); window.dispatchEvent(new CustomEvent("armexam:themechange")); localStorage.setItem("armexam_theme", v);}}
               options={[{value:"dark",label:"Dark 🌙"},{value:"medium",label:"Dim 🌆"},{value:"light",label:"Light ☀️"}]} />
             <Select label="Heading Font" value={appearance.fontHeading} onChange={v=>setA("fontHeading",v)}
               options={[
