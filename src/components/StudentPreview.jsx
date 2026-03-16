@@ -202,7 +202,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
       const ans = typeof fillAns === "object" && fillAns !== null ? fillAns : {};
       const setBlank = (id, val) => setFillAns(prev => ({ ...(typeof prev === "object" && prev !== null ? prev : {}), [id]: val }));
       return (
-        <div style={{ background:T.panel, border:"1px solid T.border2", borderRadius:12,
+        <div style={{ background:T.panel, border:`1px solid ${T.border2}`, borderRadius:12,
           padding:"18px 22px", fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.6 }}>
           {segs.map((s, i) =>
             s.type === "text"
@@ -227,7 +227,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
       return (
         <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
           {/* Sentence with droppable slots */}
-          <div style={{ background:T.panel, border:"1px solid T.border2", borderRadius:12,
+          <div style={{ background:T.panel, border:`1px solid ${T.border2}`, borderRadius:12,
             padding:"18px 22px", fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.2 }}>
             {segs.map((seg, i) =>
               seg.type === "text"
@@ -274,7 +274,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             </div>
           </div>
           <button onClick={initBank} style={{ alignSelf:"flex-start", background:"transparent",
-            border:`1px solid T.border2`, borderRadius:8, padding:"6px 14px",
+            border:`1px solid ${T.border2}`, borderRadius:8, padding:"6px 14px",
             color:T.muted, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
             ↺ Reset
           </button>
@@ -344,7 +344,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                 <div key={col.id}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => { e.preventDefault(); dropIntoCol(col.id); }}
-                  style={{ background:T.panel, border:"2px dashed T.border2", borderRadius:12,
+                  style={{ background:T.panel, border:`2px dashed ${T.border2}`, borderRadius:12,
                     minHeight:120, padding:12, transition:"border .15s" }}
                   onDragEnter={e => e.currentTarget.style.borderColor = "#fb923c88"}
                   onDragLeave={e => e.currentTarget.style.borderColor = T.border2}>
@@ -392,7 +392,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
           )}
           <button onClick={() => { setTPlaced({}); setTBank([...items]); }}
             style={{ alignSelf:"flex-start", background:"transparent",
-              border:"1px solid T.border2", borderRadius:8, padding:"6px 14px",
+              border:`1px solid ${T.border2}`, borderRadius:8, padding:"6px 14px",
               color:T.muted, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
             ↺ Reset
           </button>
@@ -449,7 +449,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
               color: hit ? "#4ade80" : "#f87171" }}>
               {hit ? "✓ Correct zone" : "✗ Try again"}
               <button onClick={() => setImgClick(null)}
-                style={{ marginLeft:12, background:"transparent", border:"1px solid T.border2",
+                style={{ marginLeft:12, background:"transparent", border:`1px solid ${T.border2}`,
                   borderRadius:6, padding:"3px 10px", color:T.muted, fontSize:11, cursor:"pointer" }}>
                 Reset
               </button>
@@ -536,7 +536,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                       left: `calc(${hs.x}% - ${HOTSPOT_W/2}px)`,
                       top:  `calc(${hs.y}% - ${HOTSPOT_H/2}px)`,
                       width: HOTSPOT_W, height: HOTSPOT_H,
-                      background: placed ? "transparent" : ddiDrag ? "#00000022" : "#00000015",
+                      background: placed ? "transparent" : ddiDrag ? T.border2+"44" : T.border,
                       border: `2px dashed ${isDraggingThis ? labelColor(placed)+"88" : placed ? labelColor(placed) : ddiDrag ? T.border2 : T.border2}`,
                       borderRadius: 8,
                       cursor: placed ? "grab" : ddiDrag ? "copy" : "default",
@@ -552,7 +552,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                           textShadow:"0 1px 2px #00000088" }}>{labelText(placed)}</span>
                       : <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11,
                           color:T.border2, pointerEvents:"none",
-                          background:"#00000055", padding:"2px 8px", borderRadius:5 }}>drop here</span>
+                          background:T.panel, padding:"2px 8px", borderRadius:5 }}>drop here</span>
                     }
                   </div>
                 );
@@ -589,7 +589,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
 
           {/* Reset */}
           <button onClick={() => { setDdiPlaced({}); setDdiBank(allLabelIds); }}
-            style={{ alignSelf:"flex-start", background:"transparent", border:"1px solid T.border2",
+            style={{ alignSelf:"flex-start", background:"transparent", border:`1px solid ${T.border2}`,
               borderRadius:7, padding:"5px 14px", color:T.muted, fontSize:12, cursor:"pointer" }}>
             ↺ Reset
           </button>
@@ -611,7 +611,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
       return (
         <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
           {/* Passage with gap indicators */}
-          <div style={{ background:T.panel, border:"1px solid T.border2", borderRadius:12,
+          <div style={{ background:T.panel, border:`1px solid ${T.border2}`, borderRadius:12,
             padding:"18px 22px", fontFamily:"'DM Sans',sans-serif", fontSize:15,
             color:T.text, lineHeight:2 }}>
             {passages.map((p, i) => {
@@ -654,7 +654,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             if (!marker) return null;
             const currentGap = ans[s.id] !== undefined ? Number(ans[s.id]) : null;
             return (
-              <div key={s.id} style={{ background:T.panel, border:"1px solid T.border2",
+              <div key={s.id} style={{ background:T.panel, border:`1px solid ${T.border2}`,
                 borderRadius:12, padding:"14px 18px" }}>
                 <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
                   color:T.text, marginBottom:10, fontStyle:"italic" }}>
@@ -681,7 +681,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   {currentGap !== null && (
                     <button onClick={()=>setTiAns(a=>{const n={...a};delete n[s.id];return n;})}
                       style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer",
-                        background:"transparent", border:"1px solid T.border",
+                        background:"transparent", border:`1px solid ${T.border}`,
                         color:T.muted, fontSize:11, fontFamily:"'DM Sans',sans-serif" }}>
                       ✕ Clear
                     </button>
@@ -739,8 +739,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
           ))}
           {/* Context */}
           {q.contextText && (
-            <div style={{ background:"#c8a96e08", borderRadius:12, padding:"18px 22px", marginBottom:20,
-              borderLeft:"3px solid #c8a96e", position:"relative" }}>
+            <div style={{ background:T.gold+"12", borderRadius:12, padding:"18px 22px", marginBottom:20,
+              borderLeft:`3px solid ${T.gold}`, position:"relative" }}>
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:T.gold,
                 letterSpacing:.8, textTransform:"uppercase", fontWeight:600, marginBottom:8 }}>
                 Context
