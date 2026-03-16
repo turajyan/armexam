@@ -853,15 +853,19 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             }
 
             if (type === "TEXT_INSERTION") {
-              const sentences = c.sentences || [];
-              const markers   = c.markers   || [];
+              const passages  = c.passages  || [];
+              const rawSents  = c.sentences || [];
+              const rawMarkers = (c.markers || []).map(m => ({ ...m, id: String(m.id) }));
+              // Migrate: if no sentences, synthesize from passages
+              const akSentences = rawSents.length > 0 ? rawSents :
+                rawMarkers.map((m, i) => ({ id: m.id, text: passages[m.correct] ?? ("Sentence " + (i+1)) }));
               panels.push(
                 <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
                   borderRadius:12, padding:"14px 18px" }}>
                   <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
                     letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
-                  {markers.map((m, mi) => {
-                    const s = sentences.find(s=>s.id===m.id);
+                  {rawMarkers.map((m, mi) => {
+                    const s = akSentences.find(s => s.id === m.id);
                     return (
                       <div key={m.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
                         color:"#e2e8f0", marginBottom:6 }}>
