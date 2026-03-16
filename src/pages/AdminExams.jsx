@@ -556,7 +556,6 @@ function ExamCard({exam,onEdit,onDelete,onViewResults,onPreview,onToggleOpen,all
           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,flexWrap:"wrap"}}>
             {isp?<Badge color={C.purple}>📊 Placement</Badge>:<Badge color={lc}>{exam.level}</Badge>}
             <Badge color={sm.color}>{sm.icon} {sm.label}</Badge>
-            {exam.isOpen&&<Badge color={C.success}>🟢 Registration Open</Badge>}
           </div>
           <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:19,color:C.text,margin:"0 0 3px",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exam.title}</h3>
           <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted}}>#{exam.id}</div>
