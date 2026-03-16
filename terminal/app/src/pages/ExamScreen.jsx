@@ -476,7 +476,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                 display:'flex', alignItems:'center', justifyContent:'center',
               }}>{sel && <div style={{ width:8, height:8, borderRadius:'50%', background:'#1a1200' }} />}</div>
               <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize,
-                color: sel ? typo.answerColor : T.muted, lineHeight:1.5 }}>{opt}</span>
+                color: sel ? T.text : T.muted, lineHeight:1.5 }}>{opt}</span>
             </button>
           );
         })}
@@ -510,7 +510,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                     display:'flex', alignItems:'center', justifyContent:'center',
                   }}>{checked && <span style={{ color:T.gold, fontSize:12, fontWeight:700 }}>✓</span>}</div>
                   <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize,
-                    color: checked ? typo.answerColor : T.muted }}>{opt}</span>
+                    color: checked ? T.text : T.muted }}>{opt}</span>
                 </button>
               );
             })}
@@ -994,7 +994,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
       {renderMedia()}
 
       {/* Question text */}
-      <div style={{ fontSize:typo.promptFontSize, lineHeight:1.75, color:typo.promptColor,
+      <div style={{ fontSize:typo.promptFontSize, lineHeight:1.75, color:T.text,
         fontFamily:"'DM Sans',sans-serif", marginBottom:24 }}>
         {qText}
       </div>

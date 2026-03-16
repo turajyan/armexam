@@ -291,12 +291,9 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
         compactMode:     saved.compactMode     ?? false,
         // Exam content typography
         contextFontSize:  saved.contextFontSize  ?? "17",
-        contextColor:     saved.contextColor     ?? "#e2e8f0",
-        promptFontSize:   saved.promptFontSize   ?? "20",
-        promptColor:      saved.promptColor      ?? "#e2e8f0",
-        answerFontSize:   saved.answerFontSize   ?? "15",
-        answerColor:      saved.answerColor      ?? "#e2e8f0",
-      };
+                promptFontSize:   saved.promptFontSize   ?? "20",
+                answerFontSize:   saved.answerFontSize   ?? "15",
+              };
     } catch {
       return {
         primaryColor:"#c8a96e", accentColor:"#60a5fa", dangerColor:"#f87171",
@@ -523,38 +520,31 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
         </SettingSection>
 
         <SettingSection title="Content Typography" icon="✍" description="Font size and color for context text, prompt, and answer options — applied in Student Preview and Exam Terminal">
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
             <div>
               <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Context text size (px)</label>
               <input type="range" min="13" max="22" value={appearance.contextFontSize} onChange={e=>setA("contextFontSize",e.target.value)}
                 style={{ width:"100%", accentColor:C.gold }} />
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
-                {appearance.contextFontSize}px — <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:+appearance.contextFontSize, color:appearance.contextColor }}>Context text preview</span>
+                {appearance.contextFontSize}px — <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:+appearance.contextFontSize, color:C.text }}>Context text preview</span>
               </div>
             </div>
-            <ColorPicker label="Context text color" value={appearance.contextColor} onChange={v=>setA("contextColor",v)} />
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginTop:8 }}>
             <div>
               <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Prompt size (px)</label>
               <input type="range" min="14" max="28" value={appearance.promptFontSize} onChange={e=>setA("promptFontSize",e.target.value)}
                 style={{ width:"100%", accentColor:C.gold }} />
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
-                {appearance.promptFontSize}px — <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:+appearance.promptFontSize, color:appearance.promptColor }}>Prompt preview</span>
+                {appearance.promptFontSize}px — <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:+appearance.promptFontSize, color:C.text }}>Prompt preview</span>
               </div>
             </div>
-            <ColorPicker label="Prompt color" value={appearance.promptColor} onChange={v=>setA("promptColor",v)} />
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginTop:8 }}>
             <div>
               <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Answer options size (px)</label>
               <input type="range" min="12" max="20" value={appearance.answerFontSize} onChange={e=>setA("answerFontSize",e.target.value)}
                 style={{ width:"100%", accentColor:C.gold }} />
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
-                {appearance.answerFontSize}px — <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:+appearance.answerFontSize, color:appearance.answerColor }}>Answer option preview</span>
+                {appearance.answerFontSize}px — <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:+appearance.answerFontSize, color:C.text }}>Answer option preview</span>
               </div>
             </div>
-            <ColorPicker label="Answer options color" value={appearance.answerColor} onChange={v=>setA("answerColor",v)} />
           </div>
         </SettingSection>
 

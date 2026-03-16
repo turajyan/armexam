@@ -155,7 +155,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   display:"flex", alignItems:"center", justifyContent:"center" }}>
                   {sel && <div style={{ width:8, height:8, borderRadius:"50%", background:"#1a1200" }} />}
                 </div>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize, color: sel ? typo.answerColor : T.muted }}>{opt}</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize, color: sel ? T.text : T.muted }}>{opt}</span>
               </button>
             );
           })}
@@ -187,7 +187,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   display:"flex", alignItems:"center", justifyContent:"center" }}>
                   {checked && <span style={{ color:T.gold, fontSize:12, fontWeight:700 }}>✓</span>}
                 </div>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize, color: checked ? typo.answerColor : T.muted }}>{opt}</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize, color: checked ? T.text : T.muted }}>{opt}</span>
               </button>
             );
           })}
@@ -746,12 +746,12 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                 Context
               </div>
               <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:typo.contextFontSize,
-                color:typo.contextColor, lineHeight:1.8, margin:0, whiteSpace:"pre-wrap" }}>{q.contextText}</p>
+                color:T.text, lineHeight:1.8, margin:0, whiteSpace:"pre-wrap" }}>{q.contextText}</p>
             </div>
           )}
           {/* Prompt */}
           <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:typo.promptFontSize,
-            color:typo.promptColor, lineHeight:1.6, marginBottom:24, fontWeight:600 }}>{q.prompt || "(no prompt)"}</p>
+            color:T.text, lineHeight:1.6, marginBottom:24, fontWeight:600 }}>{q.prompt || "(no prompt)"}</p>
           {/* Interactive input */}
           {renderInput()}
 
