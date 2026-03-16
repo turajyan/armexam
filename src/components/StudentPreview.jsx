@@ -705,11 +705,11 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
         {/* Top bar: close button always top-right */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
           padding:"10px 14px 0", flexShrink:0 }}>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted }}>
             Student Preview
           </span>
           {onClose && <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${T.border}`,
-            borderRadius:8, width:30, height:30, color:"#475569", fontSize:15, cursor:"pointer",
+            borderRadius:8, width:30, height:30, color:T.muted, fontSize:15, cursor:"pointer",
             display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>✕</button>}
         </div>
 
@@ -771,7 +771,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   {opts.map((opt, i) => (
                     <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4,
                       fontFamily:"'DM Sans',sans-serif", fontSize:13,
-                      color: i === c.correct ? "#22c55e" : "#475569" }}>
+                      color: i === c.correct ? "#22c55e" : T.muted }}>
                       <span style={{ fontSize:11 }}>{i === c.correct ? "✓" : "○"}</span> {opt}
                     </div>
                   ))}
@@ -790,7 +790,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   {opts.map((opt, i) => (
                     <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4,
                       fontFamily:"'DM Sans',sans-serif", fontSize:13,
-                      color: correct.includes(i) ? "#22c55e" : "#475569" }}>
+                      color: correct.includes(i) ? "#22c55e" : T.muted }}>
                       <span style={{ fontSize:11 }}>{correct.includes(i) ? "✓" : "○"}</span> {opt}
                     </div>
                   ))}
@@ -807,8 +807,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                     letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
                   {Object.entries(slots).map(([slot, answer]) => (
                     <div key={slot} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
-                      color:"#e2e8f0", marginBottom:4 }}>
-                      <span style={{ color:"#475569" }}>{slot}:</span> <span style={{ color:"#22c55e" }}>{answer}</span>
+                      color:T.text, marginBottom:4 }}>
+                      <span style={{ color:T.muted }}>{slot}:</span> <span style={{ color:"#22c55e" }}>{answer}</span>
                     </div>
                   ))}
                 </div>
@@ -828,8 +828,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                     const col = cols.find(col => col.id === correct[it.id]);
                     return (
                       <div key={it.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
-                        color:"#e2e8f0", marginBottom:4 }}>
-                        <span style={{ color:"#475569" }}>{it.text}</span>
+                        color:T.text, marginBottom:4 }}>
+                        <span style={{ color:T.muted }}>{it.text}</span>
                         <span style={{ color:"#22c55e" }}> → {col?.title ?? "?"}</span>
                       </div>
                     );
@@ -850,8 +850,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                     const lbl = labels.find(l => l.id === hs.correct);
                     return (
                       <div key={hs.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
-                        color:"#e2e8f0", marginBottom:4 }}>
-                        <span style={{ color:"#475569" }}>Hotspot {i+1} ({Math.round(hs.x)}%,{Math.round(hs.y)})%:</span>
+                        color:T.text, marginBottom:4 }}>
+                        <span style={{ color:T.muted }}>Hotspot {i+1} ({Math.round(hs.x)}%,{Math.round(hs.y)})%:</span>
                         <span style={{ color:"#22c55e" }}> {lbl?.text ?? "?"}</span>
                       </div>
                     );
@@ -869,12 +869,12 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   borderRadius:12, padding:"14px 18px" }}>
                   <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
                     letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
-                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#e2e8f0", marginBottom:6 }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.text, marginBottom:6 }}>
                     <span style={{ color:"#22c55e" }}>✓ Correct zones: </span>
                     {correct.map((h,i) => `Zone ${hotspots.indexOf(h)+1} (${Math.round(h.x)}%,${Math.round(h.y)}% ${Math.round(h.width??10)}×${Math.round(h.height??10)}%)`).join(", ") || "none"}
                   </div>
                   {dist.length > 0 && (
-                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#e2e8f0" }}>
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.text }}>
                       <span style={{ color:"#f87171" }}>✗ Distractor zones: </span>
                       {dist.map((h,i) => `Zone ${hotspots.indexOf(h)+1}`).join(", ")}
                     </div>
@@ -899,9 +899,9 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                     const s = akSentences.find(s => s.id === m.id);
                     return (
                       <div key={m.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
-                        color:"#e2e8f0", marginBottom:6 }}>
+                        color:T.text, marginBottom:6 }}>
                         <span style={{ color:"#22c55e", fontWeight:600 }}>Gap {m.correct+1}</span>
-                        <span style={{ color:"#475569" }}> ← </span>
+                        <span style={{ color:T.muted }}> ← </span>
                         <span style={{ fontStyle:"italic" }}>"{s?.text || "?"}"</span>
                       </div>
                     );
@@ -913,17 +913,17 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             if (["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"].includes(type)) {
               const rubrics = c.rubrics || [];
               panels.push(
-                <div key="ak" style={{ marginTop:20, background:"#60a5fa0d", border:"1px solid #60a5fa33",
+                <div key="ak" style={{ marginTop:20, background:T.info+"0d", border:`1px solid ${T.info}33`,
                   borderRadius:12, padding:"14px 18px" }}>
-                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#60a5fa",
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.info,
                     letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>📋 Rubrics</div>
                   {rubrics.map(r => (
                     <div key={r.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
-                      color:"#e2e8f0", marginBottom:4 }}>
-                      {r.label} — <span style={{ color:"#f59e0b" }}>max {r.maxScore} pts</span>
+                      color:T.text, marginBottom:4 }}>
+                      {r.label} — <span style={{ color:T.warning }}>max {r.maxScore} pts</span>
                     </div>
                   ))}
-                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#475569", marginTop:8 }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted, marginTop:8 }}>
                     Total: {rubrics.reduce((s,r) => s + (r.maxScore||0), 0)} pts · Manual grading required
                   </div>
                 </div>
@@ -937,13 +937,13 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
         {/* Footer */}
         <div style={{ padding:"14px 24px", borderTop:`1px solid ${T.border}`, flexShrink:0,
           display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted }}>
             {q.points} pt · read-only preview
           </span>
           {navDots ? (
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={navPrev} disabled={!navPrev} style={{ background:"transparent",
-                border:`1px solid ${T.border2}`, borderRadius:9, padding:"7px 16px", color: navPrev ? "#e2e8f0" : "#475569",
+                border:`1px solid ${T.border2}`, borderRadius:9, padding:"7px 16px", color: navPrev ? T.text : T.muted,
                 fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor: navPrev ? "pointer" : "not-allowed",
                 opacity: navPrev ? 1 : 0.4 }}>← Prev</button>
               {navNext
@@ -957,7 +957,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             </div>
           ) : (
             <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${T.border2}`,
-              borderRadius:9, padding:"8px 20px", color:"#475569",
+              borderRadius:9, padding:"8px 20px", color:T.muted,
               fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer" }}>Close</button>
           )}
         </div>
