@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:3001',
       '/voice': 'http://localhost:4000',
+      '/minio': { target: 'http://localhost:9000', rewrite: path => path.replace(/^\/minio/, '') },
     },
   },
 })

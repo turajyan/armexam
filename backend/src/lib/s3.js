@@ -38,9 +38,15 @@ export async function uploadBuffer(buffer, originalName, mimetype) {
  * @param {string} url
  */
 export async function deleteByUrl(url) {
-  const prefix = process.env.S3_PUBLIC_URL + "/";
-  if (!url?.startsWith(prefix)) return;
-  const key = url.slice(prefix.length);
+  if (!url) return;
+  // Support both absolute (http://...) and relative (/minio/...) public URLs
+  const publicUrl = process.env.S3_PUBLIC_URL;
+  const bucket    = process.env.S3_BUCKET;
+  // Extract key: everything after /BUCKET/ in the URL
+  const marker = `/${bucket}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return;
+  const key = url.slice(idx + marker.length);
   await s3.send(new DeleteObjectCommand({
     Bucket: process.env.S3_BUCKET,
     Key:    key,
