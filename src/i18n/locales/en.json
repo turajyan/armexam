@@ -10,7 +10,8 @@
     "error": {
       "empty": "Please enter your email and password",
       "failed": "Login failed"
-    }
+    },
+    "no_account_rev": "Already have an account?"
   },
   "reg": {
     "title": "Create an account",

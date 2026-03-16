@@ -7,7 +7,7 @@ const COUNTRIES = [
   "Belarus", "Kazakhstan", "Azerbaijan", "Turkey", "Iran", "Other",
 ];
 
-export default function RegisterPage({ theme: T, onSuccess }) {
+export default function RegisterPage({ theme: T, onSuccess, onLogin }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
     name: "", email: "", password: "", phone: "",
@@ -147,6 +147,18 @@ export default function RegisterPage({ theme: T, onSuccess }) {
               <button onClick={handleSubmit} disabled={submitting} style={primaryBtn(T, submitting)}>
                 {submitting ? t("reg.submitting") : t("reg.submit")}
               </button>
+
+              {onLogin && (
+                <p style={{ textAlign:"center", marginTop:16, fontFamily:"'DM Sans',sans-serif",
+                  fontSize:13, color:T.muted }}>
+                  {t("login.no_account_rev", "Already have an account?")}{" "}
+                  <span onClick={onLogin}
+                    style={{ color:T.gold, cursor:"pointer", fontWeight:600,
+                      textDecoration:"underline", textUnderlineOffset:3 }}>
+                    {t("login.submit", "Sign in")}
+                  </span>
+                </p>
+              )}
             </>
           )}
         </div>

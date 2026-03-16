@@ -169,10 +169,8 @@ export default function App() {
         <RegisterPage
           theme={T}
           onSuccess={(u) => { setUser(u); api.me().then(setUser).catch(() => {}); setUserPage("dashboard"); window.location.hash = "#dashboard"; }}
+          onLogin={() => { window.location.hash = "#login"; }}
         />
-        <div style={{ position:"fixed", bottom:16, right:16, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>
-          <a href="#login" style={{ color:T.gold, textDecoration:"none" }}>Already have an account? Sign in</a>
-        </div>
       </>
     );
   }
