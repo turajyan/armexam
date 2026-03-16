@@ -274,18 +274,39 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     certificateEnabled:true,
   });
 
-  const [appearance, setAppearance] = useState({
-    primaryColor:"#c8a96e",
-    accentColor:"#60a5fa",
-    dangerColor:"#f87171",
-    theme:currentTheme||"dark",
-    fontHeading:"Cormorant Garamond",
-    fontBody:"DM Sans",
-    borderRadius:"14",
-    logoText:"Հ",
-    showLevelBadges: true,
-    showTimer: true,
-    compactMode: false,
+  const [appearance, setAppearance] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("armexam_appearance") || "{}");
+      return {
+        primaryColor:   saved.primaryColor   ?? "#c8a96e",
+        accentColor:    saved.accentColor    ?? "#60a5fa",
+        dangerColor:    saved.dangerColor    ?? "#f87171",
+        theme:          saved.theme          ?? (currentTheme||"dark"),
+        fontHeading:    saved.fontHeading    ?? "Cormorant Garamond",
+        fontBody:       saved.fontBody       ?? "DM Sans",
+        borderRadius:   saved.borderRadius   ?? "14",
+        logoText:       saved.logoText       ?? "Հ",
+        showLevelBadges: saved.showLevelBadges ?? true,
+        showTimer:       saved.showTimer       ?? true,
+        compactMode:     saved.compactMode     ?? false,
+        // Exam content typography
+        contextFontSize:  saved.contextFontSize  ?? "17",
+        contextColor:     saved.contextColor     ?? "#e2e8f0",
+        promptFontSize:   saved.promptFontSize   ?? "20",
+        promptColor:      saved.promptColor      ?? "#e2e8f0",
+        answerFontSize:   saved.answerFontSize   ?? "15",
+        answerColor:      saved.answerColor      ?? "#e2e8f0",
+      };
+    } catch {
+      return {
+        primaryColor:"#c8a96e", accentColor:"#60a5fa", dangerColor:"#f87171",
+        theme:currentTheme||"dark", fontHeading:"Cormorant Garamond", fontBody:"DM Sans",
+        borderRadius:"14", logoText:"Հ", showLevelBadges:true, showTimer:true, compactMode:false,
+        contextFontSize:"17", contextColor:"#e2e8f0",
+        promptFontSize:"20",  promptColor:"#e2e8f0",
+        answerFontSize:"15",  answerColor:"#e2e8f0",
+      };
+    }
   });
 
   const [emailCfg, setEmailCfg] = useState({
@@ -341,6 +362,8 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
   const handleSave  = () => {
     setSaved(true);
     try { localStorage.setItem("armexam_general_settings", JSON.stringify(general)); } catch {}
+    try { localStorage.setItem("armexam_appearance", JSON.stringify(appearance)); } catch {}
+    window.dispatchEvent(new CustomEvent("armexam:appearance", { detail: appearance }));
     window.dispatchEvent(new Event("armexam:langchange"));
     showToast("✓ Settings saved successfully!");
   };
@@ -495,6 +518,42 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
             <Input label="Card Corner Radius (px)" value={appearance.borderRadius} onChange={v=>setA("borderRadius",v)} type="number" hint="Roundness of cards and buttons (0 = sharp, 20 = very round)" />
             <Input label="Logo Monogram" value={appearance.logoText} onChange={v=>setA("logoText",v)} hint="1–2 letter abbreviation shown in the sidebar logo" />
+          </div>
+        </SettingSection>
+
+        <SettingSection title="Content Typography" icon="✍" description="Font size and color for context text, prompt, and answer options — applied in Student Preview and Exam Terminal">
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+            <div>
+              <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Context text size (px)</label>
+              <input type="range" min="13" max="22" value={appearance.contextFontSize} onChange={e=>setA("contextFontSize",e.target.value)}
+                style={{ width:"100%", accentColor:C.gold }} />
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
+                {appearance.contextFontSize}px — <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:+appearance.contextFontSize, color:appearance.contextColor }}>Context text preview</span>
+              </div>
+            </div>
+            <ColorPicker label="Context text color" value={appearance.contextColor} onChange={v=>setA("contextColor",v)} />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginTop:8 }}>
+            <div>
+              <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Prompt size (px)</label>
+              <input type="range" min="14" max="28" value={appearance.promptFontSize} onChange={e=>setA("promptFontSize",e.target.value)}
+                style={{ width:"100%", accentColor:C.gold }} />
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
+                {appearance.promptFontSize}px — <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:+appearance.promptFontSize, color:appearance.promptColor }}>Prompt preview</span>
+              </div>
+            </div>
+            <ColorPicker label="Prompt color" value={appearance.promptColor} onChange={v=>setA("promptColor",v)} />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginTop:8 }}>
+            <div>
+              <label style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Answer options size (px)</label>
+              <input type="range" min="12" max="20" value={appearance.answerFontSize} onChange={e=>setA("answerFontSize",e.target.value)}
+                style={{ width:"100%", accentColor:C.gold }} />
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:3 }}>
+                {appearance.answerFontSize}px — <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:+appearance.answerFontSize, color:appearance.answerColor }}>Answer option preview</span>
+              </div>
+            </div>
+            <ColorPicker label="Answer options color" value={appearance.answerColor} onChange={v=>setA("answerColor",v)} />
           </div>
         </SettingSection>
 

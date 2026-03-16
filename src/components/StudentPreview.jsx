@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getExamTypography } from "../examTypography.js";
 
 const LEVEL_COLORS = { A1:"#4ade80",A2:"#86efac",B1:"#60a5fa",B2:"#93c5fd",C1:"#f59e0b",C2:"#fbbf24" };
 
@@ -29,6 +30,13 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
   const ti = ntypeInfo(q.type);
   const c  = q.content || {};
   const media = Array.isArray(q.media) ? q.media : [];
+  const [typo, setTypo] = useState(() => getExamTypography());
+  // Re-read when admin saves settings
+  useEffect(() => {
+    const handler = () => setTypo(getExamTypography());
+    window.addEventListener("armexam:appearance", handler);
+    return () => window.removeEventListener("armexam:appearance", handler);
+  }, []);
 
   // ── per-type interactive state ──────────────────────────────────────────
   const [choiceAns,    setChoiceAns]    = useState(null);      // SINGLE_CHOICE
@@ -129,7 +137,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   display:"flex", alignItems:"center", justifyContent:"center" }}>
                   {sel && <div style={{ width:8, height:8, borderRadius:"50%", background:"#1a1200" }} />}
                 </div>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color: sel ? T.text : T.muted }}>{opt}</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize, color: sel ? typo.answerColor : T.muted }}>{opt}</span>
               </button>
             );
           })}
@@ -161,7 +169,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   display:"flex", alignItems:"center", justifyContent:"center" }}>
                   {checked && <span style={{ color:T.gold, fontSize:12, fontWeight:700 }}>✓</span>}
                 </div>
-                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color: checked ? T.text : T.muted }}>{opt}</span>
+                <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize, color: checked ? typo.answerColor : T.muted }}>{opt}</span>
               </button>
             );
           })}
@@ -719,13 +727,13 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                 letterSpacing:.8, textTransform:"uppercase", fontWeight:600, marginBottom:8 }}>
                 Context
               </div>
-              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:T.text,
-                lineHeight:1.8, margin:0, whiteSpace:"pre-wrap" }}>{q.contextText}</p>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:typo.contextFontSize,
+                color:typo.contextColor, lineHeight:1.8, margin:0, whiteSpace:"pre-wrap" }}>{q.contextText}</p>
             </div>
           )}
           {/* Prompt */}
-          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:T.text,
-            lineHeight:1.6, marginBottom:24, fontWeight:600 }}>{q.prompt || "(no prompt)"}</p>
+          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:typo.promptFontSize,
+            color:typo.promptColor, lineHeight:1.6, marginBottom:24, fontWeight:600 }}>{q.prompt || "(no prompt)"}</p>
           {/* Interactive input */}
           {renderInput()}
 
