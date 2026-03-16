@@ -521,7 +521,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
                 <span style={{ background:appearance.accentColor+"22", color:appearance.accentColor, border:`1px solid ${appearance.accentColor}44`, borderRadius:+appearance.borderRadius/2, padding:"4px 12px", fontSize:12, fontFamily:`'${appearance.fontBody}',sans-serif`, fontWeight:700 }}>Active</span>
               </div>
             </div>
-            <div style={{ fontFamily:`'${appearance.fontBody}',sans-serif`, fontSize:14, color:C.muted, lineHeight:1.6 }}>
+            <div style={{ fontFamily:`'${appearance.fontBody}',sans-serif`, fontSize:14, color:C.text, lineHeight:1.6 }}>
               Sample question text in selected body font. Ընտրի՛ր ճիշտ պատասխանը։
             </div>
             <div style={{ display:"flex", gap:8, marginTop:12 }}>
