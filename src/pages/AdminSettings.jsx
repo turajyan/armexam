@@ -535,7 +535,7 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
           {[
             { role:"super_admin",  color:C.gold,    perms:["Full platform access","Manage all admins & centers","Questions, Exams, Students","Analytics, Media, Settings","Can assign any role"] },
             { role:"center_admin", color:C.info,    perms:["Questions, Exams, Students","Analytics for own center","Grading","Cannot access Settings or Admins tab"] },
-            { role:"content_editor", label:"Content Editor", color:C.warning, perms:["View & edit question bank only","Cannot manage exams or students","No analytics, no settings"] },
+            { role:"content_editor", label:"Content Editor", color:C.warning, perms:["View & edit question bank","Question statistics (Questions → Statistics tab)","Cannot manage exams or students","No platform analytics, no settings"] },
             { role:"examiner",     color:C.purple,  perms:["View question bank (read-only)","Grade speaking & writing","No access to exam management"] },
           ].map(r=>(
             <div key={r.role} style={{ display:"flex", alignItems:"flex-start", gap:14, padding:"14px 16px", background:C.panel, border:`1px solid ${C.border}`, borderRadius:10 }}>
