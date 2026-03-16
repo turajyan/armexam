@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import * as api from "../api.js";
+import { api } from "../api.js";
 
 const C = { bg:"#04080f",panel:"#080f1a",card:"#0d1829",border:"#1a2540",border2:"#243050",
   gold:"#c8a96e",goldDim:"#7c5830",text:"#e2e8f0",muted:"#475569",
