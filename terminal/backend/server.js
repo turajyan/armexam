@@ -259,9 +259,10 @@ function calcResult(exam, questions, answers) {
         return allCorrect ? q.points : 0;
       }
       case 'TEXT_INSERTION': {
-        // ans: { [markerId]: sentenceIndex }
+        // ans: { [sentenceId]: gapIndex }
         if (typeof ans !== 'object') return 0;
         const markers = c.markers || [];
+        if (markers.length === 0) return 0;
         const allCorrect = markers.every(m => Number(ans[m.id] ?? -1) === m.correct);
         return allCorrect ? q.points : 0;
       }

@@ -572,58 +572,94 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
     }
 
     if (type === "TEXT_INSERTION") {
-      const passages = c.passages || [];
-      const markers  = c.markers  || [];
+      const passages  = c.passages  || [];
+      const sentences = c.sentences || [];
+      const markers   = c.markers   || [];
       const ans = (typeof tiAns === "object" && tiAns !== null) ? tiAns : {};
       const setMarker = (mid, idx) => setTiAns(a => ({ ...(a||{}), [mid]: idx }));
+
       return (
         <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted }}>
-            For each sentence, choose the gap where it fits best.
-          </div>
+          {/* Passage with gap indicators */}
           <div style={{ background:"#ffffff06", border:"1px solid #ffffff18", borderRadius:12,
             padding:"18px 22px", fontFamily:"'DM Sans',sans-serif", fontSize:15,
-            color:T.text, lineHeight:1.9 }}>
-            {passages.map((p, i) => (
-              <span key={i}>
-                {p}
-                {i < passages.length - 1 && (
-                  <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center",
-                    width:24, height:24, borderRadius:"50%", margin:"0 6px",
-                    background: Object.values(ans).some(v=>Number(v)===i) ? T.gold+"44" : "#ffffff18",
-                    border:`1.5px solid ${Object.values(ans).some(v=>Number(v)===i) ? T.gold : "#ffffff33"}`,
-                    color: Object.values(ans).some(v=>Number(v)===i) ? T.gold : T.muted,
-                    fontSize:11, fontWeight:700 }}>
-                    {i+1}
-                  </span>
-                )}
-              </span>
-            ))}
+            color:T.text, lineHeight:2 }}>
+            {passages.map((p, i) => {
+              const filledId = Object.keys(ans).find(mid => Number(ans[mid]) === i);
+              const filledSentence = filledId ? sentences.find(s=>s.id===filledId) : null;
+              return (
+                <span key={i}>
+                  <span>{p}</span>
+                  {i < passages.length - 1 && (
+                    <span style={{ display:"inline-flex", alignItems:"center", gap:4,
+                      margin:"0 6px", verticalAlign:"middle" }}>
+                      {filledSentence ? (
+                        <span style={{ background:T.gold+"22", border:`1.5px solid ${T.gold+"88"}`,
+                          borderRadius:8, padding:"2px 10px", fontSize:12, color:T.gold,
+                          fontStyle:"italic", cursor:"default" }}>
+                          ↩ {filledSentence.text.slice(0,40)}{filledSentence.text.length>40?"…":""}
+                        </span>
+                      ) : (
+                        <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center",
+                          width:24, height:24, borderRadius:"50%",
+                          background:"#ffffff18", border:"1.5px solid #ffffff33",
+                          color:T.muted, fontSize:11, fontWeight:700 }}>
+                          {i+1}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </span>
+              );
+            })}
           </div>
-          {markers.map((m, mi) => (
-            <div key={m.id} style={{ background:"#ffffff06", border:"1px solid #ffffff18",
-              borderRadius:12, padding:"14px 18px" }}>
-              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted, marginBottom:8 }}>
-                Sentence {mi+1}
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {passages.slice(0,-1).map((_,gi) => {
-                  const sel = Number(ans[m.id]) === gi;
-                  return (
-                    <button key={gi} onClick={()=>setMarker(m.id, gi)}
-                      style={{ padding:"6px 16px", borderRadius:8, cursor:"pointer",
-                        background: sel ? T.gold+"22" : "#ffffff08",
-                        border:`1.5px solid ${sel ? T.gold+"88" : "#ffffff22"}`,
-                        color: sel ? T.gold : T.muted,
-                        fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:sel?700:400,
-                        transition:"all .15s" }}>
-                      Gap {gi+1}
+
+          {/* Sentence cards — drag each to the right gap */}
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted,
+            letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>
+            Sentences to insert
+          </div>
+          {sentences.map((s, si) => {
+            const marker = markers.find(m=>m.id===s.id);
+            if (!marker) return null;
+            const currentGap = ans[s.id] !== undefined ? Number(ans[s.id]) : null;
+            return (
+              <div key={s.id} style={{ background:"#ffffff06", border:"1px solid #ffffff18",
+                borderRadius:12, padding:"14px 18px" }}>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                  color:T.text, marginBottom:10, fontStyle:"italic" }}>
+                  "{s.text}"
+                </div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6, alignItems:"center" }}>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted, marginRight:4 }}>
+                    Insert after:
+                  </span>
+                  {passages.slice(0,-1).map((_,gi) => {
+                    const sel = currentGap === gi;
+                    return (
+                      <button key={gi} onClick={()=>setMarker(s.id, gi)}
+                        style={{ padding:"5px 14px", borderRadius:8, cursor:"pointer",
+                          background: sel ? T.gold+"22" : "#ffffff08",
+                          border:`1.5px solid ${sel ? T.gold+"88" : "#ffffff22"}`,
+                          color: sel ? T.gold : T.muted,
+                          fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:sel?700:400,
+                          transition:"all .15s" }}>
+                        Gap {gi+1}
+                      </button>
+                    );
+                  })}
+                  {currentGap !== null && (
+                    <button onClick={()=>setTiAns(a=>{const n={...a};delete n[s.id];return n;})}
+                      style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer",
+                        background:"transparent", border:"1px solid #ffffff15",
+                        color:T.muted, fontSize:11, fontFamily:"'DM Sans',sans-serif" }}>
+                      ✕ Clear
                     </button>
-                  );
-                })}
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
@@ -813,23 +849,24 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             }
 
             if (type === "TEXT_INSERTION") {
-              const passages = c.passages || [];
-              const markers  = c.markers  || [];
+              const sentences = c.sentences || [];
+              const markers   = c.markers   || [];
               panels.push(
                 <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
                   borderRadius:12, padding:"14px 18px" }}>
                   <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
                     letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
-                  {markers.map((m, mi) => (
-                    <div key={m.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
-                      color:"#e2e8f0", marginBottom:4 }}>
-                      <span style={{ color:"#475569" }}>Sentence {mi+1}:</span>
-                      <span style={{ color:"#22c55e" }}> → Gap {m.correct+1}</span>
-                      <span style={{ color:"#475569", fontSize:11, marginLeft:6 }}>
-                        ({passages[m.correct]?.slice(0,40)}…)
-                      </span>
-                    </div>
-                  ))}
+                  {markers.map((m, mi) => {
+                    const s = sentences.find(s=>s.id===m.id);
+                    return (
+                      <div key={m.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                        color:"#e2e8f0", marginBottom:6 }}>
+                        <span style={{ color:"#22c55e", fontWeight:600 }}>Gap {m.correct+1}</span>
+                        <span style={{ color:"#475569" }}> ← </span>
+                        <span style={{ fontStyle:"italic" }}>"{s?.text || "?"}"</span>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             }

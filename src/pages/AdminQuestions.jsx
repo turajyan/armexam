@@ -96,7 +96,17 @@ function blankContent(type) {
     case "DRAG_TO_TEXT":
       return { text: "The sun {slot_1} every day.", wordBank: ["rises", "falls", "sleeps"], slots: { slot_1: "rises" } };
     case "TEXT_INSERTION":
-      return { passages: ["Sentence to insert."], markers: [{ id: 1, correct: 0 }] };
+      return {
+        passages:  ["The first part of the text.", "The second part.", "The third part.", "The final part."],
+        sentences: [
+          { id: "s1", text: "This sentence belongs after the first part." },
+          { id: "s2", text: "This sentence belongs after the second part." },
+        ],
+        markers: [
+          { id: "s1", correct: 0 },
+          { id: "s2", correct: 1 },
+        ],
+      };
     case "DRAG_AND_DROP_TABLE":
       return { columns: [{ id: "col_a", title: "Group A" }, { id: "col_b", title: "Group B" }], items: [{ id: "i1", text: "Item 1" }, { id: "i2", text: "Item 2" }], correct: { i1: "col_a", i2: "col_b" } };
     case "DRAG_AND_DROP_IMAGE":
@@ -961,6 +971,172 @@ function ImageClickEditor({ content, onChange, media = [] }) {
   );
 }
 
+
+function TextInsertionEditor({ content, onChange }) {
+  const uid = () => "ti_" + Math.random().toString(36).slice(2,7);
+
+  const passages  = content.passages  || [""];
+  const sentences = content.sentences || [];
+  const markers   = content.markers   || [];
+
+  const upd = (patch) => onChange({ ...content, ...patch });
+
+  // ── Passages ───────────────────────────────────────────────────────────────
+  const addPassage  = () => upd({ passages: [...passages, ""] });
+  const updPassage  = (i, v) => upd({ passages: passages.map((p,j) => j===i ? v : p) });
+  const delPassage  = (i) => {
+    const newP = passages.filter((_,j) => j!==i);
+    // adjust marker.correct indices
+    const newM = markers.map(m => ({
+      ...m,
+      correct: m.correct >= i ? Math.max(0, m.correct-1) : m.correct,
+    })).filter(m => m.correct < newP.length - 1);
+    upd({ passages: newP, markers: newM });
+  };
+
+  // ── Sentences ──────────────────────────────────────────────────────────────
+  const addSentence = () => {
+    const id = uid();
+    upd({
+      sentences: [...sentences, { id, text: "" }],
+      markers:   [...markers,   { id, correct: 0 }],
+    });
+  };
+  const updSentence = (id, text) => upd({ sentences: sentences.map(s => s.id===id ? {...s, text} : s) });
+  const delSentence = (id) => upd({
+    sentences: sentences.filter(s => s.id!==id),
+    markers:   markers.filter(m => m.id!==id),
+  });
+  const updMarker = (id, correct) => upd({ markers: markers.map(m => m.id===id ? {...m, correct:+correct} : m) });
+
+  const gapCount = passages.length - 1; // gaps between passages
+
+  const S = {
+    label: { fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, letterSpacing:.5, textTransform:"uppercase", marginBottom:6, display:"block" },
+    row:   { display:"flex", alignItems:"flex-start", gap:8, marginBottom:8 },
+    inp:   { flex:1, background:C.bg, border:`1.5px solid ${C.border2}`, borderRadius:8, padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:13, outline:"none", resize:"vertical" },
+    btn:   { background:"transparent", border:`1px dashed ${C.border2}`, borderRadius:8, padding:"6px 14px", color:C.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12, cursor:"pointer" },
+    del:   { background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:15, padding:"0 4px", flexShrink:0, marginTop:4 },
+    gap:   { display:"inline-flex", alignItems:"center", justifyContent:"center", width:22, height:22, borderRadius:"50%", background:"#34d39922", border:"1.5px solid #34d39966", color:"#34d399", fontSize:11, fontWeight:700, flexShrink:0 },
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:22 }}>
+
+      {/* ── Passage blocks ─────────────────────────────────────────────── */}
+      <div>
+        <span style={S.label}>Passage blocks (text between gaps)</span>
+        <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", display:"flex", flexDirection:"column", gap:0 }}>
+          {passages.map((p, i) => (
+            <div key={i}>
+              <div style={S.row}>
+                <textarea value={p} onChange={e => updPassage(i, e.target.value)}
+                  placeholder={`Part ${i+1} of the text…`} rows={2}
+                  style={S.inp} />
+                {passages.length > 2 && (
+                  <button onClick={() => delPassage(i)} style={S.del}>✕</button>
+                )}
+              </div>
+              {/* Gap indicator between passages */}
+              {i < passages.length - 1 && (
+                <div style={{ display:"flex", alignItems:"center", gap:8, margin:"4px 0 8px 0" }}>
+                  <span style={S.gap}>{i+1}</span>
+                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted }}>
+                    ← Gap {i+1} (sentences can be inserted here)
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <button onClick={addPassage} style={{ ...S.btn, marginTop:8 }}>+ Add passage block</button>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted, marginTop:6 }}>
+          {gapCount} gap{gapCount!==1?"s":""} between {passages.length} blocks
+        </div>
+      </div>
+
+      {/* ── Sentences to insert ────────────────────────────────────────── */}
+      <div>
+        <span style={S.label}>Sentences to insert</span>
+        {sentences.length === 0 && (
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted,
+            padding:"12px 0", textStyle:"italic" }}>
+            No sentences yet — add one below
+          </div>
+        )}
+        {sentences.map((s, idx) => {
+          const marker = markers.find(m => m.id===s.id);
+          return (
+            <div key={s.id} style={{ display:"grid", gridTemplateColumns:"1fr 160px auto",
+              gap:8, alignItems:"flex-start", marginBottom:8,
+              background:C.panel, border:`1px solid ${C.border2}`, borderRadius:10, padding:"10px 12px" }}>
+
+              {/* Sentence label + textarea */}
+              <div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#34d399",
+                  fontWeight:600, marginBottom:4 }}>
+                  Sentence {idx+1}
+                </div>
+                <textarea value={s.text} onChange={e => updSentence(s.id, e.target.value)}
+                  placeholder="Type the sentence to insert…" rows={2}
+                  style={{ ...S.inp, width:"100%", boxSizing:"border-box" }} />
+              </div>
+
+              {/* Correct gap selector */}
+              <div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted,
+                  marginBottom:4 }}>Correct gap</div>
+                <select value={marker?.correct ?? 0} onChange={e => updMarker(s.id, e.target.value)}
+                  style={{ background:C.bg, border:`1.5px solid ${C.border2}`, borderRadius:8,
+                    padding:"7px 10px", color:C.text, fontFamily:"'DM Sans',sans-serif",
+                    fontSize:13, outline:"none", width:"100%", cursor:"pointer" }}>
+                  {Array.from({length: gapCount}, (_, i) => (
+                    <option key={i} value={i}>Gap {i+1}</option>
+                  ))}
+                  {gapCount === 0 && <option value={0}>— add passage blocks first</option>}
+                </select>
+              </div>
+
+              <button onClick={() => delSentence(s.id)} style={{ ...S.del, marginTop:20 }}>✕</button>
+            </div>
+          );
+        })}
+        <button onClick={addSentence} style={S.btn} disabled={gapCount === 0}>
+          + Add sentence
+        </button>
+      </div>
+
+      {/* ── Live preview ───────────────────────────────────────────────── */}
+      {sentences.length > 0 && gapCount > 0 && (
+        <div>
+          <span style={S.label}>Preview</span>
+          <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:12,
+            padding:"16px 20px", fontFamily:"'DM Sans',sans-serif", fontSize:14,
+            color:C.text, lineHeight:2 }}>
+            {passages.map((p, i) => {
+              const sentence = sentences.find(s => markers.find(m => m.id===s.id && m.correct===i));
+              return (
+                <span key={i}>
+                  <span>{p}</span>
+                  {i < passages.length - 1 && (
+                    <span style={{ margin:"0 8px" }}>
+                      <span style={{ background:"#34d39922", border:"1.5px solid #34d39966",
+                        borderRadius:8, padding:"2px 10px", fontSize:12,
+                        color: sentence ? "#34d399" : C.muted, fontStyle:"italic" }}>
+                        {sentence ? `↩ "${sentence.text.slice(0,40)}${sentence.text.length>40?"…":""}"` : `[Gap ${i+1}]`}
+                      </span>
+                    </span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function JsonEditor({ label, value, onChange }) {
   const [raw, setRaw] = useState(() => JSON.stringify(value, null, 2));
   const [err, setErr] = useState("");
@@ -1061,6 +1237,8 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
         return <DragImageEditor content={q.content} onChange={v => setF("content", v)} media={q.media} />;
       case "IMAGE_CLICK":
         return <ImageClickEditor content={q.content} onChange={v => setF("content", v)} media={q.media} />;
+      case "TEXT_INSERTION":
+        return <TextInsertionEditor content={q.content} onChange={v => setF("content", v)} />;
       default:
         return <JsonEditor label="content (JSON)" value={q.content} onChange={v => setF("content", v)} />;
     }
