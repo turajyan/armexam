@@ -555,7 +555,18 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
 
         <SettingSection title="Live Preview" icon="👁" description="See how your color and font settings look in real time">
           {/* Dynamically load selected fonts */}
-          <style>{`@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(appearance.fontHeading)}:wght@400;600;700&family=${encodeURIComponent(appearance.fontBody)}:wght@300;400;500;600&subset=armenian&display=swap');`}</style>
+          {/* Load selected fonts dynamically via <link> in <head> */}
+          {(() => {
+            const id = "settings-font-link";
+            let link = document.getElementById(id);
+            if (!link) { link = document.createElement("link"); link.id = id; link.rel = "stylesheet"; document.head.appendChild(link); }
+            const families = [
+              `${appearance.fontHeading.replace(/ /g,"+")}:wght@400;600;700`,
+              `${appearance.fontBody.replace(/ /g,"+")}:wght@300;400;500;600`,
+            ].join("&family=");
+            link.href = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
+            return null;
+          })()}
           <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:+appearance.borderRadius, padding:"20px 24px" }}>
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16 }}>
               <div style={{ width:44, height:44, borderRadius:+appearance.borderRadius, background:`linear-gradient(135deg,${appearance.primaryColor},${appearance.primaryColor}88)`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:`'${appearance.fontHeading}',serif`, fontSize:22, fontWeight:700, color:"white" }}>
