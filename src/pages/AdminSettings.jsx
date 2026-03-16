@@ -111,7 +111,7 @@ function SettingSection({ title, icon, description, children }) {
 
 function SaveBar({ onSave, onReset, saved }) {
   return (
-    <div style={{ position:"sticky", bottom:0, background:C.panel+"ee", backdropFilter:"blur(12px)", borderTop:`1px solid ${C.border}`, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+    <div style={{ background:C.panel, borderTop:`1px solid ${C.border}`, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
       <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:saved?C.success:C.warning, transition:"color .3s" }}>
         {saved ? "✓ All settings saved!" : "⚠ Unsaved changes"}
       </span>
@@ -850,9 +850,11 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
         ))}
       </div>
 
-      {/* Content */}
-      <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", minWidth:0, width:"100%", boxSizing:"border-box", paddingBottom:80 }}>
-        {renderTab()}
+      {/* Content + SaveBar */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, overflow:"hidden" }}>
+        <div style={{ flex:1, overflowY:"auto", padding:"32px 40px", boxSizing:"border-box" }}>
+          {renderTab()}
+        </div>
         <SaveBar onSave={handleSave} onReset={handleReset} saved={saved} />
       </div>
 
