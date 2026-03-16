@@ -365,7 +365,45 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
     window.dispatchEvent(new Event("armexam:langchange"));
     showToast("✓ Settings saved successfully!");
   };
-  const handleReset = () => { setSaved(true); showToast("↺ Reset to last saved state", C.warning); };
+  const handleReset = () => {
+    // Re-read all settings from localStorage (last saved state)
+    try {
+      const g = JSON.parse(localStorage.getItem("armexam_general_settings") || "{}");
+      setGeneral(p => ({...p,
+        platformName:    g.platformName    ?? p.platformName,
+        platformNameHy:  g.platformNameHy  ?? p.platformNameHy,
+        tagline:         g.tagline         ?? p.tagline,
+        supportEmail:    g.supportEmail    ?? p.supportEmail,
+        supportPhone:    g.supportPhone    ?? p.supportPhone,
+        timezone:        g.timezone        ?? p.timezone,
+        dateFormat:      g.dateFormat      ?? p.dateFormat,
+        timeFormat:      g.timeFormat      ?? p.timeFormat,
+        language:        g.language        ?? p.language,
+        maintenanceMode: g.maintenanceMode ?? p.maintenanceMode,
+        registrationOpen:g.registrationOpen ?? p.registrationOpen,
+      }));
+    } catch {}
+    try {
+      const a = JSON.parse(localStorage.getItem("armexam_appearance") || "{}");
+      setAppearance(p => ({...p,
+        primaryColor:    a.primaryColor    ?? p.primaryColor,
+        accentColor:     a.accentColor     ?? p.accentColor,
+        dangerColor:     a.dangerColor     ?? p.dangerColor,
+        theme:           a.theme           ?? p.theme,
+        fontHeading:     a.fontHeading     ?? p.fontHeading,
+        fontBody:        a.fontBody        ?? p.fontBody,
+        borderRadius:    a.borderRadius    ?? p.borderRadius,
+        logoText:        a.logoText        ?? p.logoText,
+        showLevelBadges: a.showLevelBadges ?? p.showLevelBadges,
+        showTimer:       a.showTimer       ?? p.showTimer,
+        contextFontSize: a.contextFontSize ?? p.contextFontSize,
+        promptFontSize:  a.promptFontSize  ?? p.promptFontSize,
+        answerFontSize:  a.answerFontSize  ?? p.answerFontSize,
+      }));
+    } catch {}
+    setSaved(true);
+    showToast("↺ Reset to last saved state", C.warning);
+  };
 
   const renderTab = () => {
     switch(tab) {
