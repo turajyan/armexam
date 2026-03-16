@@ -239,8 +239,9 @@ function MediaPage() {
   const allSelected = filtered.length > 0 && filtered.every(f => selected.includes(f.key));
 
   const handleUploaded = (newFile) => {
-    setFiles(fs => [{ ...newFile, type: typeOf(newFile.url), uploadedAt: new Date() }, ...fs]);
-    setShowUpload(false);
+    // backend returns { url, type, name, size, uploadedAt, key }
+    setFiles(fs => [newFile, ...fs]);
+    // keep upload zone open for multi-file uploads
   };
 
   const doDelete = async (file) => {

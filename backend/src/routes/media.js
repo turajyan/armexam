@@ -11,27 +11,46 @@ export default async function mediaRoutes(fastify) {
 
   const adminHook = requireAdmin(fastify.prisma);
 
-  /** GET /api/media — list all uploaded files */
-  fastify.get("/api/media", { preHandler: [adminHook] }, async () => {
+  /**
+   * GET /api/media
+   * Returns list of all files from MinIO bucket
+   */
+  fastify.get("/api/media", { preHandler: [adminHook] }, async (req, reply) => {
     const files = await listObjects("media/");
     return files;
   });
 
-  /** POST /api/media/upload */
+  /**
+   * POST /api/media/upload
+   * Body: multipart/form-data  field "file"
+   * Returns: { url, type, name, size, uploadedAt, key }
+   */
   fastify.post("/api/media/upload", { preHandler: [adminHook] }, async (req, reply) => {
     const data = await req.file();
     if (!data) return reply.code(400).send({ error: "No file provided" });
-    if (!ALLOWED_MIME.test(data.mimetype))
+
+    if (!ALLOWED_MIME.test(data.mimetype)) {
       return reply.code(400).send({ error: `Unsupported file type: ${data.mimetype}` });
+    }
 
     const buffer = await data.toBuffer();
     const url    = await uploadBuffer(buffer, data.filename, data.mimetype);
     const type   = data.mimetype.split("/")[0];
 
-    return { url, type, name: data.filename, size: buffer.length };
+    return {
+      url,
+      type,
+      name:       data.filename,
+      size:       buffer.length,
+      uploadedAt: new Date(),
+      key:        url.replace(process.env.S3_PUBLIC_URL + "/", ""),
+    };
   });
 
-  /** DELETE /api/media — delete by URL */
+  /**
+   * DELETE /api/media
+   * Body: { url }
+   */
   fastify.delete("/api/media", { preHandler: [adminHook] }, async (req, reply) => {
     const { url } = req.body ?? {};
     if (url) {
