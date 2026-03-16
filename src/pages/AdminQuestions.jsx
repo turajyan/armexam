@@ -801,6 +801,7 @@ function DragImageEditor({ content, onChange, media = [] }) {
 
 
 function ImageClickEditor({ content, onChange, media = [] }) {
+  const uid = () => "ic_" + Math.random().toString(36).slice(2,7);
   const hotspots = content.hotspots || [];
   const imgUrl   = media.find(m => m.type === "image")?.url;
   const imgRef   = useRef(null);
