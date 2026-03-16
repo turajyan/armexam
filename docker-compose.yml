@@ -1,16 +1,4 @@
 services:
-  postgres:
-    image: postgres:16
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-armexam}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-armexam_pass}
-      POSTGRES_DB: ${POSTGRES_DB:-armexam}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
   minio:
     image: minio/minio
     ports:
@@ -25,5 +13,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
   minio_data:
