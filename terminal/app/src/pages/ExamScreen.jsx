@@ -85,7 +85,7 @@ function AudioPlayer({ src, maxReplays = 2, autoPlay = false, T, onFirstPlay }) 
   const canPlay = plays < maxReplays || playing;
 
   return (
-    <div style={{ background:'#ffffff08', border:'1px solid #ffffff15',
+    <div style={{ background:T.card, border:'1px solid #ffffff15',
       borderRadius:14, padding:'14px 18px', marginBottom:18,
       display:'flex', alignItems:'center', gap:14 }}>
       <audio ref={aRef} src={src}
@@ -99,7 +99,7 @@ function AudioPlayer({ src, maxReplays = 2, autoPlay = false, T, onFirstPlay }) 
         fontSize:16, color:'#1a1200',
       }}>{playing ? '⏸' : '▶'}</button>
       <div style={{ flex:1 }}>
-        <div style={{ height:4, background:'#ffffff15', borderRadius:99, overflow:'hidden' }}>
+        <div style={{ height:4, background:T.border, borderRadius:99, overflow:'hidden' }}>
           <div style={{ height:'100%', width:`${progress*100}%`, background:T.gold,
             borderRadius:99, transition:'width .2s' }} />
         </div>
@@ -215,7 +215,7 @@ function SpeakingRecorder({ question, sessionId, backendUrl, T, onRecorded }) {
   const canRetake = phase === 'done' && attempts + 1 < maxAttempts;
 
   if (phase === 'prep') return (
-    <div style={{ background:'#ffffff08', border:'1px solid #ffffff15',
+    <div style={{ background:T.card, border:'1px solid #ffffff15',
       borderRadius:16, padding:'32px 28px', textAlign:'center' }}>
       <div style={{ fontSize:13, color:T.muted, marginBottom:12 }}>
         Preparation time
@@ -228,7 +228,7 @@ function SpeakingRecorder({ question, sessionId, backendUrl, T, onRecorded }) {
         Read the task carefully.<br/>Recording starts automatically.
       </div>
       {/* Shrinking bar */}
-      <div style={{ marginTop:20, height:4, background:'#ffffff15',
+      <div style={{ marginTop:20, height:4, background:T.border,
         borderRadius:99, overflow:'hidden' }}>
         <div style={{ height:'100%', borderRadius:99, background:T.gold,
           width:`${(prepLeft/prepSeconds)*100}%`, transition:'width 1s linear' }} />
@@ -249,7 +249,7 @@ function SpeakingRecorder({ question, sessionId, backendUrl, T, onRecorded }) {
         fontFamily:"'DM Mono',monospace", lineHeight:1, marginBottom:10 }}>
         {String(Math.floor(recLeft/60)).padStart(2,'0')}:{String(recLeft%60).padStart(2,'0')}
       </div>
-      <div style={{ height:4, background:'#ffffff15', borderRadius:99, overflow:'hidden' }}>
+      <div style={{ height:4, background:T.border, borderRadius:99, overflow:'hidden' }}>
         <div style={{ height:'100%', background:'#ef4444', borderRadius:99,
           width:`${(recLeft/recordSeconds)*100}%`, transition:'width 1s linear' }} />
       </div>
@@ -282,7 +282,7 @@ function SpeakingRecorder({ question, sessionId, backendUrl, T, onRecorded }) {
       {canRetake && (
         <button onClick={retake}
           style={{ padding:'8px 18px', borderRadius:8,
-            background:'#ffffff08', border:`1px solid ${T.border2}`,
+            background:T.card, border:`1px solid ${T.border2}`,
             color:T.muted, cursor:'pointer', fontSize:12 }}>
           ↺ Re-record ({maxAttempts - attempts - 1} left)
         </button>
@@ -328,8 +328,8 @@ function WritingInput({ question, answer, onChange, T }) {
         style={{
           width:'100%', boxSizing:'border-box',
           padding:'16px 18px',
-          background:'#ffffff06',
-          border:`1.5px solid ${tooLong ? '#ef4444' : answer ? T.gold+'55' : '#ffffff18'}`,
+          background:T.panel,
+          border:`1.5px solid ${tooLong ? '#ef4444' : answer ? T.gold+'55' : T.border2}`,
           borderRadius:12, color:T.text,
           fontFamily:"'DM Sans',sans-serif", fontSize:15, lineHeight:1.7,
           outline:'none', resize:'vertical',
@@ -466,12 +466,12 @@ function QuestionCard({ q, index, total, answer, onAnswer,
               display:'flex', alignItems:'center', gap:14,
               padding:'14px 20px', borderRadius:12, cursor:'pointer',
               background: sel ? T.optionSelected : T.optionBg,
-              border:`1.5px solid ${sel ? T.optionBorder : '#ffffff18'}`,
+              border:`1.5px solid ${sel ? T.optionBorder : T.border2}`,
               textAlign:'left', transition:'all .15s',
             }}>
               <div style={{
                 width:22, height:22, borderRadius:'50%', flexShrink:0,
-                border:`2px solid ${sel ? T.gold : '#ffffff33'}`,
+                border:`2px solid ${sel ? T.gold : T.border2}`,
                 background: sel ? T.gold : 'transparent',
                 display:'flex', alignItems:'center', justifyContent:'center',
               }}>{sel && <div style={{ width:8, height:8, borderRadius:'50%', background:'#1a1200' }} />}</div>
@@ -500,12 +500,12 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                   display:'flex', alignItems:'center', gap:14,
                   padding:'14px 20px', borderRadius:12, cursor:'pointer',
                   background: checked ? T.optionSelected : T.optionBg,
-                  border:`1.5px solid ${checked ? T.optionBorder : '#ffffff18'}`,
+                  border:`1.5px solid ${checked ? T.optionBorder : T.border2}`,
                   textAlign:'left', transition:'all .15s',
                 }}>
                   <div style={{
                     width:20, height:20, borderRadius:5, flexShrink:0,
-                    border:`2px solid ${checked ? T.gold : '#ffffff33'}`,
+                    border:`2px solid ${checked ? T.gold : T.border2}`,
                     background: checked ? T.gold+'33' : 'transparent',
                     display:'flex', alignItems:'center', justifyContent:'center',
                   }}>{checked && <span style={{ color:T.gold, fontSize:12, fontWeight:700 }}>✓</span>}</div>
@@ -526,12 +526,12 @@ function QuestionCard({ q, index, total, answer, onAnswer,
       if (segs.length === 0) return (
         <input type="text" value={answer || ''} onChange={e => onAnswer(e.target.value)}
           placeholder="Type your answer…" autoComplete="off" spellCheck={false}
-          style={{ width:'100%', boxSizing:'border-box', padding:'14px 18px', background:'#ffffff06',
-            border:`1.5px solid ${answer ? T.gold+'66' : '#ffffff18'}`,
+          style={{ width:'100%', boxSizing:'border-box', padding:'14px 18px', background:T.panel,
+            border:`1.5px solid ${answer ? T.gold+'66' : T.border2}`,
             borderRadius:12, color:T.text, fontFamily:"'DM Sans',sans-serif", fontSize:15, outline:'none' }} />
       );
       return (
-        <div style={{ background:'#ffffff06', border:'1px solid #ffffff18', borderRadius:12,
+        <div style={{ background:T.panel, border:'1px solid #ffffff18', borderRadius:12,
           padding:'18px 22px', fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.6 }}>
           {segs.map((s, i) =>
             s.type === 'text'
@@ -543,7 +543,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                     width: Math.max(80, ((ans[s.id]||'').length + 3) * 9) + 'px',
                     background:'transparent',
                     borderTop:'none', borderLeft:'none', borderRight:'none',
-                    borderBottom:`2px solid ${ans[s.id] ? T.gold : '#ffffff44'}`,
+                    borderBottom:`2px solid ${ans[s.id] ? T.gold : T.border2}`,
                     color:T.gold, fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:600,
                     outline:'none', textAlign:'center', padding:'0 4px', margin:'0 3px',
                     transition:'border-bottom-color .15s' }} />
@@ -571,7 +571,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
       const segs = parseDragText(c.text || '');
       return (
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-          <div style={{ background:'#ffffff06', border:'1px solid #ffffff18', borderRadius:12,
+          <div style={{ background:T.panel, border:'1px solid #ffffff18', borderRadius:12,
             padding:'18px 22px', fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.2 }}>
             {segs.map((seg, i) =>
               seg.type === 'text'
@@ -582,8 +582,8 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                     onDrop={e => { e.preventDefault(); dropIntoSlot(seg.name); }}
                     onClick={() => placed[seg.name] && returnToBank(seg.name)}
                     style={{ display:'inline-block', minWidth:90, textAlign:'center',
-                      background: placed[seg.name] ? T.gold+'22' : '#ffffff0a',
-                      border:`2px dashed ${placed[seg.name] ? T.gold+'88' : '#ffffff33'}`,
+                      background: placed[seg.name] ? T.gold+'22' : T.card,
+                      border:`2px dashed ${placed[seg.name] ? T.gold+'88' : T.border2}`,
                       borderRadius:8, padding:'2px 14px', margin:'0 4px',
                       color: placed[seg.name] ? T.gold : T.muted,
                       fontSize:14, fontWeight:600, cursor: placed[seg.name] ? 'pointer' : 'default',
@@ -601,8 +601,8 @@ function QuestionCard({ q, index, total, answer, onAnswer,
               {bank.map((w, i) => (
                 <span key={w+i} draggable
                   onDragStart={() => setDragWord(w)} onDragEnd={() => setDragWord(null)}
-                  style={{ background: dragWord===w ? T.gold+'33' : '#ffffff0d',
-                    border:`1.5px solid ${dragWord===w ? T.gold+'88' : '#ffffff22'}`,
+                  style={{ background: dragWord===w ? T.gold+'33' : T.card,
+                    border:`1.5px solid ${dragWord===w ? T.gold+'88' : T.border2}`,
                     borderRadius:8, padding:'8px 18px', fontSize:14, color:T.text,
                     fontFamily:"'DM Sans',sans-serif", fontWeight:500,
                     cursor:'grab', userSelect:'none', transition:'all .15s' }}>
@@ -651,7 +651,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
               return (
                 <div key={col.id}
                   onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();dropIntoCol(col.id);}}
-                  style={{ background:'#ffffff06', border:'2px dashed #ffffff22', borderRadius:12,
+                  style={{ background:T.panel, border:'2px dashed #ffffff22', borderRadius:12,
                     minHeight:120, padding:12 }}>
                   <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700,
                     color:'#fb923c', marginBottom:10, textAlign:'center',
@@ -677,8 +677,8 @@ function QuestionCard({ q, index, total, answer, onAnswer,
               <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                 {tbk.map(it => (
                   <div key={it.id} draggable onDragStart={()=>setTDrag(it)} onDragEnd={()=>setTDrag(null)}
-                    style={{ background: tDrag?.id===it.id?'#fb923c33':'#ffffff0d',
-                      border:`1.5px solid ${tDrag?.id===it.id?'#fb923c88':'#ffffff22'}`,
+                    style={{ background: tDrag?.id===it.id?'#fb923c33':T.card,
+                      border:`1.5px solid ${tDrag?.id===it.id?'#fb923c88':T.border2}`,
                       borderRadius:8, padding:'8px 16px', fontSize:13, color:T.text,
                       fontFamily:"'DM Sans',sans-serif", cursor:'grab', userSelect:'none' }}>
                     {it.text}
@@ -709,7 +709,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
       };
       return (
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          {!imgUrl && <div style={{ background:'#ffffff06', borderRadius:12, padding:'32px',
+          {!imgUrl && <div style={{ background:T.panel, borderRadius:12, padding:'32px',
             textAlign:'center', color:T.muted, fontSize:13 }}>No image attached</div>}
           {imgUrl && (
             <div style={{ position:'relative', display:'inline-block', cursor:'crosshair',
@@ -799,8 +799,8 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                       left:`calc(${hs.x}% - ${HOTSPOT_W/2}px)`,
                       top:`calc(${hs.y}% - ${HOTSPOT_H/2}px)`,
                       width:HOTSPOT_W, height:HOTSPOT_H,
-                      background: placed2?'transparent':ddiDrag?'#00000022':'#00000015',
-                      border:`2px dashed ${isDraggingThis?lc2(placed2)+'88':placed2?lc2(placed2):ddiDrag?'#ffffffaa':'#ffffff66'}`,
+                      background: placed2?'transparent':ddiDrag?T.border2+'44':T.border,
+                      border:`2px dashed ${isDraggingThis?lc2(placed2)+'88':placed2?lc2(placed2):ddiDrag?T.border2:T.border2}`,
                       borderRadius:8, cursor:placed2?'grab':ddiDrag?'copy':'default',
                       display:'flex', alignItems:'center', justifyContent:'center',
                       opacity:isDraggingThis?0.4:1, transition:'all .15s' }}>
@@ -808,8 +808,8 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                       ? <span style={{ fontSize:12, color:'#fff', fontWeight:700, pointerEvents:'none',
                           background:lc2(placed2)+'dd', padding:'2px 8px', borderRadius:5,
                           textShadow:'0 1px 2px #00000088' }}>{labelText(placed2)}</span>
-                      : <span style={{ fontSize:11, color:'#ffffffaa', pointerEvents:'none',
-                          background:'#00000055', padding:'2px 8px', borderRadius:5 }}>drop here</span>
+                      : <span style={{ fontSize:11, color:T.border2, pointerEvents:'none',
+                          background:T.panel, padding:'2px 8px', borderRadius:5 }}>drop here</span>
                     }
                   </div>
                 );
@@ -817,7 +817,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
             </div>
           ) : (
             <div style={{ padding:'20px', textAlign:'center', color:T.muted,
-              background:'#ffffff06', borderRadius:12, fontSize:13 }}>No image attached</div>
+              background:T.panel, borderRadius:12, fontSize:13 }}>No image attached</div>
           )}
           <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
             {bk.map(id => (
@@ -856,7 +856,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
       return (
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
           {/* Passage with filled-in previews */}
-          <div style={{ background:'#ffffff06', border:'1px solid #ffffff18', borderRadius:12,
+          <div style={{ background:T.panel, border:'1px solid #ffffff18', borderRadius:12,
             padding:'18px 22px', fontFamily:"'DM Sans',sans-serif", fontSize:15,
             color:T.text, lineHeight:2 }}>
             {passages.map((p, i) => {
@@ -876,7 +876,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                       ) : (
                         <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center',
                           width:24, height:24, borderRadius:'50%',
-                          background:'#ffffff18', border:'1.5px solid #ffffff33',
+                          background:T.border2, border:'1.5px solid #ffffff33',
                           color:T.muted, fontSize:11, fontWeight:700 }}>
                           {i+1}
                         </span>
@@ -896,7 +896,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
           {sentences.map((s, si) => {
             const currentGap = ans[s.id] !== undefined ? Number(ans[s.id]) : null;
             return (
-              <div key={s.id} style={{ background:'#ffffff06', border:'1px solid #ffffff18',
+              <div key={s.id} style={{ background:T.panel, border:'1px solid #ffffff18',
                 borderRadius:12, padding:'14px 18px' }}>
                 <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14,
                   color:T.text, marginBottom:10, fontStyle:'italic', lineHeight:1.5 }}>
@@ -910,8 +910,8 @@ function QuestionCard({ q, index, total, answer, onAnswer,
                     return (
                       <button key={gi} onClick={()=>setMarker(s.id, gi)}
                         style={{ padding:'6px 16px', borderRadius:8, cursor:'pointer',
-                          background: sel ? T.gold+'22' : '#ffffff08',
-                          border:`1.5px solid ${sel ? T.gold+'88' : '#ffffff22'}`,
+                          background: sel ? T.gold+'22' : T.card,
+                          border:`1.5px solid ${sel ? T.gold+'88' : T.border2}`,
                           color: sel ? T.gold : T.muted,
                           fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:sel?700:400,
                           transition:'all .15s' }}>
@@ -1343,7 +1343,7 @@ export default function ExamScreen({ T, session, backendUrl, onFinish }) {
           // Progress within current section
           const fill    = isPast ? 100 : isCur ? ((posInSection + 1) / sec.questionCount) * 100 : 0;
           return (
-            <div key={sec.id} style={{ width: `${width}%`, background: '#ffffff10', position: 'relative' }}>
+            <div key={sec.id} style={{ width: `${width}%`, background: T.card, position: 'relative' }}>
               <div style={{
                 height: '100%', width: `${fill}%`,
                 background: secCat, transition: 'width .4s',
@@ -1507,7 +1507,7 @@ export default function ExamScreen({ T, session, backendUrl, onFinish }) {
                 }} disabled={!canGoNext} style={{
                   background: canGoNext ? catColor : T.dim, border: 'none', borderRadius: 10,
                   padding: '11px 28px', cursor: canGoNext ? 'pointer' : 'not-allowed',
-                  color: canGoNext ? '#fff' : '#ffffff44',
+                  color: canGoNext ? T.text : T.border2,
                   fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 700,
                 }}>
                   Next Section →
@@ -1516,7 +1516,7 @@ export default function ExamScreen({ T, session, backendUrl, onFinish }) {
                 <button onClick={() => goTo(currentIndex + 1)} disabled={!canGoNext} style={{
                   background: canGoNext ? catColor : T.dim, border: 'none', borderRadius: 10,
                   padding: '11px 28px', cursor: canGoNext ? 'pointer' : 'not-allowed',
-                  color: canGoNext ? (category === 'READING' ? '#1a1200' : '#fff') : '#ffffff44',
+                  color: canGoNext ? T.bg : T.border2,
                   fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 700,
                   transition: 'all .15s',
                 }}>
