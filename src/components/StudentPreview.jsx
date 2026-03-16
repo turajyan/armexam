@@ -713,9 +713,14 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
           ))}
           {/* Context */}
           {q.contextText && (
-            <div style={{ background:"#ffffff06", borderRadius:12, padding:"16px 20px", marginBottom:20,
-              borderLeft:"3px solid #c8a96e44" }}>
-              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:"#94a3b8", lineHeight:1.7, margin:0 }}>{q.contextText}</p>
+            <div style={{ background:"#c8a96e08", borderRadius:12, padding:"18px 22px", marginBottom:20,
+              borderLeft:"3px solid #c8a96e", position:"relative" }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:T.gold,
+                letterSpacing:.8, textTransform:"uppercase", fontWeight:600, marginBottom:8 }}>
+                Context
+              </div>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, color:T.text,
+                lineHeight:1.8, margin:0, whiteSpace:"pre-wrap" }}>{q.contextText}</p>
             </div>
           )}
           {/* Prompt */}

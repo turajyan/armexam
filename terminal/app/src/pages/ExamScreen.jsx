@@ -974,17 +974,19 @@ function QuestionCard({ q, index, total, answer, onAnswer,
         )}
       </div>
 
-      {/* Context text (SPEAKING_INTEGRATED / WRITING_INTEGRATED) */}
+      {/* Context text */}
       {q.contextText && (
-        <div style={{ background:'#ffffff06', border:'1px solid #ffffff12',
-          borderLeft:`3px solid ${T.gold}44`,
-          borderRadius:12, padding:'14px 18px', marginBottom:18,
-          fontSize:14, color:T.muted, lineHeight:1.7 }}>
+        <div style={{ background:T.gold+'08', borderRadius:12, padding:'18px 22px', marginBottom:18,
+          borderLeft:`3px solid ${T.gold}` }}>
           <div style={{ fontSize:10, color:T.gold, fontWeight:700,
-            letterSpacing:1.2, textTransform:'uppercase', marginBottom:6 }}>
-            Read / Context
+            letterSpacing:.8, textTransform:'uppercase', marginBottom:8,
+            fontFamily:"'DM Sans',sans-serif" }}>
+            Context
           </div>
-          {q.contextText}
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17,
+            color:T.text, lineHeight:1.8, whiteSpace:'pre-wrap' }}>
+            {q.contextText}
+          </div>
         </div>
       )}
 
