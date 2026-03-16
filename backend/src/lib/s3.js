@@ -37,6 +37,30 @@ export async function uploadBuffer(buffer, originalName, mimetype) {
  * Delete a file by its public URL (no-op if URL doesn't match bucket).
  * @param {string} url
  */
+export async function listObjects(prefix = "media/") {
+  const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
+  const res = await s3.send(new ListObjectsV2Command({
+    Bucket: process.env.S3_BUCKET,
+    Prefix: prefix,
+  }));
+  return (res.Contents || []).map(obj => ({
+    key:          obj.Key,
+    size:         obj.Size,
+    uploadedAt:   obj.LastModified,
+    url:          `${process.env.S3_PUBLIC_URL}/${obj.Key}`,
+    name:         obj.Key.split("/").pop(),
+    type:         getTypeFromKey(obj.Key),
+  }));
+}
+
+function getTypeFromKey(key) {
+  const ext = key.split(".").pop().toLowerCase();
+  if (["jpg","jpeg","png","webp","gif","svg","bmp"].includes(ext)) return "image";
+  if (["mp3","wav","ogg","m4a","flac","aac"].includes(ext))        return "audio";
+  if (["mp4","webm","mov","avi","mkv"].includes(ext))              return "video";
+  return "doc";
+}
+
 export async function deleteByUrl(url) {
   if (!url) return;
   // Support both absolute (http://...) and relative (/minio/...) public URLs
