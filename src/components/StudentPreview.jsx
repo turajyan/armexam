@@ -373,7 +373,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
 
     if (type === "IMAGE_CLICK") {
       const hotspots = c.hotspots || [];
-      const imgUrl   = (media[0] || {}).url;
+      const imgUrl   = media.find(m => m.type === "image")?.url;
       const handleClick = (e) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width)  * 100;
@@ -381,6 +381,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
         setImgClick({ x, y });
       };
       const hit = imgClick && hotspots.find(hs => {
+        if (!hs.correct) return false; // skip distractor zones
         const hw = hs.width  ?? 10;
         const hh = hs.height ?? 10;
         return imgClick.x >= hs.x && imgClick.x <= hs.x + hw &&
@@ -607,7 +608,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
             <div key={i} style={{ marginBottom:16 }}>
               {m.type === "audio" && m.url && <audio controls src={m.url} style={{ width:"100%", accentColor:T.gold }} />}
               {m.type === "video" && m.url && <video controls src={m.url} style={{ width:"100%", borderRadius:12, maxHeight:240 }} />}
-              {m.type === "image" && m.url && q.type !== "DRAG_AND_DROP_IMAGE" && <img src={m.url} alt="" style={{ maxWidth:"100%", borderRadius:12, marginBottom:8 }} />}
+              {m.type === "image" && m.url && !["DRAG_AND_DROP_IMAGE","IMAGE_CLICK"].includes(q.type) && <img src={m.url} alt="" style={{ maxWidth:"100%", borderRadius:12, marginBottom:8 }} />}
             </div>
           ))}
           {/* Context */}
