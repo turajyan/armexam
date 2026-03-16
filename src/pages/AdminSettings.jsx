@@ -551,7 +551,6 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
         <SettingSection title="UI Display Options" icon="🖥" description="Toggle visible elements in the student exam view">
           <Toggle label="Show Level Badges (A1–C2)" value={appearance.showLevelBadges} onChange={v=>setA("showLevelBadges",v)} hint="Display coloured level indicators next to each question" />
           <Toggle label="Show Countdown Timer" value={appearance.showTimer} onChange={v=>setA("showTimer",v)} hint="Students see a live timer during the exam" />
-          <Toggle label="Compact Layout" value={appearance.compactMode} onChange={v=>setA("compactMode",v)} hint="Reduce padding and spacing for smaller screens" />
         </SettingSection>
 
         <SettingSection title="Live Preview" icon="👁" description="See how your color and font settings look in real time">
