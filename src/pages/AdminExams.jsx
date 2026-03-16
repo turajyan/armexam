@@ -561,10 +561,19 @@ function ExamCard({exam,onEdit,onDelete,onViewResults,onPreview,onToggleOpen,all
           <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:19,color:C.text,margin:"0 0 3px",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exam.title}</h3>
           <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:C.muted}}>#{exam.id}</div>
         </div>
-        {/* isOpen toggle */}
-        <div title={exam.isOpen?"Close registration":"Open for registration"} onClick={()=>onToggleOpen(exam)}
-          style={{width:36,height:20,borderRadius:10,background:exam.isOpen?C.success:C.dim,cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0,marginTop:4}}>
-          <div style={{position:"absolute",top:2,left:exam.isOpen?18:2,width:16,height:16,borderRadius:"50%",background:"white",transition:"left .2s",boxShadow:"0 1px 3px #0006"}}/>
+        {/* isOpen toggle + label */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
+          <div title={exam.isOpen?"Close registration":"Open for registration"} onClick={()=>onToggleOpen(exam)}
+            style={{width:36,height:20,borderRadius:10,background:exam.isOpen?C.success:C.border2,cursor:"pointer",position:"relative",transition:"background .2s"}}>
+            <div style={{position:"absolute",top:2,left:exam.isOpen?18:2,width:16,height:16,borderRadius:"50%",background:"white",transition:"left .2s",boxShadow:"0 1px 3px #0006"}}/>
+          </div>
+          <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:9,fontWeight:600,letterSpacing:.4,textTransform:"uppercase",
+            color:exam.isOpen?C.success:C.muted,
+            background:exam.isOpen?C.success+"18":C.border,
+            border:`1px solid ${exam.isOpen?C.success+"44":C.border2}`,
+            borderRadius:4,padding:"1px 5px",whiteSpace:"nowrap"}}>
+            {exam.isOpen?"Open":"Closed"}
+          </span>
         </div>
       </div>
 
