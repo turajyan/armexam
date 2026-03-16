@@ -54,13 +54,16 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
     setTPlaced({}); setTBank(null); setTDrag(null);
     setImgClick(null);
     setDdiPlaced({}); setDdiBank(null); setDdiDrag(null); setDdiDragFrom(null);
+    setTiAns({});
   }, [q.id]);
   // DRAG_AND_DROP_TABLE state
   const [tPlaced, setTPlaced] = useState({});
   const [tBank,   setTBank]   = useState(null);
   const [tDrag,   setTDrag]   = useState(null);
   // IMAGE_CLICK state
-  const [imgClick, setImgClick] = useState(null); // { x, y } in percent
+  const [imgClick, setImgClick] = useState(null);
+  // TEXT_INSERTION state
+  const [tiAns, setTiAns] = useState({}); // { x, y } in percent
   // DRAG_AND_DROP_IMAGE state
   const [ddiPlaced,   setDdiPlaced]   = useState({});   // { hotspotId: labelId }
   const [ddiBank,     setDdiBank]     = useState(null); // null = all labels in bank
@@ -568,6 +571,63 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
       );
     }
 
+    if (type === "TEXT_INSERTION") {
+      const passages = c.passages || [];
+      const markers  = c.markers  || [];
+      const ans = (typeof tiAns === "object" && tiAns !== null) ? tiAns : {};
+      const setMarker = (mid, idx) => setTiAns(a => ({ ...(a||{}), [mid]: idx }));
+      return (
+        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted }}>
+            For each sentence, choose the gap where it fits best.
+          </div>
+          <div style={{ background:"#ffffff06", border:"1px solid #ffffff18", borderRadius:12,
+            padding:"18px 22px", fontFamily:"'DM Sans',sans-serif", fontSize:15,
+            color:T.text, lineHeight:1.9 }}>
+            {passages.map((p, i) => (
+              <span key={i}>
+                {p}
+                {i < passages.length - 1 && (
+                  <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center",
+                    width:24, height:24, borderRadius:"50%", margin:"0 6px",
+                    background: Object.values(ans).some(v=>Number(v)===i) ? T.gold+"44" : "#ffffff18",
+                    border:`1.5px solid ${Object.values(ans).some(v=>Number(v)===i) ? T.gold : "#ffffff33"}`,
+                    color: Object.values(ans).some(v=>Number(v)===i) ? T.gold : T.muted,
+                    fontSize:11, fontWeight:700 }}>
+                    {i+1}
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+          {markers.map((m, mi) => (
+            <div key={m.id} style={{ background:"#ffffff06", border:"1px solid #ffffff18",
+              borderRadius:12, padding:"14px 18px" }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted, marginBottom:8 }}>
+                Sentence {mi+1}
+              </div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {passages.slice(0,-1).map((_,gi) => {
+                  const sel = Number(ans[m.id]) === gi;
+                  return (
+                    <button key={gi} onClick={()=>setMarker(m.id, gi)}
+                      style={{ padding:"6px 16px", borderRadius:8, cursor:"pointer",
+                        background: sel ? T.gold+"22" : "#ffffff08",
+                        border:`1.5px solid ${sel ? T.gold+"88" : "#ffffff22"}`,
+                        color: sel ? T.gold : T.muted,
+                        fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:sel?700:400,
+                        transition:"all .15s" }}>
+                      Gap {gi+1}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     return <div style={{ color:T.muted, fontSize:13, padding:"20px 0" }}>[Preview not available for {q.type}]</div>;
   };
 
@@ -748,6 +808,28 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                       {dist.map((h,i) => `Zone ${hotspots.indexOf(h)+1}`).join(", ")}
                     </div>
                   )}
+                </div>
+              );
+            }
+
+            if (type === "TEXT_INSERTION") {
+              const passages = c.passages || [];
+              const markers  = c.markers  || [];
+              panels.push(
+                <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
+                  borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
+                    letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
+                  {markers.map((m, mi) => (
+                    <div key={m.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                      color:"#e2e8f0", marginBottom:4 }}>
+                      <span style={{ color:"#475569" }}>Sentence {mi+1}:</span>
+                      <span style={{ color:"#22c55e" }}> → Gap {m.correct+1}</span>
+                      <span style={{ color:"#475569", fontSize:11, marginLeft:6 }}>
+                        ({passages[m.correct]?.slice(0,40)}…)
+                      </span>
+                    </div>
+                  ))}
                 </div>
               );
             }
