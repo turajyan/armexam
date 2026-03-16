@@ -472,9 +472,25 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
             <Select label="Theme" value={appearance.theme} onChange={v=>{setA("theme",v); if(onThemeChange) onThemeChange(v);}}
               options={[{value:"dark",label:"Dark 🌙"},{value:"medium",label:"Dim 🌆"},{value:"light",label:"Light ☀️"}]} />
             <Select label="Heading Font" value={appearance.fontHeading} onChange={v=>setA("fontHeading",v)}
-              options={["Cormorant Garamond","Playfair Display","Merriweather"].map(f=>({value:f,label:f}))} />
+              options={[
+                { value:"Cormorant Garamond", label:"Cormorant Garamond (serif)" },
+                { value:"Noto Serif Armenian", label:"Noto Serif Armenian ★" },
+                { value:"Playfair Display",   label:"Playfair Display (serif)" },
+                { value:"Montserrat",         label:"Montserrat (modern)" },
+                { value:"Raleway",            label:"Raleway (elegant)" },
+                { value:"Merriweather",       label:"Merriweather (serif)" },
+              ]} />
             <Select label="Body Font" value={appearance.fontBody} onChange={v=>setA("fontBody",v)}
-              options={["DM Sans","Noto Sans Armenian","Source Sans 3"].map(f=>({value:f,label:f}))} />
+              options={[
+                { value:"DM Sans",            label:"DM Sans (clean)" },
+                { value:"Noto Sans Armenian", label:"Noto Sans Armenian ★" },
+                { value:"Mardoto",            label:"Mardoto ★ (Armenian)" },
+                { value:"Roboto",             label:"Roboto (neutral)" },
+                { value:"Open Sans",          label:"Open Sans (friendly)" },
+                { value:"Lato",               label:"Lato (humanist)" },
+                { value:"Nunito",             label:"Nunito (rounded)" },
+                { value:"Source Sans 3",      label:"Source Sans 3" },
+              ]} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
             <Input label="Card Corner Radius (px)" value={appearance.borderRadius} onChange={v=>setA("borderRadius",v)} type="number" hint="Roundness of cards and buttons (0 = sharp, 20 = very round)" />
@@ -489,6 +505,8 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
         </SettingSection>
 
         <SettingSection title="Live Preview" icon="👁" description="See how your color and font settings look in real time">
+          {/* Dynamically load selected fonts */}
+          <style>{`@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(appearance.fontHeading)}:wght@400;600;700&family=${encodeURIComponent(appearance.fontBody)}:wght@300;400;500;600&subset=armenian&display=swap');`}</style>
           <div style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:+appearance.borderRadius, padding:"20px 24px" }}>
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16 }}>
               <div style={{ width:44, height:44, borderRadius:+appearance.borderRadius, background:`linear-gradient(135deg,${appearance.primaryColor},${appearance.primaryColor}88)`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:`'${appearance.fontHeading}',serif`, fontSize:22, fontWeight:700, color:"white" }}>
