@@ -417,197 +417,197 @@
       "ՀՏՀ"
     ],
     "hero": [
-      "Հայերենի իմացության",
-      "գնահատման",
-      "ստանդարտ"
+      "The Standard for",
+      "Armenian Language",
+      "Certification"
     ],
-    "heroSub": "Միջազգայնորեն ճանաչված A1–C2 մակարդակի քննություններ։ Վստահում են Հայաստանի համալսարանները, գործատուները եւ պետական կառույցները։",
+    "heroSub": "Internationally recognized proficiency exams for A1–C2. Trusted by universities, employers, and government institutions across Armenia.",
     "cta": "Գրանցվել",
     "login": "Մուտք",
     "stats": [
       [
-        "12 400+",
-        "Հավաստագրված"
+        "12,400+",
+        "Certified graduates"
       ],
       [
         "94%",
-        "Հաջողություն 2024"
+        "Pass rate 2024"
       ],
       [
         "6",
-        "Մակարդակ"
+        "Proficiency levels"
       ],
       [
         "48",
-        "Կենտրոն"
+        "Exam centers"
       ]
     ],
-    "aboutBadge": "ArmExam-ի մասին",
-    "aboutTitle": "Ի՞նչ է ArmExam-ը",
-    "aboutText": "ArmExam-ը Հայաստանի հայերենի իմացության գնահատման առաջատար հարթակն է։ Մեր քննություններն արժևորում են ընթերցումը, լսումը, գրելը եւ խոսելը CEFR-ի ամբողջ սանդղակով՝ A1-ից C2:",
+    "aboutBadge": "About ArmExam",
+    "aboutTitle": "What is ArmExam?",
+    "aboutText": "ArmExam is Armenia's premier Armenian language proficiency testing platform. Our computer-based exams evaluate Reading, Listening, Writing, and Speaking across the full CEFR scale — from beginner A1 to advanced C2.",
     "skills": [
       "📖 Ընթերցում",
       "🎧 Լսում",
       "✍ Գրություն",
       "🎤 Խոսք"
     ],
-    "levelsBadge": "CEFR սանդղակ",
-    "levelsTitle": "Տիրապետման մակարդակները",
+    "levelsBadge": "CEFR Scale",
+    "levelsTitle": "Proficiency Levels",
     "levels": [
       {
         "code": "A1",
-        "name": "Սկսնակ",
-        "desc": "Հիմնական բառեր եւ արտահայտություններ"
+        "name": "Beginner",
+        "desc": "Basic words and phrases"
       },
       {
         "code": "A2",
-        "name": "Տարրական",
-        "desc": "Պարզ առօրյա արտահայտություններ"
+        "name": "Elementary",
+        "desc": "Simple everyday expressions"
       },
       {
         "code": "B1",
-        "name": "Միջին",
-        "desc": "Հստակ ստանդarտ լեզու"
+        "name": "Intermediate",
+        "desc": "Clear standard language"
       },
       {
         "code": "B2",
-        "name": "Բarձr-միջin",
-        "desc": "Բardzr տeksteр еւ kazmakerpumner"
+        "name": "Upper-Interm.",
+        "desc": "Complex texts and discussion"
       },
       {
         "code": "C1",
-        "name": "Arajadhem",
-        "desc": "Azat inknabux hałordarkcutyun"
+        "name": "Advanced",
+        "desc": "Fluent, spontaneous use"
       },
       {
         "code": "C2",
-        "name": "Tirapetum",
-        "desc": "Lezvi lriv tirapetum"
+        "name": "Mastery",
+        "desc": "Full command of the language"
       }
     ],
-    "statsBadge": "Տvyalner",
-    "statsTitle": "2024 t. vichakagrutyun",
+    "statsBadge": "Data",
+    "statsTitle": "2024 Statistics",
     "statsMonths": [
-      "Hnv",
-      "Ptr",
-      "Mrt",
+      "Jan",
+      "Feb",
+      "Mar",
       "Apr",
-      "Mys",
-      "Hns",
-      "Hls",
-      "Ogs",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
       "Sep",
-      "Hkt",
-      "Nvb",
-      "Dkt"
+      "Oct",
+      "Nov",
+      "Dec"
     ],
     "statsCards": [
       {
-        "label": "Qnnutyunner",
-        "val": "1 842"
+        "label": "Total Exams",
+        "val": "1,842"
       },
       {
-        "label": "Hajoghutyun",
-        "val": "1 731"
+        "label": "Passed",
+        "val": "1,731"
       },
       {
-        "label": "Mijna gnahat",
+        "label": "Avg Score",
         "val": "74%"
       },
       {
-        "label": "Nor kentroner",
+        "label": "New Centers",
         "val": "6"
       }
     ],
-    "statsSub": "Amsekan qnnutyan nsistner 2024-in",
-    "materialsBadge": "Nakhaprastum",
-    "materialsTitle": "Usumnakan nyuteр",
+    "statsSub": "Monthly exam sessions in 2024",
+    "materialsBadge": "Preparation",
+    "materialsTitle": "Study Materials",
     "materials": [
       {
         "icon": "📖",
-        "title": "Nmush testер",
-        "desc": "Pahanjnakum qnnutyunner"
+        "title": "Sample Tests",
+        "desc": "Official practice exams for each level"
       },
       {
         "icon": "🎧",
-        "title": "Lusołakanutyun",
-        "desc": "Lusołakani nakhaprasтman nyuteр"
+        "title": "Listening Bank",
+        "desc": "Audio materials for Listening prep"
       },
       {
         "icon": "✍",
-        "title": "Grelu uzhecuycter",
-        "desc": "Sharаdrutyun ev cнaпаnisnеr"
+        "title": "Writing Guides",
+        "desc": "Essay templates and scoring rubrics"
       },
       {
         "icon": "🎤",
-        "title": "Khoseli khorhurdner",
-        "desc": "Nakhaprasтman kategutyunn еr"
+        "title": "Speaking Tips",
+        "desc": "Preparation strategies and sample tasks"
       }
     ],
     "faqBadge": "ՀՏՀ",
-    "faqTitle": "Hačakhs tvarkvoł harceр",
+    "faqTitle": "Frequently Asked Questions",
     "faqs": [
       {
-        "q": "Inqana tevel e qnnutyune?",
-        "a": "60-idan 120 rope katarelu kerp aman."
+        "q": "How long is the exam?",
+        "a": "Exams range from 60 to 120 minutes depending on the level. All sections — Reading, Listening, Writing, and Speaking — are completed in one session."
       },
       {
-        "q": "Vortegh es ktatum qnnutyune?",
-        "a": "Pahanjnakum ArmExam kentronnerum Hayastanum."
+        "q": "Where can I take the exam?",
+        "a": "Exams are held at certified ArmExam centers across Armenia. Check our centers page for locations and schedules."
       },
       {
-        "q": "Erb en patarastum artjyunknere?",
-        "a": "Avtomatacvac bazhneruh anmijapes. Grelu ev khoseli 5 ashxatanqayin or."
+        "q": "How soon are results available?",
+        "a": "Automated sections (Reading, Listening) are graded instantly. Writing and Speaking results are available within 5 business days."
       },
       {
-        "q": "Chapavoragire cheratsvu e?",
-        "a": "ArmExam chapavoragrere cheratsvoum en Hayastanum."
+        "q": "Is the certificate recognized?",
+        "a": "ArmExam certificates are recognized by universities, public institutions, and employers throughout Armenia and the Armenian diaspora."
       },
       {
-        "q": "Kareli e kazmin qnnutyune?",
-        "a": "Aye, 30 or hetо. Qanakov skhmanvum chi."
+        "q": "Can I retake the exam?",
+        "a": "Yes. You may retake the exam after a 30-day waiting period. There is no limit on the number of attempts."
       }
     ],
-    "contactBadge": "Kapkutyun",
-    "contactTitle": "Kapcveq menq",
-    "contactSub": "Mer hamararakutyune pataskhanume e 24 eresi intum.",
-    "namePh": "Anun Azganun",
-    "emailPh": "Elektronayin posta",
-    "msgPh": "Dzez hogabanutyun…",
-    "send": "Usharel",
-    "sent": "Hodvace uzharkvec!",
-    "sentSub": "Kkapcvenq dzezzi mot.",
-    "learnMore": "Avel",
-    "footer": "© 2025 ArmExam. Bardzaragra iravunknere pahpanvac en.",
+    "contactBadge": "Contact",
+    "contactTitle": "Contact Us",
+    "contactSub": "Have a question? Our team responds within 24 hours.",
+    "namePh": "Your full name",
+    "emailPh": "Email address",
+    "msgPh": "Your message…",
+    "send": "Send Message",
+    "sent": "Message sent!",
+    "sentSub": "We'll be in touch soon.",
+    "learnMore": "Learn more",
+    "footer": "© 2025 ArmExam. All rights reserved.",
     "cefr": [
       [
         "A1",
-        "Sksnак",
+        "Beginner",
         15
       ],
       [
         "A2",
-        "Tarrakan",
+        "Elementary",
         28
       ],
       [
         "B1",
-        "Midyin",
+        "Intermediate",
         48
       ],
       [
         "B2",
-        "Barcr-midyin",
+        "Upper-Interm.",
         65
       ],
       [
         "C1",
-        "Arajadhem",
+        "Advanced",
         82
       ],
       [
         "C2",
-        "Tirapetum",
+        "Mastery",
         100
       ]
     ]
