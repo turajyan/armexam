@@ -13,6 +13,7 @@ import ExaminerDashboard     from "./pages/ExaminerDashboard";
 import RegisterPage          from "./pages/RegisterPage";
 import LoginPage             from "./pages/LoginPage";
 import AdminLogin            from "./pages/AdminLogin";
+import PublicLanding         from "./pages/PublicLanding.jsx";
 import UserDashboard         from "./pages/UserDashboard";
 import ExamRegistrationPage  from "./pages/ExamRegistrationPage";
 import { THEMES, DEFAULT_THEME, THEME_KEY } from "./theme.js";
@@ -237,11 +238,12 @@ export default function App() {
 
   if (!adminChecked) return null;
   if (!admin) {
+    // Public landing for root URL, admin login only via #admin-login
     return (
-      <>
-        <style>{FONTS}{globalStyle}</style>
-        <AdminLogin theme={T} onSuccess={handleAdminLogin} />
-      </>
+      <PublicLanding
+        onLogin={() => { window.location.hash = "#login"; }}
+        onRegister={() => { window.location.hash = "#register"; }}
+      />
     );
   }
 
