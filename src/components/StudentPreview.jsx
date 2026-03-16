@@ -573,8 +573,12 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
 
     if (type === "TEXT_INSERTION") {
       const passages  = c.passages  || [];
-      const sentences = c.sentences || [];
-      const markers   = c.markers   || [];
+      const rawSentences = c.sentences || [];
+      const rawMarkers   = (c.markers  || []).map(m => ({ ...m, id: String(m.id) }));
+      // Migrate old format (no sentences array) — synthesize from passages
+      const sentences = rawSentences.length > 0 ? rawSentences :
+        rawMarkers.map((m, i) => ({ id: m.id, text: passages[m.correct] ?? ("Sentence " + (i+1)) }));
+      const markers = rawMarkers;
       const ans = (typeof tiAns === "object" && tiAns !== null) ? tiAns : {};
       const setMarker = (mid, idx) => setTiAns(a => ({ ...(a||{}), [mid]: idx }));
 

@@ -976,8 +976,13 @@ function TextInsertionEditor({ content, onChange }) {
   const uid = () => "ti_" + Math.random().toString(36).slice(2,7);
 
   const passages  = content.passages  || [""];
-  const sentences = content.sentences || [];
-  const markers   = content.markers   || [];
+  // Migrate old format: markers had numeric ids and no sentences array
+  const rawSentences = content.sentences || [];
+  const rawMarkers   = content.markers   || [];
+  // If no sentences but markers exist, synthesize sentences from passages
+  const sentences = rawSentences.length > 0 ? rawSentences :
+    rawMarkers.map((m, i) => ({ id: String(m.id), text: passages[m.correct] ?? ("Sentence " + (i+1)) }));
+  const markers = rawMarkers.map(m => ({ ...m, id: String(m.id) }));
 
   const upd = (patch) => onChange({ ...content, ...patch });
 
