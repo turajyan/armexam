@@ -18,7 +18,7 @@ const NEW_TYPES = [
 ];
 const ntypeInfo = (id) => NEW_TYPES.find(t => t.id === id) || NEW_TYPES[0];
 
-function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
+function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = false }) {
   const T = {
     bg:"#04080f", panel:"#080f1a", card:"#0d1829", border:"#1a2540",
     text:"#e2e8f0", muted:"#475569", gold:"#c8a96e",
@@ -623,6 +623,157 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots }) {
             lineHeight:1.6, marginBottom:24, fontWeight:600 }}>{q.prompt || "(no prompt)"}</p>
           {/* Interactive input */}
           {renderInput()}
+
+          {/* ── Admin answer key panel ─────────────────────────────── */}
+          {adminMode && (() => {
+            const panels = [];
+            const type = q.type;
+            const c = q.content || {};
+
+            if (type === "SINGLE_CHOICE") {
+              const opts = c.options || [];
+              panels.push(
+                <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
+                  borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
+                    letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
+                  {opts.map((opt, i) => (
+                    <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4,
+                      fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                      color: i === c.correct ? "#22c55e" : "#475569" }}>
+                      <span style={{ fontSize:11 }}>{i === c.correct ? "✓" : "○"}</span> {opt}
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            if (type === "MULTIPLE_CHOICE") {
+              const opts = c.options || [];
+              const correct = Array.isArray(c.correct) ? c.correct : [];
+              panels.push(
+                <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
+                  borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
+                    letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
+                  {opts.map((opt, i) => (
+                    <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4,
+                      fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                      color: correct.includes(i) ? "#22c55e" : "#475569" }}>
+                      <span style={{ fontSize:11 }}>{correct.includes(i) ? "✓" : "○"}</span> {opt}
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            if (type === "FILL_IN_THE_BLANKS" || type === "DRAG_TO_TEXT") {
+              const slots = c.slots || {};
+              panels.push(
+                <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
+                  borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
+                    letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
+                  {Object.entries(slots).map(([slot, answer]) => (
+                    <div key={slot} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                      color:"#e2e8f0", marginBottom:4 }}>
+                      <span style={{ color:"#475569" }}>{slot}:</span> <span style={{ color:"#22c55e" }}>{answer}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            if (type === "DRAG_AND_DROP_TABLE") {
+              const items = c.items || [];
+              const cols  = c.columns || [];
+              const correct = c.correct || {};
+              panels.push(
+                <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
+                  borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
+                    letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
+                  {items.map(it => {
+                    const col = cols.find(col => col.id === correct[it.id]);
+                    return (
+                      <div key={it.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                        color:"#e2e8f0", marginBottom:4 }}>
+                        <span style={{ color:"#475569" }}>{it.text}</span>
+                        <span style={{ color:"#22c55e" }}> → {col?.title ?? "?"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            if (type === "DRAG_AND_DROP_IMAGE") {
+              const labels   = c.labels   || [];
+              const hotspots = c.hotspots || [];
+              panels.push(
+                <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
+                  borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
+                    letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
+                  {hotspots.map((hs, i) => {
+                    const lbl = labels.find(l => l.id === hs.correct);
+                    return (
+                      <div key={hs.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                        color:"#e2e8f0", marginBottom:4 }}>
+                        <span style={{ color:"#475569" }}>Hotspot {i+1} ({Math.round(hs.x)}%,{Math.round(hs.y)})%:</span>
+                        <span style={{ color:"#22c55e" }}> {lbl?.text ?? "?"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            if (type === "IMAGE_CLICK") {
+              const hotspots = c.hotspots || [];
+              const correct  = hotspots.filter(h => h.correct);
+              const dist     = hotspots.filter(h => !h.correct);
+              panels.push(
+                <div key="ak" style={{ marginTop:20, background:"#22c55e0d", border:"1px solid #22c55e33",
+                  borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#22c55e",
+                    letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>✓ Answer key</div>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#e2e8f0", marginBottom:6 }}>
+                    <span style={{ color:"#22c55e" }}>✓ Correct zones: </span>
+                    {correct.map((h,i) => `Zone ${hotspots.indexOf(h)+1} (${Math.round(h.x)}%,${Math.round(h.y)}% ${Math.round(h.width??10)}×${Math.round(h.height??10)}%)`).join(", ") || "none"}
+                  </div>
+                  {dist.length > 0 && (
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#e2e8f0" }}>
+                      <span style={{ color:"#f87171" }}>✗ Distractor zones: </span>
+                      {dist.map((h,i) => `Zone ${hotspots.indexOf(h)+1}`).join(", ")}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            if (["SPEAKING_INDEPENDENT","SPEAKING_INTEGRATED","WRITING_INDEPENDENT","WRITING_INTEGRATED"].includes(type)) {
+              const rubrics = c.rubrics || [];
+              panels.push(
+                <div key="ak" style={{ marginTop:20, background:"#60a5fa0d", border:"1px solid #60a5fa33",
+                  borderRadius:12, padding:"14px 18px" }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#60a5fa",
+                    letterSpacing:.5, textTransform:"uppercase", marginBottom:10 }}>📋 Rubrics</div>
+                  {rubrics.map(r => (
+                    <div key={r.id} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
+                      color:"#e2e8f0", marginBottom:4 }}>
+                      {r.label} — <span style={{ color:"#f59e0b" }}>max {r.maxScore} pts</span>
+                    </div>
+                  ))}
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#475569", marginTop:8 }}>
+                    Total: {rubrics.reduce((s,r) => s + (r.maxScore||0), 0)} pts · Manual grading required
+                  </div>
+                </div>
+              );
+            }
+
+            return panels.length ? panels : null;
+          })()}
         </div>
 
         {/* Footer */}
