@@ -266,24 +266,49 @@ function StudentProfile({ student, onClose, onEdit }) {
 
 // ── Student Form Modal ────────────────────────────────────────────────────────
 function StudentForm({ initial, onSave, onCancel }) {
-  const blank = { name:"",email:"",phone:"",level:"B1",status:"active" };
-  const [f,setF] = useState(initial||blank);
+  const blank = { name:"",email:"",phone:"",level:"B1",status:"active",password:"" };
+  const [f,setF] = useState(initial ? { ...initial, password:"" } : blank);
+  const [showPass, setShowPass] = useState(false);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
+  const isNew = !initial;
   return (
-    <Modal title={initial?"Խ. students · Edit Student":"Ն. students · New Student"} onClose={onCancel}>
+    <Modal title={initial ? "Edit Student" : "New Student"} onClose={onCancel}>
       <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
-        <Input label="Full Name" value={f.name} onChange={v=>set("name",v)} placeholder="e.g. Անի Հակոբյան" />
+        <Input label="Full Name *" value={f.name} onChange={v=>set("name",v)} placeholder="e.g. Ani Hakobyan" />
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
-          <Input label="Email" value={f.email} onChange={v=>set("email",v)} placeholder="ani@mail.am" />
+          <Input label="Email *" value={f.email} onChange={v=>set("email",v)} placeholder="ani@mail.am" />
           <Input label="Phone" value={f.phone} onChange={v=>set("phone",v)} placeholder="+374 ..." />
         </div>
-        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14 }}>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
           <Select label="Level" value={f.level} onChange={v=>set("level",v)} options={LEVELS.map(l=>({value:l,label:l}))} />
-          <Select label="Settings" value={f.status} onChange={v=>set("status",v)} options={[{value:"active",label:"Active"},{value:"inactive",label:"Inactive"}]} />
+          <Select label="Status" value={f.status} onChange={v=>set("status",v)} options={[{value:"active",label:"Active"},{value:"inactive",label:"Inactive"}]} />
+        </div>
+        {/* Password — required for new, optional for edit */}
+        <div>
+          <div style={{ position:"relative" }}>
+            <Input label={isNew ? "Password *" : "New Password (leave blank to keep current)"}
+              value={f.password} onChange={v=>set("password",v)}
+              type={showPass ? "text" : "password"}
+              placeholder={isNew ? "Min 6 characters" : "Leave blank to keep current"} />
+            <button onClick={()=>setShowPass(s=>!s)}
+              style={{ position:"absolute", right:10, top:28, background:"transparent", border:"none",
+                color:C.muted, cursor:"pointer", fontSize:14, padding:"4px" }}>
+              {showPass ? "🙈" : "👁"}
+            </button>
+          </div>
+          {isNew && f.password && f.password.length < 6 && (
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.danger, marginTop:3 }}>
+              ⚠ Password must be at least 6 characters
+            </div>
+          )}
         </div>
         <div style={{ display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8,borderTop:`1px solid ${C.border}` }}>
           <Btn onClick={onCancel}>Cancel</Btn>
-          <Btn variant="primary" onClick={()=>onSave(f)} disabled={!f.name||!f.email}>{initial?"✓ Save":"✓ Create"}</Btn>
+          <Btn variant="primary"
+            onClick={()=>onSave(f)}
+            disabled={!f.name || !f.email || (isNew && f.password.length < 6)}>
+            {initial ? "✓ Save changes" : "✓ Create student"}
+          </Btn>
         </div>
       </div>
     </Modal>
@@ -477,17 +502,24 @@ function StudentsTable() {
   }, [enriched,search,filterLevel,filterStatus,sortBy]);
 
   const handleSave = async (f) => {
-    if (editing) {
-      const updated = await api.updateStudent(editing.id, f);
-      setStudents(ss=>ss.map(s=>s.id===editing.id?updated:s));
-    } else {
-      const newS = await api.createStudent({...f});
-      setStudents(ss=>[newS,...ss]);
+    try {
+      if (editing) {
+        // Don't send password if left blank on edit
+        const payload = { ...f };
+        if (!payload.password) delete payload.password;
+        const updated = await api.updateStudent(editing.id, payload);
+        setStudents(ss=>ss.map(s=>s.id===editing.id?updated:s));
+      } else {
+        const newS = await api.createStudent({ ...f });
+        setStudents(ss=>[newS,...ss]);
+      }
+      setEditing(null); setCreating(false);
+    } catch(e) {
+      alert("Error: " + (e.message || "Could not save student"));
     }
-    setEditing(null); setCreating(false);
   };
 
-  const COL = ["#","Student","Level","Exams","Avg","Passed","Settings",""];
+  const COL = ["#","Student","Level","Exams","Avg","Passed","Status",""];
 
   return (
     <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
