@@ -531,12 +531,12 @@ export default function SettingsPage({ theme, onThemeChange, currentTheme }) {
           </div>
         </SettingSection>
 
-        <SettingSection title="Roles & Permissions" icon="🔑" description="Each role has a fixed set of permissions. Assign roles to admins above.">
+        <SettingSection title="Roles & Permissions" icon="🔑" description="Each role has a fixed set of permissions. Assign roles to admins in the Admins tab.">
           {[
-            { role:"superadmin", color:C.gold,   perms:["Full access to everything","Change platform settings","Delete any data","Manage other admins"] },
-            { role:"admin",      color:C.info,   perms:["Manage questions","Manage exams","Manage students","View results","Upload media"] },
-            { role:"examiner",   color:C.purple, perms:["View question bank","Create & schedule exams","View exam results"] },
-            { role:"viewer",     color:C.muted,  perms:["View results and analytics only — read-only access"] },
+            { role:"super_admin",  color:C.gold,    perms:["Full platform access","Manage all admins & centers","Questions, Exams, Students","Analytics, Media, Settings","Can assign any role"] },
+            { role:"center_admin", color:C.info,    perms:["Questions, Exams, Students","Analytics for own center","Grading","Cannot access Settings or Admins tab"] },
+            { role:"moderator",    color:C.warning, perms:["View & edit question bank only","Cannot manage exams or students","No analytics, no settings"] },
+            { role:"examiner",     color:C.purple,  perms:["View question bank (read-only)","Grade speaking & writing","No access to exam management"] },
           ].map(r=>(
             <div key={r.role} style={{ display:"flex", alignItems:"flex-start", gap:14, padding:"14px 16px", background:C.panel, border:`1px solid ${C.border}`, borderRadius:10 }}>
               <span style={{ background:r.color+"18", color:r.color, border:`1px solid ${r.color}33`, borderRadius:6, padding:"3px 12px", fontSize:11, fontWeight:700, fontFamily:"'DM Sans',sans-serif", textTransform:"capitalize", whiteSpace:"nowrap", marginTop:2 }}>{r.role}</span>
