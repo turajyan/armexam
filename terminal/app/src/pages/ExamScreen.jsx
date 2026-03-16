@@ -359,6 +359,70 @@ function QuestionCard({ q, index, total, answer, onAnswer,
 
   const category = questionCategory(q);
   const lc = LEVEL_COLORS[q.level] || '#94a3b8';
+  const c  = q.content || {};
+  const mediaList_media = Array.isArray(q.media) ? q.media : [];
+
+  // ── per-type state ────────────────────────────────────────────────────────
+  // DRAG_TO_TEXT
+  const [placed,    setPlaced]    = useState({});
+  const [bankWords, setBankWords] = useState(null);
+  const [dragWord,  setDragWord]  = useState(null);
+  // DRAG_AND_DROP_TABLE
+  const [tPlaced, setTPlaced] = useState({});
+  const [tBank,   setTBank]   = useState(null);
+  const [tDrag,   setTDrag]   = useState(null);
+  // IMAGE_CLICK
+  const [imgClick, setImgClick] = useState(null);
+  // DRAG_AND_DROP_IMAGE
+  const [ddiPlaced,   setDdiPlaced]   = useState({});
+  const [ddiBank,     setDdiBank]     = useState(null);
+  const [ddiDrag,     setDdiDrag]     = useState(null);
+  const [ddiDragFrom, setDdiDragFrom] = useState(null);
+
+  // reset state when question changes
+  useEffect(() => {
+    setBankWords(null); setPlaced({}); setDragWord(null);
+    setTPlaced({}); setTBank(null); setTDrag(null);
+    setImgClick(null);
+    setDdiPlaced({}); setDdiBank(null); setDdiDrag(null); setDdiDragFrom(null);
+  }, [q.id]);
+
+  // DRAG_TO_TEXT helpers
+  const parseDragText = (text) => {
+    const segs = []; const rx = /\{(slot_\d+)\}/g; let last = 0, m;
+    rx.lastIndex = 0;
+    while ((m = rx.exec(text)) !== null) {
+      if (m.index > last) segs.push({ type:'text', val: text.slice(last, m.index) });
+      segs.push({ type:'slot', name: m[1] });
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) segs.push({ type:'text', val: text.slice(last) });
+    return segs;
+  };
+  const bank = bankWords ?? [...(c.wordBank || [])];
+  const initBank = () => { const wb = [...(c.wordBank||[])].sort(()=>Math.random()-.5); setBankWords(wb); setPlaced({}); onAnswer({}); };
+  const dropIntoSlot = (slotName) => {
+    if (!dragWord) return;
+    const prev = placed[slotName];
+    const next = { ...placed, [slotName]: dragWord };
+    setPlaced(next);
+    setBankWords(bw => { const nb = (bw||[]).filter(w=>w!==dragWord); return prev ? [...nb, prev] : nb; });
+    setDragWord(null);
+    onAnswer(next);
+  };
+  const returnToBank = (slotName) => {
+    const w = placed[slotName]; if (!w) return;
+    const next = {...placed}; delete next[slotName];
+    setPlaced(next);
+    setBankWords(bw => [...(bw||[]), w]);
+    onAnswer(next);
+  };
+
+  // DDI helpers
+  const LABEL_COLORS = ['#f59e0b','#60a5fa','#4ade80','#f87171','#a78bfa','#34d399','#fb923c','#e879f9'];
+  const labelColor = (lid, labels) => { const i = labels.findIndex(l=>l.id===lid); return i>=0 ? LABEL_COLORS[i%LABEL_COLORS.length] : T.gold; };
+  const startDragLabel = (lid, fromHs=null) => { setDdiDrag(lid); setDdiDragFrom(fromHs??'bank'); };
+  const endDrag = () => { setDdiDrag(null); setDdiDragFrom(null); };
 
   // Media list (new schema) or legacy fields
   const mediaList = q.media ?? (
@@ -383,7 +447,7 @@ function QuestionCard({ q, index, total, answer, onAnswer,
         style={{ width:'100%', borderRadius:12, marginBottom:16,
           maxHeight:240 }} />
     );
-    if (m.type === 'image') return (
+    if (m.type === 'image' && !['IMAGE_CLICK','DRAG_AND_DROP_IMAGE'].includes(q.type)) return (
       <img key={i} src={m.url} alt=""
         style={{ maxWidth:'100%', borderRadius:12, marginBottom:16 }} />
     );
@@ -456,18 +520,35 @@ function QuestionCard({ q, index, total, answer, onAnswer,
     }
 
     if (type === 'FILL_IN_THE_BLANKS' || type === 'fill_blank' || type === 'fill_wordbank') {
-      return (
-        <input type="text" value={answer || ''}
-          onChange={e => onAnswer(e.target.value)}
-          placeholder="Type your answer…"
-          autoComplete="off" spellCheck={false}
-          style={{
-            width:'100%', boxSizing:'border-box', padding:'14px 18px',
-            background:'#ffffff06',
+      const segs = c.segments || [];
+      const ans  = (typeof answer === 'object' && answer !== null) ? answer : {};
+      const setBlank = (id, val) => onAnswer({ ...ans, [id]: val });
+      if (segs.length === 0) return (
+        <input type="text" value={answer || ''} onChange={e => onAnswer(e.target.value)}
+          placeholder="Type your answer…" autoComplete="off" spellCheck={false}
+          style={{ width:'100%', boxSizing:'border-box', padding:'14px 18px', background:'#ffffff06',
             border:`1.5px solid ${answer ? T.gold+'66' : '#ffffff18'}`,
-            borderRadius:12, color:T.text,
-            fontFamily:"'DM Sans',sans-serif", fontSize:15, outline:'none',
-          }} />
+            borderRadius:12, color:T.text, fontFamily:"'DM Sans',sans-serif", fontSize:15, outline:'none' }} />
+      );
+      return (
+        <div style={{ background:'#ffffff06', border:'1px solid #ffffff18', borderRadius:12,
+          padding:'18px 22px', fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.6 }}>
+          {segs.map((s, i) =>
+            s.type === 'text'
+              ? <span key={i}>{s.value}</span>
+              : <input key={i} type="text" value={ans[s.id] || ''} autoComplete="off" spellCheck={false}
+                  onChange={e => setBlank(s.id, e.target.value)}
+                  placeholder="…"
+                  style={{ display:'inline-block',
+                    width: Math.max(80, ((ans[s.id]||'').length + 3) * 9) + 'px',
+                    background:'transparent',
+                    borderTop:'none', borderLeft:'none', borderRight:'none',
+                    borderBottom:`2px solid ${ans[s.id] ? T.gold : '#ffffff44'}`,
+                    color:T.gold, fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:600,
+                    outline:'none', textAlign:'center', padding:'0 4px', margin:'0 3px',
+                    transition:'border-bottom-color .15s' }} />
+          )}
+        </div>
       );
     }
 
@@ -483,6 +564,343 @@ function QuestionCard({ q, index, total, answer, onAnswer,
         <SpeakingRecorder question={q} sessionId={sessionId}
           backendUrl={backendUrl} T={T}
           onRecorded={qid => onAnswer('recorded_' + qid)} />
+      );
+    }
+
+    if (type === 'DRAG_TO_TEXT') {
+      const segs = parseDragText(c.text || '');
+      return (
+        <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+          <div style={{ background:'#ffffff06', border:'1px solid #ffffff18', borderRadius:12,
+            padding:'18px 22px', fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.2 }}>
+            {segs.map((seg, i) =>
+              seg.type === 'text'
+                ? <span key={i}>{seg.val}</span>
+                : (
+                  <span key={i}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); dropIntoSlot(seg.name); }}
+                    onClick={() => placed[seg.name] && returnToBank(seg.name)}
+                    style={{ display:'inline-block', minWidth:90, textAlign:'center',
+                      background: placed[seg.name] ? T.gold+'22' : '#ffffff0a',
+                      border:`2px dashed ${placed[seg.name] ? T.gold+'88' : '#ffffff33'}`,
+                      borderRadius:8, padding:'2px 14px', margin:'0 4px',
+                      color: placed[seg.name] ? T.gold : T.muted,
+                      fontSize:14, fontWeight:600, cursor: placed[seg.name] ? 'pointer' : 'default',
+                      transition:'all .15s' }}
+                    title={placed[seg.name] ? 'Click to return' : 'Drop here'}>
+                    {placed[seg.name] || '___'}
+                  </span>
+                )
+            )}
+          </div>
+          <div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted,
+              marginBottom:8, letterSpacing:.5, textTransform:'uppercase' }}>Word bank</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+              {bank.map((w, i) => (
+                <span key={w+i} draggable
+                  onDragStart={() => setDragWord(w)} onDragEnd={() => setDragWord(null)}
+                  style={{ background: dragWord===w ? T.gold+'33' : '#ffffff0d',
+                    border:`1.5px solid ${dragWord===w ? T.gold+'88' : '#ffffff22'}`,
+                    borderRadius:8, padding:'8px 18px', fontSize:14, color:T.text,
+                    fontFamily:"'DM Sans',sans-serif", fontWeight:500,
+                    cursor:'grab', userSelect:'none', transition:'all .15s' }}>
+                  {w}
+                </span>
+              ))}
+              {bank.length === 0 && <span style={{ fontSize:12, color:T.muted }}>All words placed</span>}
+            </div>
+          </div>
+          <button onClick={initBank} style={{ alignSelf:'flex-start', background:'transparent',
+            border:'1px solid #ffffff22', borderRadius:8, padding:'6px 14px',
+            color:T.muted, fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+            ↺ Reset
+          </button>
+
+        </div>
+      );
+    }
+
+    if (type === 'DRAG_AND_DROP_TABLE') {
+      const columns = c.columns || [];
+      const items   = c.items   || [];
+      const tbk = tBank ?? [...items];
+      const dropIntoCol = (colId) => {
+        if (!tDrag) return;
+        setTPlaced(p => ({ ...p, [tDrag.id]: colId }));
+        setTBank(b => (b??items).filter(x=>x.id!==tDrag.id));
+        setTDrag(null);
+        // sync answer
+        const next = { ...(typeof answer==='object'&&answer?answer:{}), [tDrag.id]: colId };
+        onAnswer(next);
+      };
+      const returnItem = (itemId) => {
+        const item = items.find(x=>x.id===itemId); if (!item) return;
+        const next = { ...(typeof answer==='object'&&answer?answer:{}) };
+        delete next[itemId];
+        setTPlaced(p => { const n={...p}; delete n[itemId]; return n; });
+        setTBank(b => [...(b??[]), item]);
+        onAnswer(next);
+      };
+      return (
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:`repeat(${columns.length},1fr)`, gap:12 }}>
+            {columns.map(col => {
+              const colItems = items.filter(it => tPlaced[it.id]===col.id);
+              return (
+                <div key={col.id}
+                  onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();dropIntoCol(col.id);}}
+                  style={{ background:'#ffffff06', border:'2px dashed #ffffff22', borderRadius:12,
+                    minHeight:120, padding:12 }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700,
+                    color:'#fb923c', marginBottom:10, textAlign:'center',
+                    background:'#fb923c18', borderRadius:7, padding:'4px 0' }}>{col.title}</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {colItems.map(it => (
+                      <div key={it.id} onClick={()=>returnItem(it.id)}
+                        style={{ background:'#fb923c18', border:'1px solid #fb923c44',
+                          borderRadius:8, padding:'8px 12px', fontSize:13, color:T.text,
+                          fontFamily:"'DM Sans',sans-serif", cursor:'pointer' }}>
+                        {it.text}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {tbk.length > 0 && (
+            <div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:T.muted,
+                marginBottom:8, letterSpacing:.5, textTransform:'uppercase' }}>Drag items into columns</div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {tbk.map(it => (
+                  <div key={it.id} draggable onDragStart={()=>setTDrag(it)} onDragEnd={()=>setTDrag(null)}
+                    style={{ background: tDrag?.id===it.id?'#fb923c33':'#ffffff0d',
+                      border:`1.5px solid ${tDrag?.id===it.id?'#fb923c88':'#ffffff22'}`,
+                      borderRadius:8, padding:'8px 16px', fontSize:13, color:T.text,
+                      fontFamily:"'DM Sans',sans-serif", cursor:'grab', userSelect:'none' }}>
+                    {it.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {tbk.length === 0 && <div style={{ fontSize:12, color:'#4ade80', textAlign:'center' }}>✓ All items placed</div>}
+          <button onClick={()=>{setTPlaced({});setTBank([...items]);onAnswer({});}}
+            style={{ alignSelf:'flex-start', background:'transparent', border:'1px solid #ffffff22',
+              borderRadius:8, padding:'6px 14px', color:T.muted, fontSize:12, cursor:'pointer' }}>
+            ↺ Reset
+          </button>
+        </div>
+      );
+    }
+
+    if (type === 'IMAGE_CLICK') {
+      const hotspots = c.hotspots || [];
+      const imgUrl   = mediaList_media.find(m=>m.type==='image')?.url;
+      const handleClick = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = ((e.clientX-rect.left)/rect.width)*100;
+        const y = ((e.clientY-rect.top)/rect.height)*100;
+        setImgClick({x,y});
+        onAnswer({x,y});
+      };
+      return (
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {!imgUrl && <div style={{ background:'#ffffff06', borderRadius:12, padding:'32px',
+            textAlign:'center', color:T.muted, fontSize:13 }}>No image attached</div>}
+          {imgUrl && (
+            <div style={{ position:'relative', display:'inline-block', cursor:'crosshair',
+              borderRadius:12, overflow:'hidden', userSelect:'none', width:'100%' }}
+              onClick={handleClick}>
+              <img src={imgUrl} alt="" style={{ width:'100%', display:'block', borderRadius:12 }} />
+              {imgClick && (
+                <div style={{ position:'absolute',
+                  left:imgClick.x+'%', top:imgClick.y+'%',
+                  transform:'translate(-50%,-50%)',
+                  width:22, height:22, borderRadius:'50%',
+                  background:T.gold+'66', border:`2px solid ${T.gold}`,
+                  pointerEvents:'none' }} />
+              )}
+            </div>
+          )}
+          {imgClick
+            ? <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted, textAlign:'center' }}>
+                ✓ Answer marked
+                <button onClick={()=>{setImgClick(null);onAnswer(null);}}
+                  style={{ marginLeft:12, background:'transparent', border:'1px solid #ffffff22',
+                    borderRadius:6, padding:'3px 10px', color:T.muted, fontSize:11, cursor:'pointer' }}>
+                  Reset
+                </button>
+              </div>
+            : <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted, textAlign:'center' }}>
+                Click on the image to mark your answer
+              </div>
+          }
+        </div>
+      );
+    }
+
+    if (type === 'DRAG_AND_DROP_IMAGE') {
+      const labels   = c.labels   || [];
+      const hotspots = c.hotspots || [];
+      const imgUrl   = mediaList_media.find(m=>m.type==='image')?.url;
+      const allLabelIds = labels.map(l=>l.id);
+      const bk = ddiBank ?? allLabelIds;
+      const labelText = id => labels.find(l=>l.id===id)?.text ?? id;
+      const lc2 = lid => labelColor(lid, labels);
+      const HOTSPOT_W = 96, HOTSPOT_H = 30;
+
+      const dropOnHotspot = (hsId) => {
+        if (!ddiDrag) return;
+        const prev = ddiPlaced[hsId];
+        const srcHs = ddiDragFrom && ddiDragFrom!=='bank' ? ddiDragFrom : null;
+        const nextPlaced = { ...ddiPlaced, [hsId]: ddiDrag };
+        if (srcHs) delete nextPlaced[srcHs];
+        setDdiPlaced(nextPlaced);
+        setDdiBank(b => {
+          let next = (b??allLabelIds).filter(id=>id!==ddiDrag);
+          if (prev && prev!==ddiDrag) next = [...next, prev];
+          if (!srcHs) next = next.filter(id=>id!==ddiDrag);
+          return next;
+        });
+        setDdiDrag(null); setDdiDragFrom(null);
+        onAnswer(nextPlaced);
+      };
+      const returnHotspot = (hsId) => {
+        const lbl = ddiPlaced[hsId]; if (!lbl) return;
+        const next = {...ddiPlaced}; delete next[hsId];
+        setDdiPlaced(next);
+        setDdiBank(b => [...(b??allLabelIds), lbl]);
+        onAnswer(next);
+      };
+
+      return (
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          {imgUrl ? (
+            <div style={{ position:'relative', width:'100%', userSelect:'none' }}
+              onDragOver={e=>e.preventDefault()}>
+              <img src={imgUrl} alt="" style={{ width:'100%', display:'block', borderRadius:12 }} />
+              {hotspots.map(hs => {
+                const placed2 = ddiPlaced[hs.id];
+                const isDraggingThis = ddiDragFrom===hs.id;
+                return (
+                  <div key={hs.id}
+                    draggable={!!placed2}
+                    onDragStart={placed2?(e)=>{e.stopPropagation();startDragLabel(placed2,hs.id);}:undefined}
+                    onDragEnd={endDrag}
+                    onDragOver={e=>e.preventDefault()}
+                    onDrop={e=>{e.preventDefault();dropOnHotspot(hs.id);}}
+                    onClick={()=>!ddiDrag&&placed2&&returnHotspot(hs.id)}
+                    title={placed2?'Drag to move · Click to return':'Drop a label here'}
+                    style={{ position:'absolute',
+                      left:`calc(${hs.x}% - ${HOTSPOT_W/2}px)`,
+                      top:`calc(${hs.y}% - ${HOTSPOT_H/2}px)`,
+                      width:HOTSPOT_W, height:HOTSPOT_H,
+                      background: placed2?'transparent':ddiDrag?'#00000022':'#00000015',
+                      border:`2px dashed ${isDraggingThis?lc2(placed2)+'88':placed2?lc2(placed2):ddiDrag?'#ffffffaa':'#ffffff66'}`,
+                      borderRadius:8, cursor:placed2?'grab':ddiDrag?'copy':'default',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      opacity:isDraggingThis?0.4:1, transition:'all .15s' }}>
+                    {placed2
+                      ? <span style={{ fontSize:12, color:'#fff', fontWeight:700, pointerEvents:'none',
+                          background:lc2(placed2)+'dd', padding:'2px 8px', borderRadius:5,
+                          textShadow:'0 1px 2px #00000088' }}>{labelText(placed2)}</span>
+                      : <span style={{ fontSize:11, color:'#ffffffaa', pointerEvents:'none',
+                          background:'#00000055', padding:'2px 8px', borderRadius:5 }}>drop here</span>
+                    }
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ padding:'20px', textAlign:'center', color:T.muted,
+              background:'#ffffff06', borderRadius:12, fontSize:13 }}>No image attached</div>
+          )}
+          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+            {bk.map(id => (
+              <div key={id} draggable
+                onDragStart={()=>startDragLabel(id,null)} onDragEnd={endDrag}
+                style={{ padding:'6px 14px', borderRadius:8, cursor:'grab',
+                  background:ddiDrag===id?lc2(id):lc2(id)+'cc',
+                  border:`1.5px solid ${lc2(id)}`,
+                  fontSize:13, color:'#fff', textShadow:'0 1px 2px #00000066',
+                  userSelect:'none', fontFamily:"'DM Sans',sans-serif", transition:'all .15s' }}>
+                {labelText(id)}
+              </div>
+            ))}
+            {bk.length===0 && <span style={{ fontSize:12, color:T.muted }}>All labels placed</span>}
+          </div>
+          <button onClick={()=>{setDdiPlaced({});setDdiBank(allLabelIds);onAnswer({});}}
+            style={{ alignSelf:'flex-start', background:'transparent', border:'1px solid #ffffff22',
+              borderRadius:7, padding:'5px 14px', color:T.muted, fontSize:12, cursor:'pointer' }}>
+            ↺ Reset
+          </button>
+        </div>
+      );
+    }
+
+    if (type === 'TEXT_INSERTION') {
+      // content: { passages: string[], markers: [{ id, correct: sentenceIndex }] }
+      // Student drags/selects where to insert each marked sentence
+      const passages  = c.passages  || [];
+      const markers   = c.markers   || [];
+      const ans = (typeof answer === 'object' && answer !== null) ? answer : {};
+      const setMarker = (mid, idx) => onAnswer({ ...ans, [mid]: idx });
+
+      return (
+        <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted, marginBottom:4 }}>
+            For each sentence below, choose where it fits in the passage (gap number).
+          </div>
+          {/* Passage with numbered gaps */}
+          <div style={{ background:'#ffffff06', border:'1px solid #ffffff18', borderRadius:12,
+            padding:'18px 22px', fontFamily:"'DM Sans',sans-serif", fontSize:15,
+            color:T.text, lineHeight:1.9 }}>
+            {passages.map((p, i) => (
+              <span key={i}>
+                {p}
+                {i < passages.length - 1 && (
+                  <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center',
+                    width:24, height:24, borderRadius:'50%', margin:'0 6px',
+                    background: Object.values(ans).some(v=>Number(v)===i) ? T.gold+'44' : '#ffffff18',
+                    border:`1.5px solid ${Object.values(ans).some(v=>Number(v)===i) ? T.gold : '#ffffff33'}`,
+                    color: Object.values(ans).some(v=>Number(v)===i) ? T.gold : T.muted,
+                    fontSize:11, fontWeight:700 }}>
+                    {i+1}
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+          {/* Sentence selectors */}
+          {markers.map((m, mi) => (
+            <div key={m.id} style={{ background:'#ffffff06', border:'1px solid #ffffff18',
+              borderRadius:12, padding:'14px 18px' }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.muted, marginBottom:8 }}>
+                Sentence {mi+1}: <em style={{ color:T.text }}>"{passages[m.correct] ?? '…'}"</em>
+              </div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                {passages.slice(0, -1).map((_, gi) => {
+                  const sel = Number(ans[m.id]) === gi;
+                  return (
+                    <button key={gi} onClick={()=>setMarker(m.id, gi)}
+                      style={{ padding:'6px 16px', borderRadius:8, cursor:'pointer',
+                        background: sel ? T.gold+'22' : '#ffffff08',
+                        border:`1.5px solid ${sel ? T.gold+'88' : '#ffffff22'}`,
+                        color: sel ? T.gold : T.muted,
+                        fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight: sel?700:400,
+                        transition:'all .15s' }}>
+                      Gap {gi+1}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       );
     }
 

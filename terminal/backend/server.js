@@ -176,26 +176,40 @@ function buildExam(exam, questionBank) {
   }
 
   // ── Fixed exam ────────────────────────────────────────────────────────────
-  const result = [];
+  // Group by section, preserve section order from subpools
+  const bySection = {};
+  const sectionOrder = [];
   for (const sp of exam.subpools || []) {
     const pool = byLevelSection(exam.level, sp.section);
     if (pool.length < sp.count)
       throw new Error(`Not enough questions: ${exam.level}/${sp.section} — need ${sp.count}, have ${pool.length}`);
+    if (!bySection[sp.section]) { bySection[sp.section] = []; sectionOrder.push(sp.section); }
     shuffle(pool).slice(0, sp.count).forEach(q =>
-      result.push({ ...q, sectionId: sp.section, category: sectionCategory(sp.section) })
+      bySection[sp.section].push({ ...q, sectionId: sp.section, category: sectionCategory(sp.section) })
     );
   }
-  const flat = exam.shuffle ? shuffle(result) : result;
+
+  // Shuffle only within each section (never across section boundaries)
+  const flat = [];
+  const sections = [];
+  for (const secName of sectionOrder) {
+    const qs = bySection[secName] ?? [];
+    if (qs.length === 0) continue;
+    const shuffled = exam.shuffle ? shuffle(qs) : qs;
+    const cat  = sectionCategory(secName);
+    const meta = SECTION_META[cat] ?? SECTION_META['READING'];
+    sections.push({
+      id:            secName,
+      category:      cat,
+      icon:          meta.icon,
+      label:         secName,
+      instruction:   meta.instruction,
+      questionCount: shuffled.length,
+      startIndex:    flat.length,
+    });
+    shuffled.forEach(q => flat.push(q));
+  }
   flat.forEach((q, i) => { q.orderIndex = i + 1; });
-  const sections = [{
-    id:            exam.level ?? 'Exam',
-    category:      'READING',
-    icon:          '📝',
-    label:         exam.title ?? 'Exam',
-    instruction:   'Answer all questions. You can navigate freely.',
-    questionCount: flat.length,
-    startIndex:    0,
-  }];
   return { sections, questions: flat };
 }
 
