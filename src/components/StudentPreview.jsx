@@ -146,14 +146,14 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                 display:"flex", alignItems:"center", gap:14,
                 padding:"14px 20px", borderRadius:12, cursor:"pointer",
                 background: sel ? T.optionSelected : T.optionBg,
-                border:`1.5px solid ${sel ? T.optionBorder : "#ffffff18"}`,
+                border:`1.5px solid ${sel ? T.optionBorder : T.border2}`,
                 textAlign:"left", transition:"all .15s", width:"100%",
               }}>
                 <div style={{ width:22, height:22, borderRadius:"50%", flexShrink:0,
-                  border:`2px solid ${sel ? T.gold : "#ffffff33"}`,
+                  border:`2px solid ${sel ? T.gold : T.border2}`,
                   background: sel ? T.gold : "transparent",
                   display:"flex", alignItems:"center", justifyContent:"center" }}>
-                  {sel && <div style={{ width:8, height:8, borderRadius:"50%", background:"#1a1200" }} />}
+                  {sel && <div style={{ width:8, height:8, borderRadius:"50%", background:T.bg }} />}
                 </div>
                 <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:typo.answerFontSize, color: sel ? T.text : T.muted }}>{opt}</span>
               </button>
@@ -178,11 +178,11 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                 display:"flex", alignItems:"center", gap:14,
                 padding:"14px 20px", borderRadius:12, cursor:"pointer",
                 background: checked ? T.optionSelected : T.optionBg,
-                border:`1.5px solid ${checked ? T.optionBorder : "#ffffff18"}`,
+                border:`1.5px solid ${checked ? T.optionBorder : T.border2}`,
                 textAlign:"left", transition:"all .15s", width:"100%",
               }}>
                 <div style={{ width:20, height:20, borderRadius:5, flexShrink:0,
-                  border:`2px solid ${checked ? T.gold : "#ffffff33"}`,
+                  border:`2px solid ${checked ? T.gold : T.border2}`,
                   background: checked ? T.gold+"33" : "transparent",
                   display:"flex", alignItems:"center", justifyContent:"center" }}>
                   {checked && <span style={{ color:T.gold, fontSize:12, fontWeight:700 }}>✓</span>}
@@ -202,7 +202,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
       const ans = typeof fillAns === "object" && fillAns !== null ? fillAns : {};
       const setBlank = (id, val) => setFillAns(prev => ({ ...(typeof prev === "object" && prev !== null ? prev : {}), [id]: val }));
       return (
-        <div style={{ background:"#ffffff06", border:"1px solid #ffffff18", borderRadius:12,
+        <div style={{ background:T.panel, border:"1px solid T.border2", borderRadius:12,
           padding:"18px 22px", fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.6 }}>
           {segs.map((s, i) =>
             s.type === "text"
@@ -213,7 +213,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   style={{ display:"inline-block", width: Math.max(80, ((ans[s.id]||"").length + 3) * 9) + "px",
                     background:"transparent",
                     borderTop:"none", borderLeft:"none", borderRight:"none",
-                    borderBottom:`2px solid ${ans[s.id] ? T.gold : "#ffffff44"}`,
+                    borderBottom:`2px solid ${ans[s.id] ? T.gold : T.border2}`,
                     color:T.gold, fontFamily:"'DM Sans',sans-serif", fontSize:15, fontWeight:600,
                     outline:"none", textAlign:"center", padding:"0 4px", margin:"0 3px",
                     transition:"border-bottom-color .15s" }} />
@@ -227,7 +227,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
       return (
         <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
           {/* Sentence with droppable slots */}
-          <div style={{ background:"#ffffff06", border:"1px solid #ffffff18", borderRadius:12,
+          <div style={{ background:T.panel, border:"1px solid T.border2", borderRadius:12,
             padding:"18px 22px", fontSize:16, color:T.text, fontFamily:"'DM Sans',sans-serif", lineHeight:2.2 }}>
             {segs.map((seg, i) =>
               seg.type === "text"
@@ -239,8 +239,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                     onClick={() => placed[seg.name] && returnToBank(seg.name)}
                     style={{
                       display:"inline-block", minWidth:90, textAlign:"center",
-                      background: placed[seg.name] ? T.gold+"22" : "#ffffff0a",
-                      border:`2px dashed ${placed[seg.name] ? T.gold+"88" : "#ffffff33"}`,
+                      background: placed[seg.name] ? T.gold+"22" : T.card,
+                      border:`2px dashed ${placed[seg.name] ? T.gold+"88" : T.border2}`,
                       borderRadius:8, padding:"2px 14px", margin:"0 4px",
                       color: placed[seg.name] ? T.gold : T.muted,
                       fontSize:14, fontWeight:600, cursor: placed[seg.name] ? "pointer" : "default",
@@ -261,8 +261,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   onDragStart={() => setDragWord(w)}
                   onDragEnd={() => setDragWord(null)}
                   style={{
-                    background: dragWord === w ? T.gold+"33" : "#ffffff0d",
-                    border:`1.5px solid ${dragWord === w ? T.gold+"88" : "#ffffff22"}`,
+                    background: dragWord === w ? T.gold+"33" : T.card,
+                    border:`1.5px solid ${dragWord === w ? T.gold+"88" : T.border2}`,
                     borderRadius:8, padding:"8px 18px", fontSize:14, color:T.text,
                     fontFamily:"'DM Sans',sans-serif", fontWeight:500,
                     cursor:"grab", userSelect:"none", transition:"all .15s",
@@ -274,7 +274,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             </div>
           </div>
           <button onClick={initBank} style={{ alignSelf:"flex-start", background:"transparent",
-            border:`1px solid #ffffff22`, borderRadius:8, padding:"6px 14px",
+            border:`1px solid T.border2`, borderRadius:8, padding:"6px 14px",
             color:T.muted, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
             ↺ Reset
           </button>
@@ -288,7 +288,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
           {c.prompt && <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.muted, margin:0 }}>{c.prompt}</p>}
           <textarea rows={8} value={writingAns} onChange={e => setWritingAns(e.target.value)}
             placeholder="Write your response here…"
-            style={{ background:"#ffffff06", border:`1.5px solid #ffffff18`,
+            style={{ background:T.panel, border:`1.5px solid T.border2`,
               borderRadius:12, padding:"14px 18px", color:T.text,
               fontFamily:"'DM Sans',sans-serif", fontSize:14, outline:"none", resize:"vertical" }} />
           <div style={{ fontSize:11, color:T.muted, textAlign:"right" }}>
@@ -302,7 +302,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
 
     if (type === "SPEAKING_INDEPENDENT" || type === "SPEAKING_INTEGRATED") {
       return (
-        <div style={{ background:"#ffffff06", borderRadius:12, padding:"24px", textAlign:"center" }}>
+        <div style={{ background:T.panel, borderRadius:12, padding:"24px", textAlign:"center" }}>
           <div style={{ fontSize:40, marginBottom:12 }}>🎤</div>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:T.muted, marginBottom:8 }}>
             Speaking question — recording UI only available in the Exam Terminal
@@ -344,10 +344,10 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                 <div key={col.id}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => { e.preventDefault(); dropIntoCol(col.id); }}
-                  style={{ background:"#ffffff06", border:"2px dashed #ffffff22", borderRadius:12,
+                  style={{ background:T.panel, border:"2px dashed T.border2", borderRadius:12,
                     minHeight:120, padding:12, transition:"border .15s" }}
                   onDragEnter={e => e.currentTarget.style.borderColor = "#fb923c88"}
-                  onDragLeave={e => e.currentTarget.style.borderColor = "#ffffff22"}>
+                  onDragLeave={e => e.currentTarget.style.borderColor = T.border2}>
                   <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700,
                     color:"#fb923c", marginBottom:10, textAlign:"center",
                     background:"#fb923c18", borderRadius:7, padding:"4px 0" }}>{col.title}</div>
@@ -376,8 +376,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   <div key={it.id} draggable
                     onDragStart={() => setTDrag(it)}
                     onDragEnd={() => setTDrag(null)}
-                    style={{ background: tDrag?.id === it.id ? "#fb923c33" : "#ffffff0d",
-                      border:`1.5px solid ${tDrag?.id === it.id ? "#fb923c88" : "#ffffff22"}`,
+                    style={{ background: tDrag?.id === it.id ? "#fb923c33" : T.card,
+                      border:`1.5px solid ${tDrag?.id === it.id ? "#fb923c88" : T.border2}`,
                       borderRadius:8, padding:"8px 16px", fontSize:13, color:T.text,
                       fontFamily:"'DM Sans',sans-serif", cursor:"grab",
                       userSelect:"none", transition:"all .15s" }}>
@@ -392,7 +392,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
           )}
           <button onClick={() => { setTPlaced({}); setTBank([...items]); }}
             style={{ alignSelf:"flex-start", background:"transparent",
-              border:"1px solid #ffffff22", borderRadius:8, padding:"6px 14px",
+              border:"1px solid T.border2", borderRadius:8, padding:"6px 14px",
               color:T.muted, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
             ↺ Reset
           </button>
@@ -420,7 +420,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
       return (
         <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
           {!imgUrl && (
-            <div style={{ background:"#ffffff06", borderRadius:12, padding:"32px",
+            <div style={{ background:T.panel, borderRadius:12, padding:"32px",
               textAlign:"center", color:T.muted, fontSize:13 }}>
               No image attached — add an image in the Media section
             </div>
@@ -449,7 +449,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
               color: hit ? "#4ade80" : "#f87171" }}>
               {hit ? "✓ Correct zone" : "✗ Try again"}
               <button onClick={() => setImgClick(null)}
-                style={{ marginLeft:12, background:"transparent", border:"1px solid #ffffff22",
+                style={{ marginLeft:12, background:"transparent", border:"1px solid T.border2",
                   borderRadius:6, padding:"3px 10px", color:T.muted, fontSize:11, cursor:"pointer" }}>
                 Reset
               </button>
@@ -537,7 +537,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                       top:  `calc(${hs.y}% - ${HOTSPOT_H/2}px)`,
                       width: HOTSPOT_W, height: HOTSPOT_H,
                       background: placed ? "transparent" : ddiDrag ? "#00000022" : "#00000015",
-                      border: `2px dashed ${isDraggingThis ? labelColor(placed)+"88" : placed ? labelColor(placed) : ddiDrag ? "#ffffffaa" : "#ffffff66"}`,
+                      border: `2px dashed ${isDraggingThis ? labelColor(placed)+"88" : placed ? labelColor(placed) : ddiDrag ? T.border2 : T.border2}`,
                       borderRadius: 8,
                       cursor: placed ? "grab" : ddiDrag ? "copy" : "default",
                       display:"flex", alignItems:"center", justifyContent:"center",
@@ -551,7 +551,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                           padding:"2px 8px", borderRadius:5,
                           textShadow:"0 1px 2px #00000088" }}>{labelText(placed)}</span>
                       : <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11,
-                          color:"#ffffffaa", pointerEvents:"none",
+                          color:T.border2, pointerEvents:"none",
                           background:"#00000055", padding:"2px 8px", borderRadius:5 }}>drop here</span>
                     }
                   </div>
@@ -560,7 +560,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             </div>
           ) : (
             <div style={{ padding:"20px", textAlign:"center", color:T.muted,
-              background:"#ffffff06", borderRadius:12, fontSize:13 }}>No image attached</div>
+              background:T.panel, borderRadius:12, fontSize:13 }}>No image attached</div>
           )}
 
           {/* Label bank */}
@@ -589,7 +589,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
 
           {/* Reset */}
           <button onClick={() => { setDdiPlaced({}); setDdiBank(allLabelIds); }}
-            style={{ alignSelf:"flex-start", background:"transparent", border:"1px solid #ffffff22",
+            style={{ alignSelf:"flex-start", background:"transparent", border:"1px solid T.border2",
               borderRadius:7, padding:"5px 14px", color:T.muted, fontSize:12, cursor:"pointer" }}>
             ↺ Reset
           </button>
@@ -611,7 +611,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
       return (
         <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
           {/* Passage with gap indicators */}
-          <div style={{ background:"#ffffff06", border:"1px solid #ffffff18", borderRadius:12,
+          <div style={{ background:T.panel, border:"1px solid T.border2", borderRadius:12,
             padding:"18px 22px", fontFamily:"'DM Sans',sans-serif", fontSize:15,
             color:T.text, lineHeight:2 }}>
             {passages.map((p, i) => {
@@ -632,7 +632,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                       ) : (
                         <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center",
                           width:24, height:24, borderRadius:"50%",
-                          background:"#ffffff18", border:"1.5px solid #ffffff33",
+                          background:T.border2, border:"1.5px solid T.border2",
                           color:T.muted, fontSize:11, fontWeight:700 }}>
                           {i+1}
                         </span>
@@ -654,7 +654,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
             if (!marker) return null;
             const currentGap = ans[s.id] !== undefined ? Number(ans[s.id]) : null;
             return (
-              <div key={s.id} style={{ background:"#ffffff06", border:"1px solid #ffffff18",
+              <div key={s.id} style={{ background:T.panel, border:"1px solid T.border2",
                 borderRadius:12, padding:"14px 18px" }}>
                 <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13,
                   color:T.text, marginBottom:10, fontStyle:"italic" }}>
@@ -669,8 +669,8 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                     return (
                       <button key={gi} onClick={()=>setMarker(s.id, gi)}
                         style={{ padding:"5px 14px", borderRadius:8, cursor:"pointer",
-                          background: sel ? T.gold+"22" : "#ffffff08",
-                          border:`1.5px solid ${sel ? T.gold+"88" : "#ffffff22"}`,
+                          background: sel ? T.gold+"22" : T.card,
+                          border:`1.5px solid ${sel ? T.gold+"88" : T.border2}`,
                           color: sel ? T.gold : T.muted,
                           fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:sel?700:400,
                           transition:"all .15s" }}>
@@ -681,7 +681,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
                   {currentGap !== null && (
                     <button onClick={()=>setTiAns(a=>{const n={...a};delete n[s.id];return n;})}
                       style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer",
-                        background:"transparent", border:"1px solid #ffffff15",
+                        background:"transparent", border:"1px solid T.border",
                         color:T.muted, fontSize:11, fontFamily:"'DM Sans',sans-serif" }}>
                       ✕ Clear
                     </button>
@@ -698,7 +698,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
   };
 
   const inner = (
-    <div style={{ background:T.bg, border:"1px solid #1a2540", borderRadius:20,
+    <div style={{ background:T.bg, border:`1px solid ${T.border}`, borderRadius:20,
       width:"100%", maxWidth:700, maxHeight:"90vh",
       display:"flex", flexDirection:"column", boxShadow:"0 32px 100px #000d" }}>
 
@@ -708,7 +708,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
           <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
             Student Preview
           </span>
-          {onClose && <button onClick={onClose} style={{ background:"transparent", border:"1px solid #1a2540",
+          {onClose && <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${T.border}`,
             borderRadius:8, width:30, height:30, color:"#475569", fontSize:15, cursor:"pointer",
             display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>✕</button>}
         </div>
@@ -720,7 +720,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
 
         {/* Header: level + type badges */}
         <div style={{ display:"flex", alignItems:"center", gap:10,
-          padding:"8px 14px 10px", borderBottom:"1px solid #1a2540", flexShrink:0 }}>
+          padding:"8px 14px 10px", borderBottom:`1px solid ${T.border}`, flexShrink:0 }}>
           <span style={{ background:lc+"18", color:lc, border:`1px solid ${lc}33`,
             borderRadius:5, padding:"2px 8px", fontSize:10, fontWeight:700 }}>{q.level}</span>
           <span style={{ background:ti.color+"18", color:ti.color, border:`1px solid ${ti.color}33`,
@@ -935,7 +935,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
         </div>
 
         {/* Footer */}
-        <div style={{ padding:"14px 24px", borderTop:"1px solid #1a2540", flexShrink:0,
+        <div style={{ padding:"14px 24px", borderTop:`1px solid ${T.border}`, flexShrink:0,
           display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#475569" }}>
             {q.points} pt · read-only preview
@@ -943,7 +943,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
           {navDots ? (
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={navPrev} disabled={!navPrev} style={{ background:"transparent",
-                border:"1px solid #243050", borderRadius:9, padding:"7px 16px", color: navPrev ? "#e2e8f0" : "#475569",
+                border:`1px solid ${T.border2}`, borderRadius:9, padding:"7px 16px", color: navPrev ? "#e2e8f0" : "#475569",
                 fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor: navPrev ? "pointer" : "not-allowed",
                 opacity: navPrev ? 1 : 0.4 }}>← Prev</button>
               {navNext
@@ -956,7 +956,7 @@ function StudentPreview({ q, onClose, navPrev, navNext, navDots, adminMode = fal
               }
             </div>
           ) : (
-            <button onClick={onClose} style={{ background:"transparent", border:"1px solid #243050",
+            <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${T.border2}`,
               borderRadius:9, padding:"8px 20px", color:"#475569",
               fontFamily:"'DM Sans',sans-serif", fontSize:13, cursor:"pointer" }}>Close</button>
           )}
