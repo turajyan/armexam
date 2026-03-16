@@ -799,6 +799,160 @@ function DragImageEditor({ content, onChange, media = [] }) {
   );
 }
 
+
+function ImageClickEditor({ content, onChange, media = [] }) {
+  const hotspots = content.hotspots || [];
+  const imgUrl   = media.find(m => m.type === "image")?.url;
+  const imgRef   = useRef(null);
+
+  // Drawing state
+  const drawing  = useRef(null); // { startX, startY } in %
+  const [dragBox, setDragBox] = useState(null); // live preview rect
+
+  const upd = (patch) => onChange({ ...content, ...patch });
+  const updHs = (id, patch) => upd({ hotspots: hotspots.map(h => h.id === id ? { ...h, ...patch } : h) });
+  const delHs = (id) => upd({ hotspots: hotspots.filter(h => h.id !== id) });
+
+  const toPercent = (e) => {
+    const rect = imgRef.current.getBoundingClientRect();
+    return {
+      x: Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width)  * 100)),
+      y: Math.min(100, Math.max(0, ((e.clientY - rect.top)  / rect.height) * 100)),
+    };
+  };
+
+  const onMouseDown = (e) => {
+    if (!imgRef.current) return;
+    e.preventDefault();
+    const { x, y } = toPercent(e);
+    drawing.current = { startX: x, startY: y };
+    setDragBox({ x, y, w: 0, h: 0 });
+
+    const onMove = (mv) => {
+      if (!drawing.current) return;
+      const p = toPercent(mv);
+      const sx = drawing.current.startX, sy = drawing.current.startY;
+      setDragBox({
+        x: Math.min(sx, p.x), y: Math.min(sy, p.y),
+        w: Math.abs(p.x - sx), h: Math.abs(p.y - sy),
+      });
+    };
+    const onUp = (mv) => {
+      if (!drawing.current) return;
+      const p = toPercent(mv);
+      const sx = drawing.current.startX, sy = drawing.current.startY;
+      const w = Math.abs(p.x - sx), h = Math.abs(p.y - sy);
+      drawing.current = null;
+      setDragBox(null);
+      if (w < 2 || h < 2) return; // ignore tiny clicks
+      const id = uid();
+      upd({ hotspots: [...hotspots, {
+        id, x: Math.min(sx, p.x), y: Math.min(sy, p.y), width: w, height: h, correct: true,
+      }]});
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup",   onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup",   onUp);
+  };
+
+  const HS_COLORS = ["#4ade80","#60a5fa","#f59e0b","#f87171","#a78bfa","#34d399"];
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+
+      {!imgUrl ? (
+        <div style={{ background:C.panel, border:`1px dashed ${C.border2}`, borderRadius:12,
+          padding:"32px", textAlign:"center", fontFamily:"'DM Sans',sans-serif", fontSize:13, color:C.muted }}>
+          📎 Add an image in the <strong style={{ color:C.text }}>Media</strong> section above, then draw answer zones here
+        </div>
+      ) : (
+        <>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>
+            🖱 <strong style={{ color:C.text }}>Drag</strong> on the image to draw a correct-answer zone · Click a zone to delete it
+          </div>
+
+          <div style={{ position:"relative", display:"inline-block", width:"100%",
+            cursor:"crosshair", userSelect:"none" }}
+            onMouseDown={onMouseDown}>
+            <img ref={imgRef} src={imgUrl} alt="" style={{ width:"100%", display:"block", borderRadius:10 }} />
+
+            {/* Existing hotspots */}
+            {hotspots.map((hs, idx) => (
+              <div key={hs.id}
+                onClick={e => { e.stopPropagation(); delHs(hs.id); }}
+                title="Click to delete"
+                style={{
+                  position:"absolute",
+                  left:  hs.x + "%", top:   hs.y + "%",
+                  width: (hs.width  ?? 10) + "%",
+                  height:(hs.height ?? 10) + "%",
+                  background: (HS_COLORS[idx % HS_COLORS.length]) + "33",
+                  border:`2px solid ${HS_COLORS[idx % HS_COLORS.length]}`,
+                  borderRadius:6, cursor:"pointer", boxSizing:"border-box",
+                  display:"flex", alignItems:"flex-start", justifyContent:"flex-end",
+                }}>
+                <span style={{ background:HS_COLORS[idx % HS_COLORS.length], color:"#fff",
+                  fontFamily:"'DM Sans',sans-serif", fontSize:10, fontWeight:700,
+                  padding:"1px 5px", borderRadius:"0 4px 0 4px", lineHeight:1.6 }}>
+                  {idx + 1} ✕
+                </span>
+              </div>
+            ))}
+
+            {/* Live drag preview */}
+            {dragBox && dragBox.w > 0 && (
+              <div style={{
+                position:"absolute", pointerEvents:"none",
+                left:  dragBox.x + "%", top:   dragBox.y + "%",
+                width: dragBox.w + "%", height:dragBox.h + "%",
+                background:"#4ade8022", border:"2px dashed #4ade80",
+                borderRadius:6, boxSizing:"border-box",
+              }} />
+            )}
+          </div>
+
+          {/* Zone list */}
+          {hotspots.length > 0 && (
+            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:C.muted,
+                letterSpacing:.5, textTransform:"uppercase" }}>Answer zones</div>
+              {hotspots.map((hs, idx) => (
+                <div key={hs.id} style={{ display:"grid", gridTemplateColumns:"24px 1fr 1fr auto", gap:8,
+                  alignItems:"center", background:C.panel, border:`1px solid ${C.border2}`,
+                  borderRadius:8, padding:"8px 12px" }}>
+                  <div style={{ width:14, height:14, borderRadius:3,
+                    background:HS_COLORS[idx % HS_COLORS.length] }} />
+                  <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted }}>
+                    Zone {idx + 1} — {Math.round(hs.x)}%,{Math.round(hs.y)}%
+                    &nbsp;({Math.round(hs.width ?? 10)}×{Math.round(hs.height ?? 10)}%)
+                  </span>
+                  <select value={hs.correct ? "correct" : "incorrect"}
+                    onChange={e => updHs(hs.id, { correct: e.target.value === "correct" })}
+                    style={{ background:C.bg, border:`1px solid ${C.border2}`, borderRadius:6,
+                      padding:"4px 8px", color:C.text, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>
+                    <option value="correct">✓ Correct</option>
+                    <option value="incorrect">✗ Incorrect / distractor</option>
+                  </select>
+                  <button onClick={() => delHs(hs.id)}
+                    style={{ background:"transparent", border:"none", color:"#f87171", cursor:"pointer", fontSize:15 }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {hotspots.length === 0 && (
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:C.muted,
+              textAlign:"center", padding:"8px" }}>
+              No zones yet — drag on the image above to add the correct answer area
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function JsonEditor({ label, value, onChange }) {
   const [raw, setRaw] = useState(() => JSON.stringify(value, null, 2));
   const [err, setErr] = useState("");
@@ -897,6 +1051,8 @@ function QuestionForm({ initial, onSave, onCancel, sections = [] }) {
         return <DragTableEditor content={q.content} onChange={v => setF("content", v)} />;
       case "DRAG_AND_DROP_IMAGE":
         return <DragImageEditor content={q.content} onChange={v => setF("content", v)} media={q.media} />;
+      case "IMAGE_CLICK":
+        return <ImageClickEditor content={q.content} onChange={v => setF("content", v)} media={q.media} />;
       default:
         return <JsonEditor label="content (JSON)" value={q.content} onChange={v => setF("content", v)} />;
     }
